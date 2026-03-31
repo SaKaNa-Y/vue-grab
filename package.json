@@ -1,0 +1,31 @@
+{
+  "name": "vue-grab-monorepo",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.24.0",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=10.0.0"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "dev:playground": "pnpm --filter playground dev",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck",
+    "lint": "turbo run lint",
+    "release": "changeset publish",
+    "version-packages": "changeset version"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  },
+  "devDependencies": {
+    "turbo": "^2.8.0",
+    "typescript": "~5.9.3",
+    "@changesets/cli": "^2.27.12",
+    "@changesets/changelog-github": "^0.5.1"
+  }
+}

@@ -1,0 +1,40 @@
+# Dependencies
+node_modules
+
+# Build output
+dist
+*.tsbuildinfo
+
+# Turbo
+.turbo
+
+# IDE
+.vscode/*
+!.vscode/extensions.json
+.idea
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+*.local
+.env
+.env.*
+
+# Testing
+coverage
+test-results
+playwright-report
+
+# Vercel
+.vercel
+
+# VitePress
+website/.vitepress/cache
+website/.vitepress/dist
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
