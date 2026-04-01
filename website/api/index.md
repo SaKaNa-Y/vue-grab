@@ -5,12 +5,14 @@
 Creates a Vue plugin instance.
 
 ```ts
-import { createVueGrab } from '@sakana/vue-grab'
+import { createVueGrab } from "@sakana/vue-grab";
 
-app.use(createVueGrab({
-  highlightColor: '#4f46e5',
-  showTagHint: true,
-}))
+app.use(
+  createVueGrab({
+    highlightColor: "#4f46e5",
+    showTagHint: true,
+  }),
+);
 ```
 
 ## `useGrab()`
@@ -18,9 +20,9 @@ app.use(createVueGrab({
 Composable for accessing grab configuration within components.
 
 ```ts
-import { useGrab } from '@sakana/vue-grab'
+import { useGrab } from "@sakana/vue-grab";
 
-const { config } = useGrab()
+const { config } = useGrab();
 ```
 
 ## `init(options?)`
@@ -28,7 +30,7 @@ const { config } = useGrab()
 Standalone initialization for non-Vue contexts (e.g., CDN script tag).
 
 ```ts
-import { init } from '@sakana/vue-grab'
+import { init } from "@sakana/vue-grab";
 
-init({ highlightColor: '#ef4444' })
+init({ highlightColor: "#ef4444" });
 ```

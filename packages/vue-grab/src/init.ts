@@ -1,25 +1,18 @@
-import type { GrabConfig, GrabResult } from '@sakana/vue-grab-shared'
-import { DEFAULT_CONFIG, mergeConfig } from '@sakana/vue-grab-shared'
-import { GrabEngine } from './core'
-import { HotkeyManager } from './hotkeys'
+import type { GrabConfig, GrabResult } from "@sakana/vue-grab-shared";
+import { DEFAULT_CONFIG, mergeConfig } from "@sakana/vue-grab-shared";
+import { createGrabSession } from "./session";
 
 /**
  * Standalone initialization for non-Vue contexts (e.g., script tag usage).
  */
 export function init(options: Partial<GrabConfig> = {}) {
-  const config = mergeConfig(DEFAULT_CONFIG, options)
-  const engine = new GrabEngine(config)
-  const hotkeys = new HotkeyManager()
-
-  hotkeys.register('Alt+Shift+G', () => engine.toggle())
+  const config = mergeConfig(DEFAULT_CONFIG, options);
+  const session = createGrabSession(config);
 
   return {
-    activate: () => engine.activate(),
-    deactivate: () => engine.deactivate(),
-    onGrab: (cb: (result: GrabResult) => void) => engine.onGrab(cb),
-    destroy: () => {
-      engine.destroy()
-      hotkeys.destroy()
-    },
-  }
+    activate: () => session.engine.activate(),
+    deactivate: () => session.engine.deactivate(),
+    onGrab: (cb: (result: GrabResult) => void) => session.engine.onGrab(cb),
+    destroy: () => session.destroy(),
+  };
 }

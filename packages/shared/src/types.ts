@@ -1,41 +1,41 @@
 export interface GrabConfig {
   /** Highlight border color */
-  highlightColor: string
+  highlightColor: string;
   /** Label text color */
-  labelTextColor: string
+  labelTextColor: string;
   /** Show floating tag hint on hover */
-  showTagHint: boolean
+  showTagHint: boolean;
   /** Maximum length of captured outerHTML (0 = unlimited) */
-  maxHtmlLength: number
+  maxHtmlLength: number;
   /** Filter options for element selection */
-  filter: GrabFilterConfig
+  filter: GrabFilterConfig;
 }
 
 export interface GrabFilterConfig {
   /** CSS selectors to ignore */
-  ignoreSelectors: string[]
+  ignoreSelectors: string[];
   /** HTML tags to ignore */
-  ignoreTags: string[]
+  ignoreTags: string[];
   /** Skip common layout components (header, nav, footer, aside) */
-  skipCommonComponents: boolean
+  skipCommonComponents: boolean;
 }
 
 export interface GrabResult {
   /** The selected DOM element */
-  element: Element
+  element: Element;
   /** HTML source of the element */
-  html: string
+  html: string;
   /** Vue component hierarchy leading to this element */
-  componentStack: ComponentInfo[]
+  componentStack: ComponentInfo[];
   /** CSS selector for the element */
-  selector: string
+  selector: string;
 }
 
 export interface ComponentInfo {
   /** Component name */
-  name: string
+  name: string;
   /** File path if available from Vue devtools */
-  filePath?: string
+  filePath?: string;
   /** Line number if available */
-  line?: number
+  line?: number;
 }

@@ -1,0 +1,25 @@
+{
+  "$schema": "https://raw.githubusercontent.com/nicolo-ribaudo/oxc-project.github.io/oxlint-schema/oxlintrc.schema.json",
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn",
+    "perf": "warn",
+    "style": "off",
+    "pedantic": "off",
+    "nursery": "off",
+    "restriction": "off"
+  },
+  "rules": {
+    "no-unused-vars": "warn",
+    "no-console": "off"
+  },
+  "ignorePatterns": [
+    "dist",
+    "node_modules",
+    "coverage",
+    "test-results",
+    "playwright-report",
+    "website/.vitepress/cache",
+    "website/.vitepress/dist"
+  ]
+}

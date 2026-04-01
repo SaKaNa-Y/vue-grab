@@ -11,9 +11,13 @@
     "build": "turbo run build",
     "dev": "turbo run dev",
     "dev:playground": "pnpm --filter playground dev",
+    "docs:dev": "pnpm --filter website dev",
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",
-    "lint": "turbo run lint",
+    "lint": "oxlint --vue-plugin --vitest-plugin packages/ website/",
+    "lint:fix": "oxlint --fix --vue-plugin --vitest-plugin packages/ website/",
+    "format": "oxfmt --write packages/ website/",
+    "format:check": "oxfmt --check packages/ website/",
     "release": "changeset publish",
     "version-packages": "changeset version"
   },
@@ -23,9 +27,11 @@
     ]
   },
   "devDependencies": {
-    "turbo": "^2.8.0",
-    "typescript": "~5.9.3",
+    "@changesets/changelog-github": "^0.5.1",
     "@changesets/cli": "^2.27.12",
-    "@changesets/changelog-github": "^0.5.1"
+    "oxfmt": "^0.43.0",
+    "oxlint": "^1.58.0",
+    "turbo": "^2.8.0",
+    "typescript": "~5.9.3"
   }
 }

@@ -2,10 +2,16 @@
   "name": "@sakana/vue-grab-cli",
   "version": "0.0.1",
   "private": false,
-  "type": "module",
   "bin": {
     "vue-grab": "./dist/bin.mjs"
   },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "import": "./dist/index.mjs",
@@ -13,10 +19,6 @@
       "types": "./dist/index.d.ts"
     }
   },
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.mjs",
-  "types": "./dist/index.d.ts",
-  "files": ["dist"],
   "scripts": {
     "build": "vite build",
     "test": "vitest run",
@@ -27,8 +29,8 @@
     "picocolors": "^1.1.0"
   },
   "devDependencies": {
+    "typescript": "~5.9.3",
     "vite": "^8.0.0",
-    "vitest": "^4.1.0",
-    "typescript": "~5.9.3"
+    "vitest": "^4.1.0"
   }
 }

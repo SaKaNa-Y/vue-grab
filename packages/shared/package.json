@@ -2,7 +2,13 @@
   "name": "@sakana/vue-grab-shared",
   "version": "0.0.1",
   "private": false,
+  "files": [
+    "dist"
+  ],
   "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "import": "./dist/index.mjs",
@@ -10,19 +16,15 @@
       "types": "./dist/index.d.ts"
     }
   },
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.mjs",
-  "types": "./dist/index.d.ts",
-  "files": ["dist"],
   "scripts": {
     "build": "vite build",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
+    "typescript": "~5.9.3",
     "vite": "^8.0.0",
     "vite-plugin-dts": "^4.5.0",
-    "vitest": "^4.1.0",
-    "typescript": "~5.9.3"
+    "vitest": "^4.1.0"
   }
 }

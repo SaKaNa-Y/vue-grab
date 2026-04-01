@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import HelloWorld from './components/HelloWorld.vue'
-import { useGrab } from '@sakana/vue-grab'
+import HelloWorld from "./components/HelloWorld.vue";
+import { useGrab } from "@sakana/vue-grab";
 
-const { isActive, lastResult, toggle } = useGrab()
+const { isActive, lastResult, toggle } = useGrab();
 </script>
 
 <template>
@@ -22,7 +22,7 @@ const { isActive, lastResult, toggle } = useGrab()
           font-size: 14px;
         "
       >
-        {{ isActive ? 'Cancel Grab' : 'Start Grab' }}
+        {{ isActive ? "Cancel Grab" : "Start Grab" }}
       </button>
       <kbd style="font-size: 12px; color: #6b7280">Alt+Shift+G</kbd>
       <span v-if="isActive" style="color: #4f46e5; font-size: 14px">
@@ -32,9 +32,7 @@ const { isActive, lastResult, toggle } = useGrab()
 
     <HelloWorld msg="Test component for vue-grab" />
 
-    <section
-      style="margin-top: 24px; padding: 16px; border: 1px solid #e5e7eb; border-radius: 8px"
-    >
+    <section style="margin-top: 24px; padding: 16px; border: 1px solid #e5e7eb; border-radius: 8px">
       <h2>Nested Elements</h2>
       <div class="card" style="padding: 12px; background: #f9fafb; border-radius: 6px">
         <p>A paragraph inside a card</p>
@@ -60,7 +58,9 @@ const { isActive, lastResult, toggle } = useGrab()
       "
     >
       <h3 style="margin-top: 0">Grab Result</h3>
-      <p><strong>Selector:</strong> <code>{{ lastResult.selector }}</code></p>
+      <p>
+        <strong>Selector:</strong> <code>{{ lastResult.selector }}</code>
+      </p>
       <p><strong>Tag:</strong> {{ lastResult.element.tagName.toLowerCase() }}</p>
       <div v-if="lastResult.componentStack.length">
         <p><strong>Component Stack:</strong></p>
@@ -84,7 +84,8 @@ const { isActive, lastResult, toggle } = useGrab()
             border-radius: 4px;
             font-size: 12px;
           "
-        >{{ lastResult.html }}</pre>
+          >{{ lastResult.html }}</pre
+        >
       </details>
     </div>
   </div>

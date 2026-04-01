@@ -1,1 +1,1 @@
-export { initProject } from './commands/init'
+export { initProject } from "./commands/init";
