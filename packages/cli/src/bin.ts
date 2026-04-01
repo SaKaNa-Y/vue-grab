@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { cac } from 'cac'
 import { initProject } from './commands/init'
+import { version } from '../package.json'
 
 const cli = cac('vue-grab')
 
@@ -12,5 +13,5 @@ cli
   })
 
 cli.help()
-cli.version('0.0.1')
+cli.version(version)
 cli.parse()

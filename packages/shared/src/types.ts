@@ -5,6 +5,8 @@ export interface GrabConfig {
   labelTextColor: string
   /** Show floating tag hint on hover */
   showTagHint: boolean
+  /** Maximum length of captured outerHTML (0 = unlimited) */
+  maxHtmlLength: number
   /** Filter options for element selection */
   filter: GrabFilterConfig
 }
