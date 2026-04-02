@@ -1,3 +1,12 @@
+export interface FloatingButtonConfig {
+  /** Show the floating button. Default: false (opt-in). */
+  enabled: boolean;
+  /** Initial position before any localStorage override. */
+  initialPosition: "bottom-right" | "bottom-left" | "top-right" | "top-left";
+  /** localStorage key for persisting position. Set to "" to disable persistence. */
+  storageKey: string;
+}
+
 export interface GrabConfig {
   /** Highlight border color */
   highlightColor: string;
@@ -9,6 +18,8 @@ export interface GrabConfig {
   maxHtmlLength: number;
   /** Filter options for element selection */
   filter: GrabFilterConfig;
+  /** Floating button configuration */
+  floatingButton: FloatingButtonConfig;
 }
 
 export interface GrabFilterConfig {

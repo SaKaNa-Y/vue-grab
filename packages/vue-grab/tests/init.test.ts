@@ -34,7 +34,7 @@ describe("init", () => {
 
   it("onGrab receives GrabResult on click", () => {
     instance = init();
-    const cb = vi.fn();
+    const cb = vi.fn<() => void>();
     instance.onGrab(cb);
     instance.activate();
 

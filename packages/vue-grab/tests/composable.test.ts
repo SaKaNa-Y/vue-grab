@@ -5,7 +5,7 @@ import { DEFAULT_HIGHLIGHT_COLOR } from "@sakana/vue-grab-shared";
 import { createVueGrab } from "../src";
 import { useGrab, type UseGrabReturn } from "../src/composables";
 import { OVERLAY_HOST_ID } from "../src/overlay";
-import { cleanupDOM, createTargetElement } from "./helpers/setup";
+import { cleanupDOM } from "./helpers/setup";
 
 function mountWithGrab(pluginOptions = {}) {
   let grab!: UseGrabReturn;

@@ -37,7 +37,7 @@ describe("GrabEngine", () => {
 
     it("fires onStateChange with true on activate", () => {
       engine = createEngine();
-      const cb = vi.fn();
+      const cb = vi.fn<() => void>();
       engine.onStateChange(cb);
       engine.activate();
       expect(cb).toHaveBeenCalledWith(true);
@@ -45,7 +45,7 @@ describe("GrabEngine", () => {
 
     it("is idempotent — second activate is a no-op", () => {
       engine = createEngine();
-      const cb = vi.fn();
+      const cb = vi.fn<() => void>();
       engine.onStateChange(cb);
       engine.activate();
       engine.activate();
@@ -76,7 +76,7 @@ describe("GrabEngine", () => {
 
     it("fires onStateChange with false on deactivate", () => {
       engine = createEngine();
-      const cb = vi.fn();
+      const cb = vi.fn<() => void>();
       engine.onStateChange(cb);
       engine.activate();
       engine.deactivate();
@@ -85,7 +85,7 @@ describe("GrabEngine", () => {
 
     it("deactivate is a no-op when already inactive", () => {
       engine = createEngine();
-      const cb = vi.fn();
+      const cb = vi.fn<() => void>();
       engine.onStateChange(cb);
       engine.deactivate();
       expect(cb).not.toHaveBeenCalled();
@@ -110,7 +110,7 @@ describe("GrabEngine", () => {
   describe("click (grab)", () => {
     it("calls onGrab with GrabResult on click", () => {
       engine = createEngine();
-      const cb = vi.fn();
+      const cb = vi.fn<() => void>();
       engine.onGrab(cb);
       engine.activate();
 
@@ -184,7 +184,7 @@ describe("GrabEngine", () => {
   describe("subscriptions", () => {
     it("onGrab returns an unsubscribe function", () => {
       engine = createEngine();
-      const cb = vi.fn();
+      const cb = vi.fn<() => void>();
       const unsub = engine.onGrab(cb);
       unsub();
 
@@ -197,7 +197,7 @@ describe("GrabEngine", () => {
 
     it("onStateChange returns an unsubscribe function", () => {
       engine = createEngine();
-      const cb = vi.fn();
+      const cb = vi.fn<() => void>();
       const unsub = engine.onStateChange(cb);
       unsub();
 
@@ -212,7 +212,7 @@ describe("GrabEngine", () => {
         ...DEFAULT_CONFIG,
         maxHtmlLength: 20,
       });
-      const cb = vi.fn();
+      const cb = vi.fn<() => void>();
       engine.onGrab(cb);
       engine.activate();
 
@@ -231,7 +231,7 @@ describe("GrabEngine", () => {
         ...DEFAULT_CONFIG,
         maxHtmlLength: 0,
       });
-      const cb = vi.fn();
+      const cb = vi.fn<() => void>();
       engine.onGrab(cb);
       engine.activate();
 
@@ -249,7 +249,7 @@ describe("GrabEngine", () => {
         ...DEFAULT_CONFIG,
         maxHtmlLength: 100_000,
       });
-      const cb = vi.fn();
+      const cb = vi.fn<() => void>();
       engine.onGrab(cb);
       engine.activate();
 
@@ -265,7 +265,7 @@ describe("GrabEngine", () => {
   describe("CSS selector generation", () => {
     it("returns #id for elements with an ID", () => {
       engine = createEngine();
-      const cb = vi.fn();
+      const cb = vi.fn<() => void>();
       engine.onGrab(cb);
       engine.activate();
 
@@ -277,7 +277,7 @@ describe("GrabEngine", () => {
 
     it("generates tag.class1.class2 for elements without ID", () => {
       engine = createEngine();
-      const cb = vi.fn();
+      const cb = vi.fn<() => void>();
       engine.onGrab(cb);
       engine.activate();
 
@@ -292,7 +292,7 @@ describe("GrabEngine", () => {
 
     it("limits to first 2 classes per segment", () => {
       engine = createEngine();
-      const cb = vi.fn();
+      const cb = vi.fn<() => void>();
       engine.onGrab(cb);
       engine.activate();
 
@@ -310,7 +310,7 @@ describe("GrabEngine", () => {
 
     it("walks up to ancestor with ID", () => {
       engine = createEngine();
-      const cb = vi.fn();
+      const cb = vi.fn<() => void>();
       engine.onGrab(cb);
       engine.activate();
 
@@ -339,7 +339,7 @@ describe("GrabEngine", () => {
         ...DEFAULT_CONFIG,
         filter: { ...DEFAULT_CONFIG.filter, ignoreTags: ["span"] },
       });
-      const cb = vi.fn();
+      const cb = vi.fn<() => void>();
       engine.onGrab(cb);
       engine.activate();
 
@@ -354,7 +354,7 @@ describe("GrabEngine", () => {
         ...DEFAULT_CONFIG,
         filter: { ...DEFAULT_CONFIG.filter, ignoreSelectors: [".ignore-me"] },
       });
-      const cb = vi.fn();
+      const cb = vi.fn<() => void>();
       engine.onGrab(cb);
       engine.activate();
 
@@ -370,7 +370,7 @@ describe("GrabEngine", () => {
         ...DEFAULT_CONFIG,
         filter: { ...DEFAULT_CONFIG.filter, ignoreSelectors: ["[invalid!!!"] },
       });
-      const cb = vi.fn();
+      const cb = vi.fn<() => void>();
       engine.onGrab(cb);
       engine.activate();
 
@@ -384,8 +384,8 @@ describe("GrabEngine", () => {
   describe("destroy", () => {
     it("deactivates and clears all callbacks", () => {
       engine = createEngine();
-      const grabCb = vi.fn();
-      const stateCb = vi.fn();
+      const grabCb = vi.fn<() => void>();
+      const stateCb = vi.fn<() => void>();
       engine.onGrab(grabCb);
       engine.onStateChange(stateCb);
       engine.activate();

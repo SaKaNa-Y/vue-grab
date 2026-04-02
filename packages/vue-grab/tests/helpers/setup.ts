@@ -1,4 +1,5 @@
 import { OVERLAY_HOST_ID } from "../../src/overlay";
+import { FAB_HOST_ID } from "../../src/floating-button";
 
 const TARGET_ATTR = "data-testid";
 const TARGET_VALUE = "grab-target";
@@ -38,9 +39,8 @@ export function createTargetElement(
  */
 export function cleanupDOM(): void {
   document.getElementById(OVERLAY_HOST_ID)?.remove();
-  document
-    .querySelectorAll(`[${TARGET_ATTR}="${TARGET_VALUE}"]`)
-    .forEach((el) => el.remove());
+  document.getElementById(FAB_HOST_ID)?.remove();
+  document.querySelectorAll(`[${TARGET_ATTR}="${TARGET_VALUE}"]`).forEach((el) => el.remove());
   // Restore cursor
   document.body.style.cursor = "";
 }

@@ -1,8 +1,9 @@
 import type { GrabConfig, GrabResult, ComponentInfo } from "@sakana/vue-grab-shared";
 import { mergeConfig } from "@sakana/vue-grab-shared";
 import { GrabOverlay, OVERLAY_HOST_ID } from "../overlay";
+import { FAB_HOST_ID } from "../floating-button";
 
-const COMMON_LAYOUT_NAMES = ["header", "nav", "footer", "aside", "main", "layout", "sidebar"];
+const COMMON_LAYOUT_NAMES = new Set(["header", "nav", "footer", "aside", "main", "layout", "sidebar"]);
 
 export class GrabEngine {
   private config: GrabConfig;
@@ -130,8 +131,8 @@ export class GrabEngine {
   }
 
   private shouldIgnore(el: Element): boolean {
-    // Ignore our own overlay
-    if (el.closest(`#${OVERLAY_HOST_ID}`)) return true;
+    // Ignore our own overlay and floating button
+    if (el.closest(`#${OVERLAY_HOST_ID}, #${FAB_HOST_ID}`)) return true;
 
     const tag = el.tagName.toLowerCase();
 
@@ -152,7 +153,7 @@ export class GrabEngine {
       const comp = this.getVueComponent(el);
       if (comp) {
         const name = (comp.type as any).name || (comp.type as any).__name || "";
-        if (COMMON_LAYOUT_NAMES.includes(name.toLowerCase())) return true;
+        if (COMMON_LAYOUT_NAMES.has(name.toLowerCase())) return true;
       }
     }
 

@@ -11,7 +11,7 @@ describe("HotkeyManager", () => {
   describe("register", () => {
     it("fires callback on exact combo match (Alt+Shift+G)", () => {
       manager = new HotkeyManager();
-      const cb = vi.fn();
+      const cb = vi.fn<() => void>();
       manager.register("Alt+Shift+G", cb);
 
       document.dispatchEvent(
@@ -28,7 +28,7 @@ describe("HotkeyManager", () => {
 
     it("does not fire on partial modifier match", () => {
       manager = new HotkeyManager();
-      const cb = vi.fn();
+      const cb = vi.fn<() => void>();
       manager.register("Alt+Shift+G", cb);
 
       // Only Alt, missing Shift
@@ -46,7 +46,7 @@ describe("HotkeyManager", () => {
 
     it("does not fire on wrong key", () => {
       manager = new HotkeyManager();
-      const cb = vi.fn();
+      const cb = vi.fn<() => void>();
       manager.register("Alt+Shift+G", cb);
 
       document.dispatchEvent(
@@ -63,7 +63,7 @@ describe("HotkeyManager", () => {
 
     it("handles Ctrl+K combo", () => {
       manager = new HotkeyManager();
-      const cb = vi.fn();
+      const cb = vi.fn<() => void>();
       manager.register("Ctrl+K", cb);
 
       document.dispatchEvent(
@@ -79,7 +79,7 @@ describe("HotkeyManager", () => {
 
     it('treats "control" as alias for "ctrl"', () => {
       manager = new HotkeyManager();
-      const cb = vi.fn();
+      const cb = vi.fn<() => void>();
       manager.register("Control+K", cb);
 
       document.dispatchEvent(
@@ -95,7 +95,7 @@ describe("HotkeyManager", () => {
 
     it('treats "cmd" as alias for "meta"', () => {
       manager = new HotkeyManager();
-      const cb = vi.fn();
+      const cb = vi.fn<() => void>();
       manager.register("Cmd+S", cb);
 
       document.dispatchEvent(
@@ -111,7 +111,7 @@ describe("HotkeyManager", () => {
 
     it('treats "command" as alias for "meta"', () => {
       manager = new HotkeyManager();
-      const cb = vi.fn();
+      const cb = vi.fn<() => void>();
       manager.register("Command+S", cb);
 
       document.dispatchEvent(
@@ -144,8 +144,8 @@ describe("HotkeyManager", () => {
 
     it("supports registering multiple combos independently", () => {
       manager = new HotkeyManager();
-      const cb1 = vi.fn();
-      const cb2 = vi.fn();
+      const cb1 = vi.fn<() => void>();
+      const cb2 = vi.fn<() => void>();
       manager.register("Ctrl+A", cb1);
       manager.register("Ctrl+B", cb2);
 
@@ -175,7 +175,7 @@ describe("HotkeyManager", () => {
   describe("destroy", () => {
     it("stops callbacks from firing after destroy", () => {
       manager = new HotkeyManager();
-      const cb = vi.fn();
+      const cb = vi.fn<() => void>();
       manager.register("Alt+Shift+G", cb);
       manager.destroy();
 

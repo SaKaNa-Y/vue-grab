@@ -80,13 +80,17 @@ describe("GrabOverlay", () => {
       overlay = createOverlay();
       overlay.mount();
 
-      const target = createTargetElement("div", {}, {
-        position: "absolute",
-        top: "100px",
-        left: "50px",
-        width: "200px",
-        height: "80px",
-      });
+      const target = createTargetElement(
+        "div",
+        {},
+        {
+          position: "absolute",
+          top: "100px",
+          left: "50px",
+          width: "200px",
+          height: "80px",
+        },
+      );
       const rect = target.getBoundingClientRect();
       overlay.highlight(target, "div");
 
