@@ -69,12 +69,12 @@ describe("FloatingButton", () => {
     });
 
     it("uses initialPosition default when no localStorage data", () => {
-      fab = createFab({ initialPosition: "top-left" });
+      fab = createFab({ initialPosition: "top-center" });
       fab.mount();
 
       const host = getHost()!;
-      expect(host.style.left).toBe("3%");
-      expect(host.style.top).toBe("15%");
+      expect(host.style.left).toBe("50%");
+      expect(host.style.top).toBe("3%");
     });
 
     it("reads position from localStorage if available", () => {

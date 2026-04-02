@@ -2,9 +2,11 @@ export interface FloatingButtonConfig {
   /** Show the floating button. Default: false (opt-in). */
   enabled: boolean;
   /** Initial position before any localStorage override. */
-  initialPosition: "bottom-right" | "bottom-left" | "top-right" | "top-left";
+  initialPosition: "bottom-right" | "bottom-left" | "top-right" | "top-left" | "top-center";
   /** localStorage key for persisting position. Set to "" to disable persistence. */
   storageKey: string;
+  /** localStorage key for persisting hotkey. Set to "" to disable persistence. */
+  hotkeyStorageKey: string;
 }
 
 export interface GrabConfig {

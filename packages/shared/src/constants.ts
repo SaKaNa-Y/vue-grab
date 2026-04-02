@@ -6,8 +6,9 @@ export const DEFAULT_HOTKEY = "Alt+Shift+G";
 
 export const DEFAULT_FLOATING_BUTTON: FloatingButtonConfig = {
   enabled: false,
-  initialPosition: "bottom-right",
+  initialPosition: "top-center",
   storageKey: "vue-grab-fab-pos",
+  hotkeyStorageKey: "vue-grab-hotkey",
 };
 
 export const DEFAULT_CONFIG: GrabConfig = {

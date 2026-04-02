@@ -21,13 +21,13 @@ export function createGrabSession(config: GrabConfig): GrabSession {
   const hotkeys = new HotkeyManager();
   let fab: FloatingButton | null = null;
 
-  hotkeys.register(DEFAULT_HOTKEY, () => engine.toggle());
-
   if (config.floatingButton.enabled) {
     const localFab = new FloatingButton(config.floatingButton);
     fab = localFab;
+    const initialHotkey = localFab.getCurrentHotkey() || DEFAULT_HOTKEY;
+    hotkeys.register(initialHotkey, () => engine.toggle());
     localFab.setHighlightColor(config.highlightColor);
-    localFab.setCurrentHotkey(DEFAULT_HOTKEY);
+    localFab.setCurrentHotkey(initialHotkey);
     localFab.onToggle(() => engine.toggle());
     localFab.onHotkeyChange((combo) => {
       hotkeys.destroy();
@@ -36,6 +36,8 @@ export function createGrabSession(config: GrabConfig): GrabSession {
     });
     engine.onStateChange((active) => localFab.setActive(active));
     localFab.mount();
+  } else {
+    hotkeys.register(DEFAULT_HOTKEY, () => engine.toggle());
   }
 
   return {

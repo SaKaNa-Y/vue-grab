@@ -5,6 +5,12 @@ export const FAB_HOST_ID = "vue-grab-fab-host";
 
 const DRAG_THRESHOLD = 3;
 const SNAP_TRANSITION = "left 0.3s ease, top 0.3s ease";
+const EDGE_MARGIN = 3; // reference margin as % of viewport height
+const INITIAL_SNAP_ZONE = 5; // positions within this % of edge get adjusted to responsive margin
+
+function edgeMarginX(): number {
+  return (EDGE_MARGIN * window.innerHeight) / window.innerWidth;
+}
 
 const INITIAL_POSITIONS: Record<FloatingButtonConfig["initialPosition"], { x: number; y: number }> =
   {
@@ -12,32 +18,48 @@ const INITIAL_POSITIONS: Record<FloatingButtonConfig["initialPosition"], { x: nu
     "bottom-left": { x: 3, y: 85 },
     "top-right": { x: 97, y: 15 },
     "top-left": { x: 3, y: 15 },
+    "top-center": { x: 50, y: 3 },
   };
 
 function clamp(v: number, min: number, max: number): number {
   return Math.min(Math.max(v, min), max);
 }
 
-function tryReadPosition(key: string): { x: number; y: number } | null {
+function tryReadStorage<T>(key: string, parse: (raw: string) => T | null): T | null {
   if (!key) return null;
   try {
     const raw = localStorage.getItem(key);
     if (!raw) return null;
-    const { x, y } = JSON.parse(raw);
-    if (typeof x === "number" && typeof y === "number") return { x, y };
+    return parse(raw);
   } catch {
-    // localStorage unavailable or corrupted
+    return null;
   }
-  return null;
+}
+
+function trySaveStorage(key: string, value: string): void {
+  if (!key) return;
+  try {
+    localStorage.setItem(key, value);
+  } catch {}
+}
+
+function tryReadPosition(key: string): { x: number; y: number } | null {
+  return tryReadStorage(key, (raw) => {
+    const { x, y } = JSON.parse(raw);
+    return typeof x === "number" && typeof y === "number" ? { x, y } : null;
+  });
 }
 
 function trySavePosition(key: string, x: number, y: number): void {
-  if (!key) return;
-  try {
-    localStorage.setItem(key, JSON.stringify({ x, y }));
-  } catch {
-    // localStorage unavailable
-  }
+  trySaveStorage(key, JSON.stringify({ x, y }));
+}
+
+function tryReadHotkey(key: string): string | null {
+  return tryReadStorage(key, (raw) => (typeof raw === "string" ? raw : null));
+}
+
+function trySaveHotkey(key: string, combo: string): void {
+  trySaveStorage(key, combo);
 }
 
 const CROSSHAIR_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="22" y1="12" x2="18" y2="12"/><line x1="6" y1="12" x2="2" y2="12"/><line x1="12" y1="6" x2="12" y2="2"/><line x1="12" y1="22" x2="12" y2="18"/><line x1="12" y1="15" x2="12" y2="9"/><line x1="9" y1="12" x2="15" y2="12"/></svg>`;
@@ -194,6 +216,17 @@ const STYLES = `
     color: #555;
     text-align: center;
   }
+  .toolbar.vertical {
+    flex-direction: column;
+    height: auto;
+    width: 36px;
+    padding: 4px 0;
+  }
+  .toolbar.vertical .toolbar-divider {
+    width: 18px;
+    height: 1px;
+    margin: 2px 0;
+  }
 `;
 
 export class FloatingButton {
@@ -241,8 +274,21 @@ export class FloatingButton {
     this.config = config;
     const initial = INITIAL_POSITIONS[config.initialPosition] ?? INITIAL_POSITIONS["bottom-right"];
     const saved = tryReadPosition(config.storageKey);
-    this.posX = saved?.x ?? initial.x;
-    this.posY = saved?.y ?? initial.y;
+    if (saved) {
+      this.posX = saved.x;
+      this.posY = saved.y;
+    } else {
+      this.posX = initial.x;
+      this.posY = initial.y;
+      // Adjust left/right positions so pixel margin matches top/bottom
+      if (this.posX <= INITIAL_SNAP_ZONE) this.posX = edgeMarginX();
+      else if (this.posX >= 100 - INITIAL_SNAP_ZONE) this.posX = 100 - edgeMarginX();
+    }
+    this.currentHotkey = tryReadHotkey(config.hotkeyStorageKey) ?? "";
+  }
+
+  getCurrentHotkey(): string {
+    return this.currentHotkey;
   }
 
   mount(): void {
@@ -303,6 +349,9 @@ export class FloatingButton {
     this.kbdEl = this.panelEl.querySelector("kbd");
     this.recordBtn = this.panelEl.querySelector(".record-btn");
     this.updateHotkeyDisplay();
+
+    // Set initial orientation based on position
+    this.applyOrientation(this.getEdgeFromPosition());
 
     // --- Event wiring ---
 
@@ -466,22 +515,20 @@ export class FloatingButton {
   }
 
   private snapToEdge(): void {
-    const cx = 50;
-    const cy = 50;
-    const angle = Math.atan2(this.posY - cy, this.posX - cx);
-    const deg = (angle * 180) / Math.PI;
+    const edge = this.getEdgeFromPosition();
+    const mx = edgeMarginX();
 
-    // Right: -45..45, Bottom: 45..135, Top: -135..-45, Left: rest
-    if (deg >= -45 && deg < 45) {
-      this.posX = 97;
-    } else if (deg >= 45 && deg < 135) {
-      this.posY = 97;
-    } else if (deg >= -135 && deg < -45) {
-      this.posY = 3;
+    if (edge === "right") {
+      this.posX = 100 - mx;
+    } else if (edge === "bottom") {
+      this.posY = 100 - EDGE_MARGIN;
+    } else if (edge === "top") {
+      this.posY = EDGE_MARGIN;
     } else {
-      this.posX = 3;
+      this.posX = mx;
     }
     this.applyPosition();
+    this.applyOrientation(edge);
     if (this.panelOpen) this.positionPanel();
   }
 
@@ -489,6 +536,21 @@ export class FloatingButton {
     if (!this.host) return;
     this.host.style.left = `${this.posX}%`;
     this.host.style.top = `${this.posY}%`;
+  }
+
+  private getEdgeFromPosition(): "top" | "bottom" | "left" | "right" {
+    const angle = Math.atan2(this.posY - 50, this.posX - 50);
+    const deg = (angle * 180) / Math.PI;
+    if (deg >= -45 && deg < 45) return "right";
+    if (deg >= 45 && deg < 135) return "bottom";
+    if (deg >= -135 && deg < -45) return "top";
+    return "left";
+  }
+
+  private applyOrientation(edge: "top" | "bottom" | "left" | "right"): void {
+    if (!this.toolbarEl) return;
+    const wantVertical = edge === "left" || edge === "right";
+    this.toolbarEl.classList.toggle("vertical", wantVertical);
   }
 
   // --- Settings panel ---
@@ -562,6 +624,7 @@ export class FloatingButton {
       const combo = buildCombo(e);
       this.currentHotkey = combo;
       this.stopRecording();
+      trySaveHotkey(this.config.hotkeyStorageKey, combo);
       this.hotkeyChangeCb?.(combo);
     };
 
