@@ -48,7 +48,7 @@ importers:
 
   packages/playground:
     dependencies:
-      '@sakana/vue-grab':
+      '@sakana-y/vue-grab':
         specifier: workspace:*
         version: link:../vue-grab
       vue:
@@ -85,7 +85,7 @@ importers:
 
   packages/vue-grab:
     dependencies:
-      '@sakana/vue-grab-shared':
+      '@sakana-y/vue-grab-shared':
         specifier: workspace:*
         version: link:../shared
     devDependencies:

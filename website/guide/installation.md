@@ -3,19 +3,19 @@
 ## CLI (Recommended)
 
 ```bash
-npx @sakana/vue-grab-cli init
+npx @sakana-y/vue-grab-cli init
 ```
 
 ## Manual
 
 ```bash
-pnpm add @sakana/vue-grab
+pnpm add @sakana-y/vue-grab
 ```
 
 ```ts
 // main.ts
 import { createApp } from "vue";
-import { createVueGrab } from "@sakana/vue-grab";
+import { createVueGrab } from "@sakana-y/vue-grab";
 import App from "./App.vue";
 
 const app = createApp(App);

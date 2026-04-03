@@ -19,8 +19,8 @@ pnpm format:check       # Check formatting (CI)
 
 Run a single package's tests:
 ```bash
-pnpm --filter @sakana/vue-grab test -- --reporter=verbose
-pnpm --filter @sakana/vue-grab-shared test
+pnpm --filter @sakana-y/vue-grab test -- --reporter=verbose
+pnpm --filter @sakana-y/vue-grab-shared test
 ```
 
 Release flow: `pnpm changeset` → `pnpm version-packages` → `pnpm release`
@@ -30,9 +30,9 @@ Release flow: `pnpm changeset` → `pnpm version-packages` → `pnpm release`
 pnpm monorepo orchestrated by Turbo. All packages build with Vite 8.
 
 ```
-@sakana/vue-grab-shared   — Shared types (GrabConfig, GrabResult, ComponentInfo) and constants (DEFAULT_CONFIG, mergeConfig)
-@sakana/vue-grab          — Core Vue 3 plugin: GrabEngine, GrabOverlay, HotkeyManager, useGrab composable, createVueGrab plugin, init() for non-Vue
-@sakana/vue-grab-cli      — CLI tool (CAC) with `vue-grab init` command
+@sakana-y/vue-grab-shared   — Shared types (GrabConfig, GrabResult, ComponentInfo) and constants (DEFAULT_CONFIG, mergeConfig)
+@sakana-y/vue-grab          — Core Vue 3 plugin: GrabEngine, GrabOverlay, HotkeyManager, useGrab composable, createVueGrab plugin, init() for non-Vue
+@sakana-y/vue-grab-cli      — CLI tool (CAC) with `vue-grab init` command
 playground                — Dev demo app (private)
 website                   — VitePress documentation site (private)
 ```

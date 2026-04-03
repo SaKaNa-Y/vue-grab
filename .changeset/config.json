@@ -4,7 +4,7 @@
   "commit": false,
   "fixed": [],
   "linked": [
-    ["@sakana/vue-grab", "@sakana/vue-grab-cli", "@sakana/vue-grab-shared"]
+    ["@sakana-y/vue-grab", "@sakana-y/vue-grab-cli", "@sakana-y/vue-grab-shared"]
   ],
   "access": "public",
   "baseBranch": "main",

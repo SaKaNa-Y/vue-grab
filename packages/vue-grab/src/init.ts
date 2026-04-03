@@ -1,5 +1,5 @@
-import type { GrabConfig, GrabResult } from "@sakana/vue-grab-shared";
-import { DEFAULT_CONFIG, mergeConfig } from "@sakana/vue-grab-shared";
+import type { GrabConfig, GrabResult } from "@sakana-y/vue-grab-shared";
+import { DEFAULT_CONFIG, mergeConfig } from "@sakana-y/vue-grab-shared";
 import { createGrabSession } from "./session";
 
 /**

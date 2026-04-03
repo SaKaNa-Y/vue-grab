@@ -1,6 +1,6 @@
 import type { App, InjectionKey } from "vue";
-import type { GrabConfig } from "@sakana/vue-grab-shared";
-import { DEFAULT_CONFIG, mergeConfig } from "@sakana/vue-grab-shared";
+import type { GrabConfig } from "@sakana-y/vue-grab-shared";
+import { DEFAULT_CONFIG, mergeConfig } from "@sakana-y/vue-grab-shared";
 
 export const VUE_GRAB_CONFIG_KEY: InjectionKey<GrabConfig> = Symbol("vue-grab-config");
 

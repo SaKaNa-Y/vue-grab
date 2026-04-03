@@ -1,5 +1,5 @@
-import type { GrabConfig } from "@sakana/vue-grab-shared";
-import { DEFAULT_HOTKEY } from "@sakana/vue-grab-shared";
+import type { GrabConfig } from "@sakana-y/vue-grab-shared";
+import { DEFAULT_HOTKEY } from "@sakana-y/vue-grab-shared";
 import { GrabEngine } from "./core";
 import { HotkeyManager } from "./hotkeys";
 import { FloatingButton } from "./floating-button";

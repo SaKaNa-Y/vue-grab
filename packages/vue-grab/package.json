@@ -1,5 +1,5 @@
 {
-  "name": "@sakana/vue-grab",
+  "name": "@sakana-y/vue-grab",
   "version": "0.0.1",
   "private": false,
   "files": [
@@ -23,7 +23,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@sakana/vue-grab-shared": "workspace:*"
+    "@sakana-y/vue-grab-shared": "workspace:*"
   },
   "devDependencies": {
     "@playwright/test": "^1.50.0",

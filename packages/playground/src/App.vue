@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import HelloWorld from "./components/HelloWorld.vue";
-import { useGrab } from "@sakana/vue-grab";
+import { useGrab } from "@sakana-y/vue-grab";
 
 const { isActive, lastResult, toggle } = useGrab();
 </script>

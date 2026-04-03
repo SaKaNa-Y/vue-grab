@@ -1,6 +1,6 @@
 import { inject, ref, onUnmounted, readonly, type DeepReadonly, type Ref } from "vue";
-import type { GrabConfig, GrabResult } from "@sakana/vue-grab-shared";
-import { DEFAULT_CONFIG } from "@sakana/vue-grab-shared";
+import type { GrabConfig, GrabResult } from "@sakana-y/vue-grab-shared";
+import { DEFAULT_CONFIG } from "@sakana-y/vue-grab-shared";
 import { createGrabSession } from "../session";
 import { VUE_GRAB_CONFIG_KEY } from "../plugin";
 

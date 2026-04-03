@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { DEFAULT_CONFIG } from "@sakana/vue-grab-shared";
+import { DEFAULT_CONFIG } from "@sakana-y/vue-grab-shared";
 import { GrabEngine } from "../src/core";
 import { OVERLAY_HOST_ID } from "../src/overlay";
 import { cleanupDOM, createTargetElement, fireClickAtCenter, fireKey } from "./helpers/setup";

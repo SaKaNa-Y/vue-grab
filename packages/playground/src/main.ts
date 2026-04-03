@@ -1,5 +1,5 @@
 import { createApp } from "vue";
-import { createVueGrab } from "@sakana/vue-grab";
+import { createVueGrab } from "@sakana-y/vue-grab";
 import App from "./App.vue";
 
 const app = createApp(App);

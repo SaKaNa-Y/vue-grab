@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { DEFAULT_FLOATING_BUTTON } from "@sakana/vue-grab-shared";
+import { DEFAULT_FLOATING_BUTTON } from "@sakana-y/vue-grab-shared";
 import { FloatingButton, FAB_HOST_ID } from "../src/floating-button";
 import { cleanupDOM } from "./helpers/setup";
 

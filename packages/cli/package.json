@@ -1,5 +1,5 @@
 {
-  "name": "@sakana/vue-grab-cli",
+  "name": "@sakana-y/vue-grab-cli",
   "version": "0.0.1",
   "private": false,
   "bin": {

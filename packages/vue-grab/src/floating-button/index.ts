@@ -1,4 +1,4 @@
-import type { FloatingButtonConfig } from "@sakana/vue-grab-shared";
+import type { FloatingButtonConfig } from "@sakana-y/vue-grab-shared";
 import { buildCombo } from "../hotkeys";
 
 export const FAB_HOST_ID = "vue-grab-fab-host";

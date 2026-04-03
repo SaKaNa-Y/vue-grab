@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { defineComponent } from "vue";
 import { mount, type VueWrapper } from "@vue/test-utils";
-import { DEFAULT_HIGHLIGHT_COLOR } from "@sakana/vue-grab-shared";
+import { DEFAULT_HIGHLIGHT_COLOR } from "@sakana-y/vue-grab-shared";
 import { createVueGrab } from "../src";
 import { useGrab, type UseGrabReturn } from "../src/composables";
 import { OVERLAY_HOST_ID } from "../src/overlay";

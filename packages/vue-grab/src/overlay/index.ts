@@ -1,4 +1,4 @@
-import type { GrabConfig } from "@sakana/vue-grab-shared";
+import type { GrabConfig } from "@sakana-y/vue-grab-shared";
 
 const OVERLAY_HOST_ID = "vue-grab-overlay-host";
 
