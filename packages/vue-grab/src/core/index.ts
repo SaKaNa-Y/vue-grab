@@ -3,7 +3,15 @@ import { mergeConfig } from "@sakana-y/vue-grab-shared";
 import { GrabOverlay, OVERLAY_HOST_ID } from "../overlay";
 import { FAB_HOST_ID } from "../floating-button";
 
-const COMMON_LAYOUT_NAMES = new Set(["header", "nav", "footer", "aside", "main", "layout", "sidebar"]);
+const COMMON_LAYOUT_NAMES = new Set([
+  "header",
+  "nav",
+  "footer",
+  "aside",
+  "main",
+  "layout",
+  "sidebar",
+]);
 
 export class GrabEngine {
   private config: GrabConfig;
