@@ -2,6 +2,9 @@
   "name": "@sakana-y/vue-grab-cli",
   "version": "0.0.1",
   "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
   "bin": {
     "vue-grab": "./dist/bin.mjs"
   },
