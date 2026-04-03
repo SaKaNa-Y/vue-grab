@@ -24,7 +24,7 @@ Use Node 20+ and `pnpm` 10+.
 - `pnpm lint`: run `oxlint` on `packages/` and `website/`
 - `pnpm format`: auto-format with `oxfmt`
 
-For package-only work, use filters such as `pnpm --filter @sakana/vue-grab test`.
+For package-only work, use filters such as `pnpm --filter @sakana-y/vue-grab test`.
 
 ## Coding Style & Naming Conventions
 Write TypeScript and Vue 3 with ES modules. Prefer `<script setup lang="ts">` in `.vue` files. The codebase uses semicolons, double quotes, and 2-space indentation. Keep filenames lowercase and descriptive; use `index.ts` for package entrypoints and `*.test.ts` for tests. Run `pnpm lint` and `pnpm format` before opening a PR.
@@ -36,4 +36,4 @@ Vitest is the test runner across the workspace, configured through `vitest.works
 Recent history follows Conventional Commits such as `feat:`, `fix:`, `refactor:`, and `test:`. Keep subjects imperative and specific. PRs should include a short description, linked issues when relevant, and screenshots or demo notes for playground/docs UI changes. Ensure CI passes `lint`, `format:check`, `typecheck`, `build`, and `test`.
 
 ## Release & Versioning Notes
-Use Changesets for published package changes. Add a changeset for any user-facing change to `@sakana/vue-grab`, `@sakana/vue-grab-cli`, or `@sakana/vue-grab-shared`, since those packages are version-linked.
+Use Changesets for published package changes. Add a changeset for any user-facing change to `@sakana-y/vue-grab`, `@sakana-y/vue-grab-cli`, or `@sakana-y/vue-grab-shared`, since those packages are version-linked.

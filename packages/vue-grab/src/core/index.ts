@@ -1,5 +1,5 @@
-import type { GrabConfig, GrabResult, ComponentInfo } from "@sakana/vue-grab-shared";
-import { mergeConfig } from "@sakana/vue-grab-shared";
+import type { GrabConfig, GrabResult, ComponentInfo } from "@sakana-y/vue-grab-shared";
+import { mergeConfig } from "@sakana-y/vue-grab-shared";
 import { GrabOverlay, OVERLAY_HOST_ID } from "../overlay";
 import { FAB_HOST_ID } from "../floating-button";
 

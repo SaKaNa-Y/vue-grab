@@ -8,7 +8,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@sakana/vue-grab": "workspace:*",
+    "@sakana-y/vue-grab": "workspace:*",
     "vue": "^3.5.13"
   },
   "devDependencies": {

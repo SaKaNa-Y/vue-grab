@@ -5,7 +5,7 @@
 Creates a Vue plugin instance.
 
 ```ts
-import { createVueGrab } from "@sakana/vue-grab";
+import { createVueGrab } from "@sakana-y/vue-grab";
 
 app.use(
   createVueGrab({
@@ -20,7 +20,7 @@ app.use(
 Composable for accessing grab configuration within components.
 
 ```ts
-import { useGrab } from "@sakana/vue-grab";
+import { useGrab } from "@sakana-y/vue-grab";
 
 const { config } = useGrab();
 ```
@@ -30,7 +30,7 @@ const { config } = useGrab();
 Standalone initialization for non-Vue contexts (e.g., CDN script tag).
 
 ```ts
-import { init } from "@sakana/vue-grab";
+import { init } from "@sakana-y/vue-grab";
 
 init({ highlightColor: "#ef4444" });
 ```

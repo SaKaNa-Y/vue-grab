@@ -25,6 +25,6 @@ export default defineConfig({
         },
       ],
     },
-    socialLinks: [{ icon: "github", link: "https://github.com/sakana/vue-grab" }],
+    socialLinks: [{ icon: "github", link: "https://github.com/SaKaNa-Y/vue-grab" }],
   },
 });

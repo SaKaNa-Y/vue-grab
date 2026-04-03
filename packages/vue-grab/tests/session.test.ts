@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from "vitest";
-import { DEFAULT_CONFIG } from "@sakana/vue-grab-shared";
+import { DEFAULT_CONFIG } from "@sakana-y/vue-grab-shared";
 import { createGrabSession } from "../src/session";
 import { OVERLAY_HOST_ID } from "../src/overlay";
 import { cleanupDOM, fireKey } from "./helpers/setup";

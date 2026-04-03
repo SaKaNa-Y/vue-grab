@@ -1,9 +1,9 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { defineComponent, inject } from "vue";
 import { mount } from "@vue/test-utils";
-import { DEFAULT_CONFIG, DEFAULT_HIGHLIGHT_COLOR } from "@sakana/vue-grab-shared";
+import { DEFAULT_CONFIG, DEFAULT_HIGHLIGHT_COLOR } from "@sakana-y/vue-grab-shared";
 import { createVueGrab, VUE_GRAB_CONFIG_KEY } from "../src";
-import type { GrabConfig } from "@sakana/vue-grab-shared";
+import type { GrabConfig } from "@sakana-y/vue-grab-shared";
 import { cleanupDOM } from "./helpers/setup";
 
 function mountAndInject(pluginOptions = {}): GrabConfig | undefined {

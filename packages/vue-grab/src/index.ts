@@ -8,4 +8,4 @@ export type {
   ComponentInfo,
   GrabFilterConfig,
   FloatingButtonConfig,
-} from "@sakana/vue-grab-shared";
+} from "@sakana-y/vue-grab-shared";

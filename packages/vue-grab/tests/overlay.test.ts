@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from "vitest";
-import { DEFAULT_HIGHLIGHT_COLOR, DEFAULT_LABEL_TEXT_COLOR } from "@sakana/vue-grab-shared";
+import { DEFAULT_HIGHLIGHT_COLOR, DEFAULT_LABEL_TEXT_COLOR } from "@sakana-y/vue-grab-shared";
 import { GrabOverlay, OVERLAY_HOST_ID } from "../src/overlay";
 import { cleanupDOM, createTargetElement } from "./helpers/setup";
 
