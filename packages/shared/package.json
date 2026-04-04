@@ -2,9 +2,6 @@
   "name": "@sakana-y/vue-grab-shared",
   "version": "0.0.1",
   "private": false,
-  "publishConfig": {
-    "access": "public"
-  },
   "files": [
     "dist"
   ],
@@ -18,6 +15,9 @@
       "require": "./dist/index.cjs",
       "types": "./dist/index.d.ts"
     }
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "build": "vite build",
