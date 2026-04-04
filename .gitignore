@@ -34,6 +34,9 @@ playwright-report
 website/.vitepress/cache
 website/.vitepress/dist
 
+# npm config (may contain auth tokens)
+.npmrc
+
 # Logs
 *.log
 npm-debug.log*
