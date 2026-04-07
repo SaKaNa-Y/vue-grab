@@ -7,6 +7,8 @@ export interface FloatingButtonConfig {
   storageKey: string;
   /** localStorage key for persisting hotkey. Set to "" to disable persistence. */
   hotkeyStorageKey: string;
+  /** localStorage key for persisting editor choice. Set to "" to disable persistence. */
+  editorStorageKey: string;
 }
 
 export interface GrabConfig {
@@ -22,6 +24,8 @@ export interface GrabConfig {
   filter: GrabFilterConfig;
   /** Floating button configuration */
   floatingButton: FloatingButtonConfig;
+  /** DevTools inspector panel configuration */
+  devtoolsPanel: DevToolsPanelConfig;
 }
 
 export interface GrabFilterConfig {
@@ -51,4 +55,38 @@ export interface ComponentInfo {
   filePath?: string;
   /** Line number if available */
   line?: number;
+}
+
+export type DevToolsPanelMode = "float" | "edge";
+export type EdgeDockSide = "bottom" | "right";
+
+export interface DevToolsPanelConfig {
+  enabled: boolean;
+  initialMode: DevToolsPanelMode;
+  edgeSide: EdgeDockSide;
+  panelModeStorageKey: string;
+  panelGeometryStorageKey: string;
+}
+
+export interface MatchedCSSRule {
+  selectorText: string;
+  originalSelectorText: string;
+  sourceFile: string | null;
+  styleIndex: number;
+  properties: CSSPropertyEntry[];
+  editable: boolean;
+}
+
+export interface CSSPropertyEntry {
+  property: string;
+  value: string;
+  priority: string;
+}
+
+export interface StyleUpdateRequest {
+  file: string;
+  selector: string;
+  property: string;
+  value: string;
+  styleIndex: number;
 }

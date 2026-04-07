@@ -1,5 +1,20 @@
-import type { FloatingButtonConfig } from "@sakana-y/vue-grab-shared";
+import type {
+  FloatingButtonConfig,
+  GrabResult,
+  MatchedCSSRule,
+  StyleUpdateRequest,
+} from "@sakana-y/vue-grab-shared";
 import { buildCombo } from "../hotkeys";
+import { openInEditor } from "../editor";
+import { matchCSSRules } from "../css-inspector";
+import {
+  esc,
+  tryReadStorage,
+  trySaveStorage,
+  renderInspectorHTML,
+  wireInspectorEvents,
+  INSPECTOR_STYLES,
+} from "../utils";
 
 export const FAB_HOST_ID = "vue-grab-fab-host";
 
@@ -25,24 +40,6 @@ function clamp(v: number, min: number, max: number): number {
   return Math.min(Math.max(v, min), max);
 }
 
-function tryReadStorage<T>(key: string, parse: (raw: string) => T | null): T | null {
-  if (!key) return null;
-  try {
-    const raw = localStorage.getItem(key);
-    if (!raw) return null;
-    return parse(raw);
-  } catch {
-    return null;
-  }
-}
-
-function trySaveStorage(key: string, value: string): void {
-  if (!key) return;
-  try {
-    localStorage.setItem(key, value);
-  } catch {}
-}
-
 function tryReadPosition(key: string): { x: number; y: number } | null {
   return tryReadStorage(key, (raw) => {
     const { x, y } = JSON.parse(raw);
@@ -62,20 +59,57 @@ function trySaveHotkey(key: string, combo: string): void {
   trySaveStorage(key, combo);
 }
 
+function tryReadEditor(key: string): string | null {
+  return tryReadStorage(key, (raw) => (typeof raw === "string" ? raw : null));
+}
+
+function trySaveEditor(key: string, editor: string): void {
+  trySaveStorage(key, editor);
+}
+
 const CROSSHAIR_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="22" y1="12" x2="18" y2="12"/><line x1="6" y1="12" x2="2" y2="12"/><line x1="12" y1="6" x2="12" y2="2"/><line x1="12" y1="22" x2="12" y2="18"/><line x1="12" y1="15" x2="12" y2="9"/><line x1="9" y1="12" x2="15" y2="12"/></svg>`;
 
 const GEAR_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.32 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`;
+
+const INSPECTOR_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>`;
+
+const EDITOR_PRESETS = [
+  { label: "Auto-detect", value: "" },
+  { label: "VS Code", value: "code" },
+  { label: "Cursor", value: "cursor" },
+];
+
+type TabId = "shortcuts" | "editor";
+type PanelId = "settings" | "inspector";
 
 const STYLES = `
   :host {
     all: initial;
   }
+
+  /* ── FAB wrapper (flex column: bar + panel) ── */
+  .fab-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+  .fab-wrapper.expand-up {
+    flex-direction: column-reverse;
+  }
+  .fab-wrapper.expand-right {
+    flex-direction: row;
+    align-items: center;
+  }
+  .fab-wrapper.expand-left {
+    flex-direction: row-reverse;
+    align-items: center;
+  }
+
+  /* ── Toolbar (compact bar) ── */
   .toolbar {
     display: inline-flex;
-    align-items: center;
-    height: 36px;
-    padding: 0 4px;
-    gap: 2px;
+    flex-direction: column;
     border-radius: 8px;
     border: 1px solid rgba(255,255,255,0.1);
     background: rgba(30,30,30,0.85);
@@ -91,6 +125,17 @@ const STYLES = `
     cursor: grabbing;
     box-shadow: 0 4px 16px rgba(0,0,0,0.5);
   }
+
+  /* ── Button row ── */
+  .toolbar-row {
+    display: inline-flex;
+    align-items: center;
+    height: 36px;
+    padding: 0 4px;
+    gap: 2px;
+    flex-shrink: 0;
+  }
+
   .toolbar-btn {
     width: 28px;
     height: 28px;
@@ -113,6 +158,12 @@ const STYLES = `
     box-shadow: inset 0 0 0 1.5px var(--grab-color, #4f46e5);
     background: color-mix(in srgb, var(--grab-color, #4f46e5) 12%, transparent);
   }
+  .gear-btn.active,
+  .inspector-btn.active {
+    color: var(--grab-color, #4f46e5);
+    box-shadow: inset 0 0 0 1.5px var(--grab-color, #4f46e5);
+    background: color-mix(in srgb, var(--grab-color, #4f46e5) 12%, transparent);
+  }
   .toolbar-divider {
     width: 1px;
     height: 18px;
@@ -120,53 +171,89 @@ const STYLES = `
     margin: 0 2px;
   }
 
-  .panel {
-    position: absolute;
-    width: 240px;
-    background: rgba(25,25,25,0.94);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 12px;
+  /* ── Expand body (separate card below/above bar) ── */
+  .expand-body {
+    display: none;
+    flex-direction: column;
+    overflow-y: auto;
+    height: min(500px, 65vh);
+    width: min(900px, 85vw);
     color: #e0e0e0;
     font-family: system-ui, -apple-system, sans-serif;
     font-size: 13px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-    padding: 14px;
-    display: none;
-    z-index: 1;
+    cursor: default;
+    touch-action: pan-y;
+    user-select: text;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(30,30,30,0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.35);
+    box-sizing: border-box;
   }
-  .panel.open {
-    display: block;
-  }
-  .panel-header {
+  .expand-body.open {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 12px;
-    font-weight: 600;
-    font-size: 13px;
-    color: #fff;
   }
-  .panel-close {
+  .expand-body::-webkit-scrollbar {
+    width: 6px;
+  }
+  .expand-body::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .expand-body::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.15);
+    border-radius: 3px;
+  }
+
+  /* ── Tabs (inside settings content) ── */
+  .tab-bar {
+    display: flex;
+    padding: 0 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    gap: 0;
+    flex-shrink: 0;
+  }
+  .tab-btn {
     background: none;
     border: none;
     color: #888;
+    font-size: 12px;
+    font-family: inherit;
+    padding: 8px 12px;
     cursor: pointer;
-    font-size: 16px;
-    line-height: 1;
-    padding: 0 2px;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s ease, border-color 0.15s ease;
+    white-space: nowrap;
   }
-  .panel-close:hover {
-    color: #fff;
+  .tab-btn:hover {
+    color: #ccc;
   }
-  .panel-label {
+  .tab-btn.active {
+    color: var(--grab-color, #4f46e5);
+    border-bottom-color: var(--grab-color, #4f46e5);
+  }
+  .tab-content {
+    padding: 14px;
+    display: none;
+  }
+  .tab-content.active {
+    display: block;
+  }
+
+  /* Section label */
+  .section-label {
     font-size: 11px;
     color: #888;
-    margin-bottom: 6px;
+    margin-bottom: 8px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
+  .section-label:not(:first-child) {
+    margin-top: 14px;
+  }
+
+  /* Hotkey row */
   .hotkey-row {
     display: flex;
     align-items: center;
@@ -210,13 +297,63 @@ const STYLES = `
     background: rgba(255,255,255,0.14);
     color: #fff;
   }
-  .panel-hint {
-    margin-top: 12px;
-    font-size: 11px;
-    color: #555;
-    text-align: center;
+
+  /* Select dropdown */
+  .editor-select {
+    width: 100%;
+    padding: 6px 10px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 6px;
+    color: #ddd;
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
   }
-  .toolbar.vertical {
+  .editor-select:focus {
+    outline: none;
+    border-color: var(--grab-color, #4f46e5);
+  }
+  .editor-select option {
+    background: #1e1e1e;
+    color: #ddd;
+  }
+
+  /* Open file button */
+  .open-file-btn {
+    width: 100%;
+    margin-top: 12px;
+    padding: 7px 12px;
+    background: var(--grab-color, #4f46e5);
+    border: none;
+    border-radius: 6px;
+    color: #fff;
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+  }
+  .open-file-btn:hover {
+    opacity: 0.85;
+  }
+  .open-file-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .file-path-display {
+    margin-top: 8px;
+    font-size: 11px;
+    color: #666;
+    word-break: break-all;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+
+  /* Vertical layout */
+  .toolbar.vertical .toolbar-row {
     flex-direction: column;
     height: auto;
     width: 36px;
@@ -227,24 +364,48 @@ const STYLES = `
     height: 1px;
     margin: 2px 0;
   }
+  /* When expanded vertically + vertical toolbar, override to horizontal row */
+  .fab-wrapper.expanded:not(.expand-left):not(.expand-right) .toolbar.vertical .toolbar-row {
+    flex-direction: row;
+    width: auto;
+    height: 36px;
+    padding: 0 4px;
+  }
+  .fab-wrapper.expanded:not(.expand-left):not(.expand-right) .toolbar.vertical .toolbar-divider {
+    width: 1px;
+    height: 18px;
+    margin: 0 2px;
+  }
+
+  ${INSPECTOR_STYLES}
 `;
 
 export class FloatingButton {
   private host: HTMLElement | null = null;
   private shadowRoot: ShadowRoot | null = null;
+  private wrapperEl: HTMLElement | null = null;
   private toolbarEl: HTMLElement | null = null;
+  private toolbarRowEl: HTMLElement | null = null;
+  private expandBodyEl: HTMLElement | null = null;
   private btnEl: HTMLElement | null = null;
   private gearEl: HTMLElement | null = null;
-  private panelEl: HTMLElement | null = null;
-  private kbdEl: HTMLElement | null = null;
-  private recordBtn: HTMLElement | null = null;
+  private inspectorEl: HTMLElement | null = null;
   private config: FloatingButtonConfig;
+
+  // Expand state
+  private activePanel: PanelId | null = null;
+  private settingsTab: TabId = "shortcuts";
+
+  // Editor state
+  private editorChoice = "";
+  private lastGrabResult: GrabResult | null = null;
+  private lastCSSRules: MatchedCSSRule[] = [];
 
   // Position (viewport %)
   private posX = 97;
   private posY = 85;
 
-  // Drag state
+  // Drag state (toolbar)
   private isDragging = false;
   private wasDragged = false;
   private dragPointerId = -1;
@@ -253,14 +414,15 @@ export class FloatingButton {
   private dragOffsetX = 0;
   private dragOffsetY = 0;
 
-  // Panel state
-  private panelOpen = false;
+  // Hotkey state
   private isRecording = false;
   private currentHotkey = "";
 
   // Callbacks
   private toggleCb: (() => void) | null = null;
   private hotkeyChangeCb: ((combo: string) => void) | null = null;
+  private configChangeCb: ((changes: Record<string, unknown>) => void) | null = null;
+  private styleChangeCb: ((update: StyleUpdateRequest) => void) | null = null;
 
   // Bound handlers for cleanup
   private boundPointerDown: ((e: PointerEvent) => void) | null = null;
@@ -280,15 +442,31 @@ export class FloatingButton {
     } else {
       this.posX = initial.x;
       this.posY = initial.y;
-      // Adjust left/right positions so pixel margin matches top/bottom
       if (this.posX <= INITIAL_SNAP_ZONE) this.posX = edgeMarginX();
       else if (this.posX >= 100 - INITIAL_SNAP_ZONE) this.posX = 100 - edgeMarginX();
     }
     this.currentHotkey = tryReadHotkey(config.hotkeyStorageKey) ?? "";
+    this.editorChoice = tryReadEditor(config.editorStorageKey) ?? "";
   }
 
   getCurrentHotkey(): string {
     return this.currentHotkey;
+  }
+
+  getEditorChoice(): string {
+    return this.editorChoice;
+  }
+
+  setLastResult(result: GrabResult | null): void {
+    this.lastGrabResult = result;
+    this.lastCSSRules = [];
+    // Re-render active panel if relevant
+    if (this.activePanel === "inspector") {
+      this.lastCSSRules = result ? matchCSSRules(result.element) : [];
+      this.renderExpandBody();
+    } else if (this.activePanel === "settings") {
+      this.updateEditorTabInPlace();
+    }
   }
 
   mount(): void {
@@ -306,56 +484,57 @@ export class FloatingButton {
     style.textContent = STYLES;
     this.shadowRoot.appendChild(style);
 
-    // Toolbar container
+    // Toolbar (outer column container)
     this.toolbarEl = document.createElement("div");
     this.toolbarEl.className = "toolbar";
+
+    // Button row
+    this.toolbarRowEl = document.createElement("div");
+    this.toolbarRowEl.className = "toolbar-row";
 
     // Main grab button
     this.btnEl = document.createElement("div");
     this.btnEl.className = "toolbar-btn grab-btn";
     this.btnEl.innerHTML = CROSSHAIR_SVG;
-    this.toolbarEl.appendChild(this.btnEl);
+    this.toolbarRowEl.appendChild(this.btnEl);
 
     // Divider
-    const divider = document.createElement("div");
-    divider.className = "toolbar-divider";
-    this.toolbarEl.appendChild(divider);
+    const divider1 = document.createElement("div");
+    divider1.className = "toolbar-divider";
+    this.toolbarRowEl.appendChild(divider1);
 
-    // Gear button (always visible)
+    // Gear button (settings)
     this.gearEl = document.createElement("div");
     this.gearEl.className = "toolbar-btn gear-btn";
     this.gearEl.innerHTML = GEAR_SVG;
-    this.toolbarEl.appendChild(this.gearEl);
+    this.toolbarRowEl.appendChild(this.gearEl);
 
-    // Settings panel
-    this.panelEl = document.createElement("div");
-    this.panelEl.className = "panel";
-    this.panelEl.innerHTML = `
-      <div class="panel-header">
-        <span>Settings</span>
-        <button class="panel-close" data-action="close">&times;</button>
-      </div>
-      <div class="panel-label">Hotkey</div>
-      <div class="hotkey-row">
-        <kbd></kbd>
-        <button class="record-btn">Record</button>
-      </div>
-      <div class="panel-hint">Drag toolbar to reposition</div>
-    `;
-    this.toolbarEl.appendChild(this.panelEl);
+    // Inspector button
+    this.inspectorEl = document.createElement("div");
+    this.inspectorEl.className = "toolbar-btn inspector-btn";
+    this.inspectorEl.innerHTML = INSPECTOR_SVG;
+    this.toolbarRowEl.appendChild(this.inspectorEl);
 
-    this.shadowRoot.appendChild(this.toolbarEl);
+    this.toolbarEl.appendChild(this.toolbarRowEl);
 
-    this.kbdEl = this.panelEl.querySelector("kbd");
-    this.recordBtn = this.panelEl.querySelector(".record-btn");
-    this.updateHotkeyDisplay();
+    // Expandable body (separate card element)
+    this.expandBodyEl = document.createElement("div");
+    this.expandBodyEl.className = "expand-body";
+
+    // Wrapper (flex column: bar + panel)
+    this.wrapperEl = document.createElement("div");
+    this.wrapperEl.className = "fab-wrapper";
+    this.wrapperEl.appendChild(this.toolbarEl);
+    this.wrapperEl.appendChild(this.expandBodyEl);
+
+    this.shadowRoot.appendChild(this.wrapperEl);
 
     // Set initial orientation based on position
     this.applyOrientation(this.getEdgeFromPosition());
 
     // --- Event wiring ---
 
-    // Drag: pointer events on toolbar
+    // Drag: pointer events on toolbar row only
     this.boundPointerDown = this.onPointerDown.bind(this);
     this.boundPointerMove = this.onPointerMove.bind(this);
     this.boundPointerUp = this.onPointerUp.bind(this);
@@ -367,41 +546,33 @@ export class FloatingButton {
     this.btnEl.addEventListener("click", (e: MouseEvent) => {
       e.stopPropagation();
       if (this.wasDragged) return;
-      if (this.panelOpen) {
-        this.closePanel();
+      if (this.activePanel) {
+        this.deactivatePanel();
         return;
       }
       this.toggleCb?.();
     });
 
-    // Gear click → open panel
+    // Gear click → toggle settings panel
     this.gearEl.addEventListener("click", (e: MouseEvent) => {
       e.stopPropagation();
       if (this.wasDragged) return;
-      this.togglePanel();
+      this.activatePanel("settings");
     });
 
-    // Panel close button
-    (this.panelEl.querySelector("[data-action=close]") as HTMLElement).addEventListener(
-      "click",
-      (e) => {
-        e.stopPropagation();
-        this.closePanel();
-      },
-    );
-
-    // Record button
-    this.recordBtn!.addEventListener("click", (e: MouseEvent) => {
+    // Inspector click → toggle inspector panel
+    this.inspectorEl.addEventListener("click", (e: MouseEvent) => {
       e.stopPropagation();
-      this.toggleRecording();
+      if (this.wasDragged) return;
+      this.activatePanel("inspector");
     });
 
-    // Document: close panel on outside click
+    // Document: close on outside click
     this.boundDocClick = (e: MouseEvent) => {
-      if (!this.panelOpen) return;
+      if (!this.activePanel) return;
       const path = e.composedPath();
       if (!path.includes(this.host!)) {
-        this.closePanel();
+        this.deactivatePanel();
       }
     };
     document.addEventListener("click", this.boundDocClick, { capture: true });
@@ -413,8 +584,8 @@ export class FloatingButton {
           this.stopRecording();
           e.preventDefault();
           e.stopPropagation();
-        } else if (this.panelOpen) {
-          this.closePanel();
+        } else if (this.activePanel) {
+          this.deactivatePanel();
           e.preventDefault();
           e.stopPropagation();
         }
@@ -437,22 +608,19 @@ export class FloatingButton {
       this.host.remove();
       this.host = null;
       this.shadowRoot = null;
+      this.wrapperEl = null;
       this.toolbarEl = null;
+      this.toolbarRowEl = null;
+      this.expandBodyEl = null;
       this.btnEl = null;
       this.gearEl = null;
-      this.panelEl = null;
-      this.kbdEl = null;
-      this.recordBtn = null;
+      this.inspectorEl = null;
     }
   }
 
   setActive(active: boolean): void {
     if (!this.btnEl) return;
-    if (active) {
-      this.btnEl.classList.add("active");
-    } else {
-      this.btnEl.classList.remove("active");
-    }
+    this.btnEl.classList.toggle("active", active);
   }
 
   setHighlightColor(color: string): void {
@@ -461,7 +629,11 @@ export class FloatingButton {
 
   setCurrentHotkey(combo: string): void {
     this.currentHotkey = combo;
-    this.updateHotkeyDisplay();
+    // Update display if settings panel is showing
+    if (this.activePanel === "settings") {
+      const kbd = this.expandBodyEl?.querySelector("kbd");
+      if (kbd) kbd.textContent = combo || "None";
+    }
   }
 
   onToggle(cb: () => void): void {
@@ -472,16 +644,254 @@ export class FloatingButton {
     this.hotkeyChangeCb = cb;
   }
 
-  // --- Drag ---
+  onConfigChange(cb: (changes: Record<string, unknown>) => void): void {
+    this.configChangeCb = cb;
+  }
+
+  onStyleChange(cb: (update: StyleUpdateRequest) => void): void {
+    this.styleChangeCb = cb;
+  }
+
+  // --- Panel activation (expand/collapse) ---
+
+  private activatePanel(panel: PanelId): void {
+    // Toggle off if already active
+    if (this.activePanel === panel) {
+      this.deactivatePanel();
+      return;
+    }
+    // Stop recording if switching away from settings
+    if (this.isRecording) this.stopRecording();
+
+    this.activePanel = panel;
+    this.wrapperEl!.classList.add("expanded");
+
+    const edge = this.getEdgeFromPosition();
+    const isHorizontal = edge === "left" || edge === "right";
+
+    // Remove all expand direction classes first
+    this.wrapperEl!.classList.remove("expand-up", "expand-left", "expand-right");
+
+    if (isHorizontal) {
+      // Left edge → panel expands right; Right edge → panel expands left
+      this.wrapperEl!.classList.add(edge === "left" ? "expand-right" : "expand-left");
+    } else {
+      const expandUp = this.posY > 50;
+      this.wrapperEl!.classList.toggle("expand-up", expandUp);
+    }
+
+    this.expandBodyEl!.classList.add("open");
+    // Lazily compute CSS rules when inspector is first opened
+    if (panel === "inspector" && this.lastCSSRules.length === 0 && this.lastGrabResult) {
+      this.lastCSSRules = matchCSSRules(this.lastGrabResult.element);
+    }
+    this.renderExpandBody();
+
+    // Anchor the host so the toolbar stays in place while the panel expands
+    if (this.host) {
+      this.host.style.transition = "none";
+
+      if (isHorizontal) {
+        const toolbarW = this.toolbarEl?.getBoundingClientRect().width ?? 36;
+        const centerX = (this.posX / 100) * window.innerWidth;
+        const centerY = (this.posY / 100) * window.innerHeight;
+        this.host.style.top = `${centerY}px`;
+        if (edge === "left") {
+          const leftX = centerX - toolbarW / 2;
+          this.host.style.left = `${leftX}px`;
+          this.host.style.transform = "translate(0, -50%)";
+        } else {
+          const rightX = centerX + toolbarW / 2;
+          this.host.style.left = `${rightX}px`;
+          this.host.style.transform = "translate(-100%, -50%)";
+        }
+      } else {
+        const toolbarH = 36;
+        const centerY = (this.posY / 100) * window.innerHeight;
+        if (this.posY > 50) {
+          const bottomY = centerY + toolbarH / 2;
+          this.host.style.top = `${bottomY}px`;
+          this.host.style.transform = "translate(-50%, -100%)";
+        } else {
+          const topY = centerY - toolbarH / 2;
+          this.host.style.top = `${topY}px`;
+          this.host.style.transform = "translate(-50%, 0)";
+        }
+      }
+    }
+
+    // Update icon highlights
+    this.gearEl!.classList.toggle("active", panel === "settings");
+    this.inspectorEl!.classList.toggle("active", panel === "inspector");
+  }
+
+  private deactivatePanel(): void {
+    if (!this.activePanel) return;
+    if (this.isRecording) this.stopRecording();
+
+    this.activePanel = null;
+    this.wrapperEl!.classList.remove("expanded", "expand-up", "expand-left", "expand-right");
+    this.expandBodyEl!.classList.remove("open");
+    this.gearEl!.classList.remove("active");
+    this.inspectorEl!.classList.remove("active");
+
+    // Restore original centering transform and position
+    if (this.host) {
+      this.host.style.transform = "translate(-50%, -50%)";
+      this.host.style.transition = SNAP_TRANSITION;
+      this.applyPosition();
+    }
+
+    // Re-apply vertical orientation if needed
+    this.applyOrientation(this.getEdgeFromPosition());
+  }
+
+  // --- Content rendering ---
+
+  private renderExpandBody(): void {
+    if (!this.expandBodyEl) return;
+    if (this.activePanel === "settings") {
+      this.expandBodyEl.innerHTML = this.buildSettingsHTML();
+      this.wireSettingsEvents();
+    } else if (this.activePanel === "inspector") {
+      this.expandBodyEl.innerHTML = this.renderInspectorContent();
+      this.wireInspectorEventsOnContainer(this.expandBodyEl);
+    }
+  }
+
+  // --- Settings content ---
+
+  private buildSettingsHTML(): string {
+    const editorOptions = EDITOR_PRESETS.map(
+      (p) =>
+        `<option value="${p.value}"${p.value === this.editorChoice ? " selected" : ""}>${p.label}</option>`,
+    ).join("");
+
+    const comp = this.lastGrabResult?.componentStack[0];
+    const filePathText = comp?.filePath ?? "No element grabbed yet";
+    const fileDisabled = !comp?.filePath;
+
+    return `
+      <div class="tab-bar">
+        <button class="tab-btn${this.settingsTab === "shortcuts" ? " active" : ""}" data-tab="shortcuts">Shortcuts</button>
+        <button class="tab-btn${this.settingsTab === "editor" ? " active" : ""}" data-tab="editor">Editor</button>
+      </div>
+      <div class="tab-content${this.settingsTab === "shortcuts" ? " active" : ""}" data-tab-content="shortcuts">
+        <div class="section-label">Hotkey</div>
+        <div class="hotkey-row">
+          <kbd>${esc(this.currentHotkey || "None")}</kbd>
+          <button class="record-btn">Record</button>
+        </div>
+      </div>
+      <div class="tab-content${this.settingsTab === "editor" ? " active" : ""}" data-tab-content="editor">
+        <div class="section-label">Editor</div>
+        <select class="editor-select">${editorOptions}</select>
+        <div class="section-label">Open file</div>
+        <div class="file-path-display">${esc(filePathText)}</div>
+        <button class="open-file-btn"${fileDisabled ? " disabled" : ""}>Open in Editor</button>
+      </div>
+    `;
+  }
+
+  private wireSettingsEvents(): void {
+    if (!this.expandBodyEl) return;
+
+    // Tab clicks
+    for (const btn of Array.from(this.expandBodyEl.querySelectorAll(".tab-btn"))) {
+      btn.addEventListener("click", (e: Event) => {
+        e.stopPropagation();
+        const tabId = (btn as HTMLElement).dataset.tab as TabId;
+        if (tabId) this.switchSettingsTab(tabId);
+      });
+    }
+
+    // Editor: select
+    const selectEl = this.expandBodyEl.querySelector<HTMLSelectElement>(".editor-select");
+    selectEl?.addEventListener("change", () => {
+      this.editorChoice = selectEl.value;
+      trySaveEditor(this.config.editorStorageKey, this.editorChoice);
+    });
+
+    // Editor: open file button
+    const openBtn = this.expandBodyEl.querySelector(".open-file-btn");
+    openBtn?.addEventListener("click", (e: Event) => {
+      e.stopPropagation();
+      const filePath = this.lastGrabResult?.componentStack[0]?.filePath;
+      if (filePath) {
+        const line = this.lastGrabResult?.componentStack[0]?.line;
+        const editor = this.getEditorChoice();
+        openInEditor(filePath, line, editor || undefined);
+      }
+    });
+
+    // Record button
+    const recordBtn = this.expandBodyEl.querySelector(".record-btn");
+    recordBtn?.addEventListener("click", (e: Event) => {
+      e.stopPropagation();
+      this.toggleRecording();
+    });
+  }
+
+  private switchSettingsTab(tabId: TabId): void {
+    this.settingsTab = tabId;
+    if (!this.expandBodyEl) return;
+    for (const btn of Array.from(this.expandBodyEl.querySelectorAll(".tab-btn"))) {
+      btn.classList.toggle("active", (btn as HTMLElement).dataset.tab === tabId);
+    }
+    for (const content of Array.from(this.expandBodyEl.querySelectorAll(".tab-content"))) {
+      content.classList.toggle("active", (content as HTMLElement).dataset.tabContent === tabId);
+    }
+  }
+
+  private updateEditorTabInPlace(): void {
+    if (!this.expandBodyEl || this.activePanel !== "settings") return;
+    const filePathEl = this.expandBodyEl.querySelector(".file-path-display");
+    const openBtn = this.expandBodyEl.querySelector<HTMLButtonElement>(".open-file-btn");
+    if (!filePathEl || !openBtn) return;
+
+    const comp = this.lastGrabResult?.componentStack[0];
+    if (comp?.filePath) {
+      filePathEl.textContent = comp.filePath;
+      openBtn.disabled = false;
+    } else {
+      filePathEl.textContent = "No element grabbed yet";
+      openBtn.disabled = true;
+    }
+  }
+
+  // --- Inspector content ---
+
+  private renderInspectorContent(): string {
+    if (!this.lastGrabResult) {
+      return '<div class="dt-empty">Grab an element to inspect</div>';
+    }
+    return `<div style="padding:12px 14px;">${renderInspectorHTML(this.lastGrabResult, this.lastCSSRules)}</div>`;
+  }
+
+  private wireInspectorEventsOnContainer(container: HTMLElement): void {
+    wireInspectorEvents(container, {
+      onOpenFile: (file, line) => {
+        const editor = this.getEditorChoice();
+        openInEditor(file, line, editor || undefined);
+      },
+      onStyleChange: (update) => this.styleChangeCb?.(update),
+    });
+  }
+
+  // --- Toolbar Drag ---
 
   private onPointerDown(e: PointerEvent): void {
     if (e.button !== 0) return;
+    // Don't drag from expand body content
+    const target = e.composedPath()[0] as HTMLElement;
+    if (this.expandBodyEl?.contains(target)) return;
+
     this.isDragging = true;
     this.wasDragged = false;
     this.dragPointerId = e.pointerId;
     this.dragStartX = e.clientX;
     this.dragStartY = e.clientY;
-    const rect = this.toolbarEl!.getBoundingClientRect();
+    const rect = this.toolbarRowEl!.getBoundingClientRect();
     this.dragOffsetX = e.clientX - rect.left - rect.width / 2;
     this.dragOffsetY = e.clientY - rect.top - rect.height / 2;
     this.host!.style.transition = "none";
@@ -529,7 +939,6 @@ export class FloatingButton {
     }
     this.applyPosition();
     this.applyOrientation(edge);
-    if (this.panelOpen) this.positionPanel();
   }
 
   private applyPosition(): void {
@@ -553,50 +962,6 @@ export class FloatingButton {
     this.toolbarEl.classList.toggle("vertical", wantVertical);
   }
 
-  // --- Settings panel ---
-
-  private togglePanel(): void {
-    if (this.panelOpen) {
-      this.closePanel();
-    } else {
-      this.openPanel();
-    }
-  }
-
-  private openPanel(): void {
-    if (!this.panelEl) return;
-    this.panelOpen = true;
-    this.positionPanel();
-    this.panelEl.classList.add("open");
-  }
-
-  private closePanel(): void {
-    if (!this.panelEl) return;
-    this.panelOpen = false;
-    this.panelEl.classList.remove("open");
-    if (this.isRecording) this.stopRecording();
-  }
-
-  private positionPanel(): void {
-    if (!this.panelEl) return;
-    // Horizontal: open toward center
-    if (this.posX > 50) {
-      this.panelEl.style.right = "calc(100% + 8px)";
-      this.panelEl.style.left = "auto";
-    } else {
-      this.panelEl.style.left = "calc(100% + 8px)";
-      this.panelEl.style.right = "auto";
-    }
-    // Vertical: anchor top or bottom
-    if (this.posY > 70) {
-      this.panelEl.style.bottom = "-4px";
-      this.panelEl.style.top = "auto";
-    } else {
-      this.panelEl.style.top = "-4px";
-      this.panelEl.style.bottom = "auto";
-    }
-  }
-
   // --- Hotkey recording ---
 
   private toggleRecording(): void {
@@ -609,16 +974,19 @@ export class FloatingButton {
 
   private startRecording(): void {
     this.isRecording = true;
-    this.kbdEl!.textContent = "Press keys\u2026";
-    this.kbdEl!.classList.add("recording");
-    this.recordBtn!.textContent = "Cancel";
+    const kbdEl = this.expandBodyEl?.querySelector("kbd");
+    const recordBtn = this.expandBodyEl?.querySelector(".record-btn");
+    if (kbdEl) {
+      kbdEl.textContent = "Press keys\u2026";
+      kbdEl.classList.add("recording");
+    }
+    if (recordBtn) recordBtn.textContent = "Cancel";
 
     this.boundRecordKeyDown = (e: KeyboardEvent) => {
       e.preventDefault();
       e.stopPropagation();
       e.stopImmediatePropagation();
 
-      // Skip if only modifier pressed
       if (["Alt", "Control", "Shift", "Meta"].includes(e.key)) return;
 
       const combo = buildCombo(e);
@@ -637,13 +1005,14 @@ export class FloatingButton {
       document.removeEventListener("keydown", this.boundRecordKeyDown, { capture: true });
       this.boundRecordKeyDown = null;
     }
-    this.updateHotkeyDisplay();
-    if (this.recordBtn) this.recordBtn.textContent = "Record";
-    if (this.kbdEl) this.kbdEl.classList.remove("recording");
-  }
-
-  private updateHotkeyDisplay(): void {
-    if (!this.kbdEl) return;
-    this.kbdEl.textContent = this.currentHotkey || "None";
+    // Update display if settings panel is showing
+    const kbdEl = this.expandBodyEl?.querySelector("kbd");
+    const recordBtn = this.expandBodyEl?.querySelector(".record-btn");
+    if (kbdEl) {
+      kbdEl.textContent = this.currentHotkey || "None";
+      kbdEl.classList.remove("recording");
+    }
+    if (recordBtn) recordBtn.textContent = "Record";
   }
 }
+

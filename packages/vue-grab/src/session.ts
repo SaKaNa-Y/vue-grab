@@ -3,6 +3,7 @@ import { DEFAULT_HOTKEY } from "@sakana-y/vue-grab-shared";
 import { GrabEngine } from "./core";
 import { HotkeyManager } from "./hotkeys";
 import { FloatingButton } from "./floating-button";
+import { updateStyle } from "./editor";
 
 export interface GrabSession {
   engine: GrabEngine;
@@ -34,10 +35,23 @@ export function createGrabSession(config: GrabConfig): GrabSession {
       hotkeys.register(combo, () => engine.toggle());
       localFab.setCurrentHotkey(combo);
     });
+    localFab.onConfigChange((changes) => {
+      const partial = changes as Partial<GrabConfig>;
+      engine.updateConfig(partial);
+      if (partial.highlightColor) {
+        localFab.setHighlightColor(partial.highlightColor);
+      }
+    });
     engine.onStateChange((active) => localFab.setActive(active));
+    engine.onGrab((result) => localFab.setLastResult(result));
     localFab.mount();
   } else {
     hotkeys.register(DEFAULT_HOTKEY, () => engine.toggle());
+  }
+
+  // Wire FAB inspector style changes
+  if (fab) {
+    fab.onStyleChange((update) => updateStyle(update));
   }
 
   return {

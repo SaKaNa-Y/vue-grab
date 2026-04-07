@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import HelloWorld from "./components/HelloWorld.vue";
-import { useGrab } from "@sakana-y/vue-grab";
+import { useGrab, openInEditor } from "@sakana-y/vue-grab";
 
 const { isActive, lastResult, toggle } = useGrab();
 </script>
@@ -67,7 +67,11 @@ const { isActive, lastResult, toggle } = useGrab();
         <ul>
           <li v-for="comp in lastResult.componentStack" :key="comp.name">
             {{ comp.name }}
-            <span v-if="comp.filePath" style="color: #6b7280; font-size: 12px">
+            <span
+              v-if="comp.filePath"
+              style="color: #4f46e5; font-size: 12px; cursor: pointer; text-decoration: underline"
+              @click="openInEditor(comp.filePath!, comp.line)"
+            >
               ({{ comp.filePath }})
             </span>
           </li>
