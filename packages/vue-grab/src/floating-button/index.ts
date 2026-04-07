@@ -1015,4 +1015,3 @@ export class FloatingButton {
     if (recordBtn) recordBtn.textContent = "Record";
   }
 }
-

@@ -215,7 +215,8 @@ export class DevToolsPanel {
 
     this.host = document.createElement("div");
     this.host.id = DEVTOOLS_HOST_ID;
-    this.host.style.cssText = "position:fixed;top:0;left:0;width:0;height:0;z-index:2147483645;pointer-events:none;";
+    this.host.style.cssText =
+      "position:fixed;top:0;left:0;width:0;height:0;z-index:2147483645;pointer-events:none;";
     document.body.appendChild(this.host);
 
     this.shadowRoot = this.host.attachShadow({ mode: "open" });
