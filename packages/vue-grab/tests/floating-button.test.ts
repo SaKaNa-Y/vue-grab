@@ -27,8 +27,12 @@ function getGear(): HTMLElement | null {
   return getShadow()?.querySelector(".gear-btn") ?? null;
 }
 
-function getPanel(): HTMLElement | null {
-  return getShadow()?.querySelector(".panel") ?? null;
+function getToolbarRow(): HTMLElement | null {
+  return getShadow()?.querySelector(".toolbar-row") ?? null;
+}
+
+function getExpandBody(): HTMLElement | null {
+  return getShadow()?.querySelector(".expand-body") ?? null;
 }
 
 describe("FloatingButton", () => {
@@ -95,7 +99,7 @@ describe("FloatingButton", () => {
 
       const gear = getGear()!;
       expect(gear).not.toBeNull();
-      expect(gear.parentElement).toBe(getToolbar());
+      expect(gear.parentElement).toBe(getToolbarRow());
     });
 
     it("contains a divider between grab and gear buttons", () => {
@@ -144,12 +148,15 @@ describe("FloatingButton", () => {
       fab.mount();
 
       getGear()!.click();
-      expect(getPanel()!.classList.contains("open")).toBe(true);
+      expect(getExpandBody()!.classList.contains("open")).toBe(true);
     });
 
     it("panel displays current hotkey", () => {
       fab = createFab();
       fab.mount();
+
+      // Open settings panel first so the kbd element is rendered
+      getGear()!.click();
       fab.setCurrentHotkey("Alt+Shift+G");
 
       const kbd = getShadow()!.querySelector("kbd")!;
@@ -161,26 +168,25 @@ describe("FloatingButton", () => {
       fab.mount();
 
       getGear()!.click();
-      expect(getPanel()!.classList.contains("open")).toBe(true);
+      expect(getExpandBody()!.classList.contains("open")).toBe(true);
 
       // Press Escape
       document.dispatchEvent(
         new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }),
       );
 
-      expect(getPanel()!.classList.contains("open")).toBe(false);
+      expect(getExpandBody()!.classList.contains("open")).toBe(false);
     });
 
-    it("close button closes the panel", () => {
+    it("clicking gear again closes the panel", () => {
       fab = createFab();
       fab.mount();
 
       getGear()!.click();
+      expect(getExpandBody()!.classList.contains("open")).toBe(true);
 
-      const closeBtn = getShadow()!.querySelector(".panel-close") as HTMLElement;
-      closeBtn.click();
-
-      expect(getPanel()!.classList.contains("open")).toBe(false);
+      getGear()!.click();
+      expect(getExpandBody()!.classList.contains("open")).toBe(false);
     });
 
     it("hotkey recording captures modifier+key combo", () => {

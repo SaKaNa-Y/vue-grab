@@ -15,6 +15,11 @@
       "import": "./dist/index.mjs",
       "require": "./dist/index.cjs",
       "types": "./dist/index.d.ts"
+    },
+    "./vite": {
+      "import": "./dist/vite.mjs",
+      "require": "./dist/vite.cjs",
+      "types": "./dist/vite.d.ts"
     }
   },
   "publishConfig": {
@@ -26,7 +31,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@sakana-y/vue-grab-shared": "workspace:*"
+    "@sakana-y/vue-grab-shared": "workspace:*",
+    "launch-editor": "^2.9.1",
+    "postcss": "^8.5.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.50.0",

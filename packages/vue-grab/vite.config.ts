@@ -7,14 +7,16 @@ export default defineConfig({
   plugins: [vue(), dts()],
   build: {
     lib: {
-      entry: resolve(__dirname, "src/index.ts"),
+      entry: {
+        index: resolve(__dirname, "src/index.ts"),
+        vite: resolve(__dirname, "src/vite.ts"),
+      },
       name: "VueGrab",
-      formats: ["es", "cjs", "umd"],
-      fileName: (format) =>
-        `index.${format === "es" ? "mjs" : format === "cjs" ? "cjs" : "umd.js"}`,
+      formats: ["es", "cjs"],
+      fileName: (format, entryName) => `${entryName}.${format === "es" ? "mjs" : "cjs"}`,
     },
     rolldownOptions: {
-      external: ["vue"],
+      external: ["vue", "vite", "launch-editor", "postcss", "@vue/compiler-sfc"],
       output: {
         globals: {
           vue: "Vue",
