@@ -390,6 +390,7 @@ export class FloatingButton {
   private btnEl: HTMLElement | null = null;
   private gearEl: HTMLElement | null = null;
   private inspectorEl: HTMLElement | null = null;
+  private pendingRafId: number | null = null;
   private config: FloatingButtonConfig;
 
   // Expand state
@@ -604,6 +605,10 @@ export class FloatingButton {
     if (this.boundRecordKeyDown) {
       document.removeEventListener("keydown", this.boundRecordKeyDown, { capture: true });
     }
+    if (this.pendingRafId) {
+      cancelAnimationFrame(this.pendingRafId);
+      this.pendingRafId = null;
+    }
     if (this.host) {
       this.host.remove();
       this.host = null;
@@ -735,11 +740,15 @@ export class FloatingButton {
     this.gearEl!.classList.remove("active");
     this.inspectorEl!.classList.remove("active");
 
-    // Restore original centering transform and position
+    // Restore original centering transform and position instantly (no animated shift)
     if (this.host) {
+      this.host.style.transition = "none";
       this.host.style.transform = "translate(-50%, -50%)";
-      this.host.style.transition = SNAP_TRANSITION;
       this.applyPosition();
+      this.pendingRafId = requestAnimationFrame(() => {
+        this.pendingRafId = null;
+        if (this.host) this.host.style.transition = SNAP_TRANSITION;
+      });
     }
 
     // Re-apply vertical orientation if needed

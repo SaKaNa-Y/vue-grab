@@ -33,6 +33,7 @@ const STYLES = `
     font-family: system-ui, -apple-system, sans-serif;
     font-size: 13px;
     box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    box-sizing: border-box;
     overflow: hidden;
   }
   .devtools-panel.visible {
