@@ -46,6 +46,8 @@ export interface GrabResult {
   componentStack: ComponentInfo[];
   /** CSS selector for the element */
   selector: string;
+  /** Accessibility information for the element */
+  a11y: A11yInfo;
 }
 
 export interface ComponentInfo {
@@ -55,6 +57,44 @@ export interface ComponentInfo {
   filePath?: string;
   /** Line number if available */
   line?: number;
+}
+
+export interface A11yAttribute {
+  /** Attribute name, e.g. "role", "aria-label", "alt" */
+  name: string;
+  /** Attribute value */
+  value: string;
+}
+
+export type A11ySeverity = "warning" | "info";
+
+export interface A11yAuditItem {
+  severity: A11ySeverity;
+  message: string;
+}
+
+export interface A11yInfo {
+  /** Detected a11y attributes present on the element. */
+  attributes: A11yAttribute[];
+  /** Audit findings: missing recommended attributes or issues. */
+  audit: A11yAuditItem[];
+  /** True when at least one meaningful a11y attribute is present. */
+  hasA11y: boolean;
+}
+
+export interface ElementA11yDetail {
+  element: Element;
+  tagName: string;
+  selector: string;
+  a11y: A11yInfo;
+}
+
+export interface ComponentA11ySummary {
+  componentName: string;
+  filePath?: string;
+  element: Element;
+  a11y: A11yInfo;
+  childElements: ElementA11yDetail[];
 }
 
 export type DevToolsPanelMode = "float" | "edge";

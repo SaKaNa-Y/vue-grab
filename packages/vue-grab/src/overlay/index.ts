@@ -1,4 +1,5 @@
 import type { GrabConfig } from "@sakana-y/vue-grab-shared";
+import { A11Y_ICON_SVG } from "../utils";
 
 const OVERLAY_HOST_ID = "vue-grab-overlay-host";
 
@@ -7,6 +8,8 @@ export class GrabOverlay {
   private shadowRoot: ShadowRoot | null = null;
   private highlightBox: HTMLElement | null = null;
   private labelEl: HTMLElement | null = null;
+  private labelTextEl: HTMLElement | null = null;
+  private labelIconEl: HTMLElement | null = null;
   private config: Pick<GrabConfig, "highlightColor" | "labelTextColor" | "showTagHint">;
 
   constructor(config: Pick<GrabConfig, "highlightColor" | "labelTextColor" | "showTagHint">) {
@@ -52,6 +55,18 @@ export class GrabOverlay {
         white-space: nowrap;
         display: none;
         line-height: 1.4;
+        align-items: center;
+        gap: 4px;
+      }
+      .grab-a11y-icon {
+        display: flex;
+        align-items: center;
+        opacity: 0.3;
+        transition: opacity 0.1s ease;
+      }
+      .grab-a11y-icon.has-a11y {
+        opacity: 1;
+        color: #4ade80;
       }
     `;
     this.shadowRoot.appendChild(style);
@@ -62,10 +77,18 @@ export class GrabOverlay {
 
     this.labelEl = document.createElement("div");
     this.labelEl.className = "grab-label";
+
+    this.labelTextEl = document.createElement("span");
+    this.labelIconEl = document.createElement("span");
+    this.labelIconEl.className = "grab-a11y-icon";
+    this.labelIconEl.innerHTML = A11Y_ICON_SVG;
+    this.labelEl.appendChild(this.labelTextEl);
+    this.labelEl.appendChild(this.labelIconEl);
+
     this.shadowRoot.appendChild(this.labelEl);
   }
 
-  highlight(el: Element, label?: string): void {
+  highlight(el: Element, label?: string, hasA11y?: boolean): void {
     if (!this.highlightBox || !this.labelEl) return;
 
     const rect = el.getBoundingClientRect();
@@ -77,7 +100,8 @@ export class GrabOverlay {
     this.highlightBox.style.display = "block";
 
     if (this.config.showTagHint && label) {
-      this.labelEl.textContent = label;
+      this.labelTextEl!.textContent = label;
+      this.labelIconEl!.classList.toggle("has-a11y", !!hasA11y);
       // Position label above the highlight, or below if near viewport top
       const labelHeight = 20;
       if (rect.top > labelHeight + 4) {
@@ -86,7 +110,7 @@ export class GrabOverlay {
         this.labelEl.style.top = `${rect.bottom + 4}px`;
       }
       this.labelEl.style.left = `${rect.left}px`;
-      this.labelEl.style.display = "block";
+      this.labelEl.style.display = "inline-flex";
     } else {
       this.labelEl.style.display = "none";
     }
@@ -104,6 +128,8 @@ export class GrabOverlay {
       this.shadowRoot = null;
       this.highlightBox = null;
       this.labelEl = null;
+      this.labelTextEl = null;
+      this.labelIconEl = null;
     }
   }
 }

@@ -1,4 +1,5 @@
 import type {
+  A11yInfo,
   ComponentInfo,
   GrabResult,
   MatchedCSSRule,
@@ -66,9 +67,44 @@ export function renderComponentStack(stack: ComponentInfo[]): string {
   return '<span style="color:#555">No Vue components</span>';
 }
 
+export function renderA11ySection(a11y: A11yInfo): string {
+  let html = '<div class="dt-section">';
+  html += '<div class="dt-section-title">Accessibility</div>';
+
+  if (a11y.attributes.length === 0 && a11y.audit.length === 0) {
+    html += '<div class="dt-a11y-none">No accessibility attributes detected</div>';
+    return html + "</div>";
+  }
+
+  if (a11y.attributes.length > 0) {
+    html += '<div class="dt-a11y-attrs">';
+    for (const attr of a11y.attributes) {
+      html += '<div class="dt-a11y-attr">';
+      html += `<span class="dt-a11y-attr-name">${esc(attr.name)}</span>`;
+      html += '<span class="dt-a11y-attr-eq">=</span>';
+      html += `<span class="dt-a11y-attr-value">"${esc(attr.value)}"</span>`;
+      html += "</div>";
+    }
+    html += "</div>";
+  }
+
+  if (a11y.audit.length > 0) {
+    html += '<div class="dt-a11y-audit">';
+    for (const item of a11y.audit) {
+      const icon = item.severity === "warning" ? "\u26A0" : "\u2139";
+      const cls = item.severity === "warning" ? "dt-a11y-warning" : "dt-a11y-info";
+      html += `<div class="${cls}">${icon} ${esc(item.message)}</div>`;
+    }
+    html += "</div>";
+  }
+
+  html += "</div>";
+  return html;
+}
+
 /**
  * Renders the shared inspector HTML for a grab result and its matched CSS rules.
- * Returns the inner HTML (three dt-section divs) without any wrapper element.
+ * Returns the inner HTML (four dt-section divs) without any wrapper element.
  */
 export function renderInspectorHTML(result: GrabResult, rules: MatchedCSSRule[]): string {
   const comp = result.componentStack[0];
@@ -122,6 +158,8 @@ export function renderInspectorHTML(result: GrabResult, rules: MatchedCSSRule[])
       <div class="dt-section-title">Component Stack</div>
       <div class="dt-stack">${stackHtml}</div>
     </div>
+
+    ${renderA11ySection(result.a11y)}
 
     <div class="dt-section">
       <div class="dt-section-title">CSS Rules</div>

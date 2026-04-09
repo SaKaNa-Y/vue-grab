@@ -3,6 +3,7 @@ import { mergeConfig } from "@sakana-y/vue-grab-shared";
 import { GrabOverlay, OVERLAY_HOST_ID } from "../overlay";
 import { FAB_HOST_ID } from "../floating-button";
 import { DEVTOOLS_HOST_ID } from "../devtools-panel";
+import { hasA11yAttributes, extractA11yInfo } from "../utils";
 
 const COMMON_LAYOUT_NAMES = new Set([
   "header",
@@ -53,7 +54,11 @@ export class GrabEngine {
         return;
       }
       const instance = this.getVueComponent(el);
-      this.overlay?.highlight(el, this.getComponentLabelFromInstance(el, instance));
+      this.overlay?.highlight(
+        el,
+        this.getComponentLabelFromInstance(el, instance),
+        hasA11yAttributes(el),
+      );
     };
 
     this.handleClick = (e: MouseEvent) => {
@@ -74,6 +79,7 @@ export class GrabEngine {
         html,
         componentStack: this.getComponentStack(el),
         selector: this.generateSelector(el),
+        a11y: extractA11yInfo(el),
       };
 
       this.callbacks.forEach((cb) => cb(result));

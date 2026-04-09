@@ -14,6 +14,8 @@ import {
   renderInspectorHTML,
   wireInspectorEvents,
   INSPECTOR_STYLES,
+  A11Y_ICON_SVG,
+  scanPageA11y,
 } from "../utils";
 
 export const FAB_HOST_ID = "vue-grab-fab-host";
@@ -80,7 +82,7 @@ const EDITOR_PRESETS = [
 ];
 
 type TabId = "shortcuts" | "editor";
-type PanelId = "settings" | "inspector";
+type PanelId = "settings" | "inspector" | "accessibility";
 
 const STYLES = `
   :host {
@@ -170,6 +172,167 @@ const STYLES = `
     background: rgba(255,255,255,0.12);
     margin: 0 2px;
   }
+  .a11y-btn.active {
+    color: #4ade80;
+    box-shadow: inset 0 0 0 1.5px #4ade80;
+    background: rgba(74, 222, 128, 0.12);
+  }
+
+  /* ── A11y panel ── */
+  .a11y-panel { padding: 12px 14px; }
+  .a11y-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .a11y-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #e0e0e0;
+  }
+  .a11y-rescan-btn {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 6px;
+    color: #ccc;
+    padding: 3px 10px;
+    font-size: 11px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .a11y-rescan-btn:hover {
+    background: rgba(255,255,255,0.14);
+    color: #fff;
+  }
+  .a11y-summary {
+    font-size: 12px;
+    color: #888;
+    margin-bottom: 12px;
+    padding: 6px 10px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 6px;
+  }
+  .a11y-summary-pass { color: #4ade80; font-weight: 600; }
+  .a11y-summary-fail { color: #ffcb6b; font-weight: 600; }
+  .a11y-group-title {
+    font-size: 11px;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 10px 0 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .a11y-group-count {
+    font-size: 10px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 1px 6px;
+    color: #aaa;
+  }
+  .a11y-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    margin-bottom: 2px;
+    transition: background 0.1s ease;
+    cursor: default;
+  }
+  .a11y-row:hover {
+    background: rgba(255,255,255,0.04);
+  }
+  .a11y-row-icon {
+    flex-shrink: 0;
+    width: 16px;
+    text-align: center;
+    padding-top: 1px;
+  }
+  .a11y-row-icon.pass { color: #4ade80; }
+  .a11y-row-icon.fail { color: #ffcb6b; }
+  .a11y-row-icon.neutral { color: #555; }
+  .a11y-row-body { flex: 1; min-width: 0; }
+  .a11y-row-name {
+    font-size: 13px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    color: #7dd3fc;
+  }
+  .a11y-row-file {
+    font-size: 11px;
+    color: #666;
+    word-break: break-all;
+    margin-top: 1px;
+  }
+  .a11y-row-detail {
+    font-size: 11px;
+    color: #999;
+    margin-top: 2px;
+  }
+  .a11y-row-detail.warning { color: #ffcb6b; }
+  .a11y-empty {
+    color: #555;
+    text-align: center;
+    padding: 20px;
+    font-size: 12px;
+  }
+  .a11y-rescan-btn--loading {
+    opacity: 0.6;
+    pointer-events: none;
+  }
+  .a11y-row-toggle {
+    cursor: pointer;
+  }
+  .a11y-row-chevron {
+    display: inline-block;
+    transition: transform 0.15s ease;
+    font-size: 10px;
+    color: #666;
+    margin-right: 2px;
+  }
+  .a11y-row-chevron.open {
+    transform: rotate(90deg);
+  }
+  .a11y-row-count {
+    font-size: 10px;
+    background: rgba(255,203,107,0.15);
+    color: #ffcb6b;
+    border-radius: 8px;
+    padding: 0 5px;
+    margin-left: 6px;
+  }
+  .a11y-child-details {
+    display: none;
+    padding-left: 24px;
+    padding-bottom: 4px;
+  }
+  .a11y-child-details.open {
+    display: block;
+  }
+  .a11y-child-row {
+    font-size: 11px;
+    padding: 4px 8px;
+    border-left: 2px solid rgba(255,255,255,0.08);
+    margin: 2px 0;
+    border-radius: 0 4px 4px 0;
+  }
+  .a11y-child-row:hover {
+    background: rgba(255,255,255,0.03);
+  }
+  .a11y-child-tag {
+    color: #c792ea;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 11px;
+  }
+  .a11y-child-msg {
+    font-size: 11px;
+    margin-top: 1px;
+  }
+  .a11y-child-msg.warning { color: #ffcb6b; }
+  .a11y-child-msg.pass { color: #4ade80; }
+  .a11y-child-msg.neutral { color: #666; font-style: italic; }
 
   /* ── Expand body (separate card below/above bar) ── */
   .expand-body {
@@ -390,6 +553,9 @@ export class FloatingButton {
   private btnEl: HTMLElement | null = null;
   private gearEl: HTMLElement | null = null;
   private inspectorEl: HTMLElement | null = null;
+  private a11yIndicatorEl: HTMLElement | null = null;
+  private cachedA11yResults: ReturnType<typeof scanPageA11y> | null = null;
+  private lastA11yScanTime = 0;
   private pendingRafId: number | null = null;
   private config: FloatingButtonConfig;
 
@@ -467,6 +633,8 @@ export class FloatingButton {
       this.renderExpandBody();
     } else if (this.activePanel === "settings") {
       this.updateEditorTabInPlace();
+    } else if (this.activePanel === "accessibility") {
+      this.renderExpandBody();
     }
   }
 
@@ -515,6 +683,17 @@ export class FloatingButton {
     this.inspectorEl.className = "toolbar-btn inspector-btn";
     this.inspectorEl.innerHTML = INSPECTOR_SVG;
     this.toolbarRowEl.appendChild(this.inspectorEl);
+
+    // Divider before a11y
+    const divider2 = document.createElement("div");
+    divider2.className = "toolbar-divider";
+    this.toolbarRowEl.appendChild(divider2);
+
+    // A11y button
+    this.a11yIndicatorEl = document.createElement("div");
+    this.a11yIndicatorEl.className = "toolbar-btn a11y-btn";
+    this.a11yIndicatorEl.innerHTML = A11Y_ICON_SVG;
+    this.toolbarRowEl.appendChild(this.a11yIndicatorEl);
 
     this.toolbarEl.appendChild(this.toolbarRowEl);
 
@@ -566,6 +745,13 @@ export class FloatingButton {
       e.stopPropagation();
       if (this.wasDragged) return;
       this.activatePanel("inspector");
+    });
+
+    // A11y click → toggle accessibility panel
+    this.a11yIndicatorEl.addEventListener("click", (e: MouseEvent) => {
+      e.stopPropagation();
+      if (this.wasDragged) return;
+      this.activatePanel("accessibility");
     });
 
     // Document: close on outside click
@@ -620,6 +806,7 @@ export class FloatingButton {
       this.btnEl = null;
       this.gearEl = null;
       this.inspectorEl = null;
+      this.a11yIndicatorEl = null;
     }
   }
 
@@ -728,6 +915,7 @@ export class FloatingButton {
     // Update icon highlights
     this.gearEl!.classList.toggle("active", panel === "settings");
     this.inspectorEl!.classList.toggle("active", panel === "inspector");
+    this.a11yIndicatorEl!.classList.toggle("active", panel === "accessibility");
   }
 
   private deactivatePanel(): void {
@@ -739,6 +927,7 @@ export class FloatingButton {
     this.expandBodyEl!.classList.remove("open");
     this.gearEl!.classList.remove("active");
     this.inspectorEl!.classList.remove("active");
+    this.a11yIndicatorEl!.classList.remove("active");
 
     // Restore original centering transform and position instantly (no animated shift)
     if (this.host) {
@@ -765,6 +954,9 @@ export class FloatingButton {
     } else if (this.activePanel === "inspector") {
       this.expandBodyEl.innerHTML = this.renderInspectorContent();
       this.wireInspectorEventsOnContainer(this.expandBodyEl);
+    } else if (this.activePanel === "accessibility") {
+      this.expandBodyEl.innerHTML = this.renderA11yPanelContent();
+      this.wireA11yPanelEvents();
     }
   }
 
@@ -885,6 +1077,176 @@ export class FloatingButton {
       },
       onStyleChange: (update) => this.styleChangeCb?.(update),
     });
+  }
+
+  // --- Accessibility panel ---
+
+  private renderA11yPanelContent(forceRescan = false): string {
+    if (forceRescan || !this.cachedA11yResults) {
+      this.cachedA11yResults = scanPageA11y();
+      this.lastA11yScanTime = Date.now();
+    }
+    const results = this.cachedA11yResults;
+
+    if (results.length === 0) {
+      return '<div class="a11y-panel"><div class="a11y-empty">No Vue components found on this page</div></div>';
+    }
+
+    const passing = results.filter((r) => r.a11y.hasA11y && r.a11y.audit.length === 0);
+    const issues = results.filter((r) => r.a11y.audit.length > 0);
+    const neutral = results.filter((r) => !r.a11y.hasA11y && r.a11y.audit.length === 0);
+
+    let html = '<div class="a11y-panel">';
+
+    // Header with re-scan
+    html += '<div class="a11y-header">';
+    html += '<span class="a11y-title">Accessibility Audit</span>';
+    html += '<button class="a11y-rescan-btn">Re-scan</button>';
+    html += "</div>";
+
+    // Summary
+    const passCount = passing.length;
+    const issueCount = issues.length;
+    html += '<div class="a11y-summary">';
+    html += `<span class="a11y-summary-pass">${passCount}</span> passing`;
+    if (issueCount > 0) {
+      html += ` · <span class="a11y-summary-fail">${issueCount}</span> with issues`;
+    }
+    if (neutral.length > 0) {
+      html += ` · ${neutral.length} no a11y attrs`;
+    }
+    html += ` · ${results.length} total`;
+    html += "</div>";
+
+    // Issues section
+    let idx = 0;
+    if (issues.length > 0) {
+      html +=
+        '<div class="a11y-group-title">\u26A0 Issues <span class="a11y-group-count">' +
+        issues.length +
+        "</span></div>";
+      for (const item of issues) {
+        html += this.renderA11yRow(item, "fail", idx++);
+      }
+    }
+
+    // Neutral (no a11y)
+    if (neutral.length > 0) {
+      html +=
+        '<div class="a11y-group-title">\u2014 No accessibility <span class="a11y-group-count">' +
+        neutral.length +
+        "</span></div>";
+      for (const item of neutral) {
+        html += this.renderA11yRow(item, "neutral", idx++);
+      }
+    }
+
+    // Passing section
+    if (passing.length > 0) {
+      html +=
+        '<div class="a11y-group-title">\u2713 Passing <span class="a11y-group-count">' +
+        passing.length +
+        "</span></div>";
+      for (const item of passing) {
+        html += this.renderA11yRow(item, "pass", idx++);
+      }
+    }
+
+    html += "</div>";
+    return html;
+  }
+
+  private renderA11yRow(
+    item: ReturnType<typeof scanPageA11y>[number],
+    status: "pass" | "fail" | "neutral",
+    idx: number,
+  ): string {
+    const icon = status === "pass" ? "\u2713" : status === "fail" ? "\u26A0" : "\u2014";
+    const hasChildren = item.childElements.length > 0;
+    const wrapClass = hasChildren ? "a11y-row-toggle" : "";
+    const dataAttr = hasChildren ? ` data-a11y-idx="${idx}"` : "";
+
+    let html = `<div class="${wrapClass}"${dataAttr}>`;
+    html += '<div class="a11y-row">';
+    html += `<div class="a11y-row-icon ${status}">${icon}</div>`;
+    html += '<div class="a11y-row-body">';
+
+    // Component name with optional chevron and count
+    html += '<div class="a11y-row-name">';
+    if (hasChildren) {
+      html += '<span class="a11y-row-chevron">\u25B6</span> ';
+    }
+    html += `&lt;${esc(item.componentName)}&gt;`;
+    if (hasChildren) {
+      html += `<span class="a11y-row-count">${item.childElements.length}</span>`;
+    }
+    html += "</div>";
+
+    if (item.filePath) {
+      html += `<div class="a11y-row-file">${esc(item.filePath)}</div>`;
+    }
+
+    // Show attributes if passing
+    if (status === "pass" && item.a11y.attributes.length > 0) {
+      const attrNames = item.a11y.attributes.map((a) => a.name).join(", ");
+      html += `<div class="a11y-row-detail">${esc(attrNames)}</div>`;
+    }
+
+    html += "</div></div>";
+
+    // Child element details (hidden by default)
+    if (hasChildren) {
+      html += `<div class="a11y-child-details" data-a11y-details="${idx}">`;
+      for (const child of item.childElements) {
+        html += '<div class="a11y-child-row">';
+        html += `<div class="a11y-child-tag">&lt;${esc(child.selector)}&gt;</div>`;
+        if (child.a11y.audit.length > 0) {
+          for (const audit of child.a11y.audit) {
+            html += `<div class="a11y-child-msg warning">${esc(audit.message)}</div>`;
+          }
+        } else if (child.a11y.hasA11y) {
+          const attrs = child.a11y.attributes.map((a) => a.name).join(", ");
+          html += `<div class="a11y-child-msg pass">\u2713 ${esc(attrs)}</div>`;
+        } else {
+          html += '<div class="a11y-child-msg neutral">no a11y attributes</div>';
+        }
+        html += "</div>";
+      }
+      html += "</div>";
+    }
+
+    html += "</div>";
+    return html;
+  }
+
+  private wireA11yPanelEvents(): void {
+    if (!this.expandBodyEl) return;
+
+    // Re-scan button with debounce
+    const rescanBtn = this.expandBodyEl.querySelector(".a11y-rescan-btn");
+    rescanBtn?.addEventListener("click", (e: Event) => {
+      e.stopPropagation();
+      if (Date.now() - this.lastA11yScanTime < 500) return;
+      (rescanBtn as HTMLElement).textContent = "Scanning\u2026";
+      rescanBtn.classList.add("a11y-rescan-btn--loading");
+      setTimeout(() => {
+        if (!this.expandBodyEl || this.activePanel !== "accessibility") return;
+        this.expandBodyEl.innerHTML = this.renderA11yPanelContent(true);
+        this.wireA11yPanelEvents();
+      }, 0);
+    });
+
+    // Expand/collapse child details
+    for (const toggle of this.expandBodyEl.querySelectorAll(".a11y-row-toggle")) {
+      toggle.addEventListener("click", (e: Event) => {
+        e.stopPropagation();
+        const idx = (toggle as HTMLElement).dataset.a11yIdx;
+        const details = this.expandBodyEl?.querySelector(`[data-a11y-details="${idx}"]`);
+        const chevron = toggle.querySelector(".a11y-row-chevron");
+        if (details) details.classList.toggle("open");
+        if (chevron) chevron.classList.toggle("open");
+      });
+    }
   }
 
   // --- Toolbar Drag ---
