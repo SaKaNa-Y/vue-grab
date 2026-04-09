@@ -25,9 +25,9 @@ const { isActive, lastResult, toggle } = useGrab();
         {{ isActive ? "Cancel Grab" : "Start Grab" }}
       </button>
       <kbd style="font-size: 12px; color: #6b7280">Alt+Shift+G</kbd>
-      <span v-if="isActive" style="color: #4f46e5; font-size: 14px">
-        Hover over elements and click to grab...
-      </span>
+      <span v-if="isActive" style="color: #4f46e5; font-size: 14px"
+        >Hover over elements and click to grab...</span
+      >
     </div>
 
     <HelloWorld msg="Test component for vue-grab" />
@@ -59,9 +59,13 @@ const { isActive, lastResult, toggle } = useGrab();
     >
       <h3 style="margin-top: 0">Grab Result</h3>
       <p>
-        <strong>Selector:</strong> <code>{{ lastResult.selector }}</code>
+        <strong>Selector:</strong>
+        <code>{{ lastResult.selector }}</code>
       </p>
-      <p><strong>Tag:</strong> {{ lastResult.element.tagName.toLowerCase() }}</p>
+      <p>
+        <strong>Tag:</strong>
+        {{ lastResult.element.tagName.toLowerCase() }}
+      </p>
       <div v-if="lastResult.componentStack.length">
         <p><strong>Component Stack:</strong></p>
         <ul>

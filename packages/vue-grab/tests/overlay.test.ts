@@ -112,8 +112,8 @@ describe("GrabOverlay", () => {
 
       const host = document.getElementById(OVERLAY_HOST_ID)!;
       const label = host.shadowRoot!.querySelector(".grab-label") as HTMLElement;
-      expect(label.style.display).toBe("block");
-      expect(label.textContent).toBe("<MyComp>");
+      expect(label.style.display).toBe("inline-flex");
+      expect(label.textContent).toContain("<MyComp>");
     });
 
     it("positions label above element when there is enough space", () => {

@@ -156,4 +156,49 @@ export const INSPECTOR_STYLES = `
     padding: 20px;
     font-size: 12px;
   }
+  .dt-a11y-none {
+    color: #555;
+    font-size: 12px;
+    font-style: italic;
+  }
+  .dt-a11y-attrs {
+    margin-bottom: 8px;
+  }
+  .dt-a11y-attr {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 12px;
+  }
+  .dt-a11y-attr-name {
+    color: #82aaff;
+  }
+  .dt-a11y-attr-eq {
+    color: #555;
+  }
+  .dt-a11y-attr-value {
+    color: #c3e88d;
+  }
+  .dt-a11y-audit {
+    margin-top: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .dt-a11y-warning {
+    color: #ffcb6b;
+    font-size: 12px;
+    padding: 4px 8px;
+    background: rgba(255,203,107,0.08);
+    border-radius: 4px;
+  }
+  .dt-a11y-info {
+    color: #89ddff;
+    font-size: 12px;
+    padding: 4px 8px;
+    background: rgba(137,221,255,0.06);
+    border-radius: 4px;
+  }
 `;

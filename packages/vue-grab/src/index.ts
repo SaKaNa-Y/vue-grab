@@ -17,4 +17,10 @@ export type {
   MatchedCSSRule,
   CSSPropertyEntry,
   StyleUpdateRequest,
+  A11yAttribute,
+  A11ySeverity,
+  A11yAuditItem,
+  A11yInfo,
+  ComponentA11ySummary,
+  ElementA11yDetail,
 } from "@sakana-y/vue-grab-shared";
