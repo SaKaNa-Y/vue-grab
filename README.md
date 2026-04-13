@@ -16,6 +16,9 @@ Point at any element, click, and get its HTML, CSS selector, and Vue component h
 - **HTML capture** — outerHTML with configurable max length
 - **Floating action button** — optional draggable FAB with hotkey settings panel
 - **Hotkey support** — default `Alt+Shift+G`, fully customizable and persistable
+- **Accessibility audit** — a11y attribute extraction and 5-rule audit on every grab
+- **CSS inspector** — matched CSS rules with live style editing back to SFC source
+- **Error capture** — catches console.error, runtime errors, promise rejections, and Vue errorHandler errors
 - **Shadow DOM isolation** — overlay styles never conflict with your app
 - **Works with or without Vue** — use as a Vue plugin or standalone `init()`
 
@@ -89,9 +92,22 @@ createVueGrab({
   },
   floatingButton: {
     enabled: false,            // show draggable FAB
-    initialPosition: "bottom-right",
+    initialPosition: "top-center",
     storageKey: "vue-grab-fab-pos",
     hotkeyStorageKey: "vue-grab-hotkey",
+    editorStorageKey: "vue-grab-editor",
+  },
+  devtoolsPanel: {
+    enabled: true,             // show DevTools inspector panel
+    initialMode: "float",      // "float" | "edge"
+    edgeSide: "bottom",        // "bottom" | "right"
+  },
+  errorCapture: {
+    enabled: true,             // capture runtime errors
+    maxErrors: 50,             // ring buffer size
+    captureConsoleError: true,
+    captureUnhandled: true,
+    captureVueErrors: true,
   },
 });
 ```
@@ -115,12 +131,19 @@ interface GrabResult {
   html: string;
   componentStack: ComponentInfo[];
   selector: string;
+  a11y: A11yInfo;
 }
 
 interface ComponentInfo {
   name: string;
   filePath?: string;
   line?: number;
+}
+
+interface A11yInfo {
+  attributes: A11yAttribute[];
+  audit: A11yAuditItem[];
+  hasA11y: boolean;
 }
 ```
 
@@ -166,6 +189,9 @@ pnpm lint && pnpm format:check
 - **HTML 捕获** — outerHTML，可配置最大长度
 - **悬浮操作按钮** — 可选的可拖拽 FAB，带快捷键设置面板
 - **快捷键支持** — 默认 `Alt+Shift+G`，完全可自定义且可持久化
+- **无障碍审计** — 提取 a11y 属性并在每次抓取时执行 5 条审计规则
+- **CSS 检查器** — 匹配的 CSS 规则，支持实时编辑并写回 SFC 源文件
+- **错误捕获** — 捕获 console.error、运行时错误、Promise 拒绝和 Vue errorHandler 错误
 - **Shadow DOM 隔离** — 覆盖层样式不会影响你的应用
 - **支持非 Vue 环境** — 既可作为 Vue 插件使用，也可独立调用 `init()`
 
@@ -239,9 +265,22 @@ createVueGrab({
   },
   floatingButton: {
     enabled: false,            // 显示可拖拽悬浮按钮
-    initialPosition: "bottom-right",
+    initialPosition: "top-center",
     storageKey: "vue-grab-fab-pos",
     hotkeyStorageKey: "vue-grab-hotkey",
+    editorStorageKey: "vue-grab-editor",
+  },
+  devtoolsPanel: {
+    enabled: true,             // 显示 DevTools 检查器面板
+    initialMode: "float",      // "float" | "edge"
+    edgeSide: "bottom",        // "bottom" | "right"
+  },
+  errorCapture: {
+    enabled: true,             // 捕获运行时错误
+    maxErrors: 50,             // 环形缓冲区大小
+    captureConsoleError: true,
+    captureUnhandled: true,
+    captureVueErrors: true,
   },
 });
 ```
