@@ -1,4 +1,5 @@
 import type {
+  CapturedError,
   FloatingButtonConfig,
   GrabResult,
   MatchedCSSRule,
@@ -16,7 +17,10 @@ import {
   INSPECTOR_STYLES,
   A11Y_ICON_SVG,
   scanPageA11y,
+  buildErrorPrompt,
+  resolveErrorSource,
 } from "../utils";
+import { openInClaudeCode } from "../editor";
 
 export const FAB_HOST_ID = "vue-grab-fab-host";
 
@@ -75,6 +79,8 @@ const GEAR_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" st
 
 const INSPECTOR_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>`;
 
+const ERROR_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`;
+
 const EDITOR_PRESETS = [
   { label: "Auto-detect", value: "" },
   { label: "VS Code", value: "code" },
@@ -82,7 +88,7 @@ const EDITOR_PRESETS = [
 ];
 
 type TabId = "shortcuts" | "editor";
-type PanelId = "settings" | "inspector" | "accessibility";
+type PanelId = "settings" | "inspector" | "accessibility" | "errors";
 
 const STYLES = `
   :host {
@@ -176,6 +182,30 @@ const STYLES = `
     color: #4ade80;
     box-shadow: inset 0 0 0 1.5px #4ade80;
     background: rgba(74, 222, 128, 0.12);
+  }
+  .err-btn {
+    position: relative;
+  }
+  .err-btn.active {
+    color: #ef4444;
+    box-shadow: inset 0 0 0 1.5px #ef4444;
+    background: rgba(239, 68, 68, 0.12);
+  }
+  .err-badge {
+    position: absolute;
+    top: 1px;
+    right: 1px;
+    min-width: 14px;
+    height: 14px;
+    border-radius: 7px;
+    background: #ef4444;
+    color: #fff;
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 14px;
+    text-align: center;
+    padding: 0 3px;
+    pointer-events: none;
   }
 
   /* ── A11y panel ── */
@@ -540,6 +570,161 @@ const STYLES = `
     margin: 0 2px;
   }
 
+  /* ── Error panel ── */
+  .err-panel { padding: 12px 14px; }
+  .err-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .err-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #e0e0e0;
+  }
+  .err-clear-btn {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 6px;
+    color: #ccc;
+    padding: 3px 10px;
+    font-size: 11px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .err-clear-btn:hover {
+    background: rgba(255,255,255,0.14);
+    color: #fff;
+  }
+  .err-summary {
+    font-size: 12px;
+    color: #888;
+    margin-bottom: 12px;
+    padding: 6px 10px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 6px;
+  }
+  .err-row {
+    padding: 8px 10px;
+    border-radius: 6px;
+    margin-bottom: 4px;
+    border-left: 3px solid #ef4444;
+    background: rgba(239, 68, 68, 0.04);
+    transition: background 0.1s ease;
+  }
+  .err-row:hover {
+    background: rgba(239, 68, 68, 0.08);
+  }
+  .err-row-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+  }
+  .err-row-type {
+    font-size: 10px;
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .err-row-msg {
+    font-size: 12px;
+    color: #e0e0e0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    min-width: 0;
+  }
+  .err-row-count {
+    font-size: 10px;
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+    border-radius: 8px;
+    padding: 0 5px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .err-row-time {
+    font-size: 10px;
+    color: #666;
+    flex-shrink: 0;
+  }
+  .err-row-chevron {
+    display: inline-block;
+    transition: transform 0.15s ease;
+    font-size: 10px;
+    color: #666;
+    flex-shrink: 0;
+  }
+  .err-row-chevron.open {
+    transform: rotate(90deg);
+  }
+  .err-row-details {
+    display: none;
+    margin-top: 8px;
+  }
+  .err-row-details.open {
+    display: block;
+  }
+  .err-row-stack {
+    font-size: 11px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    color: #999;
+    white-space: pre-wrap;
+    word-break: break-all;
+    max-height: 150px;
+    overflow-y: auto;
+    padding: 6px 8px;
+    background: rgba(0,0,0,0.2);
+    border-radius: 4px;
+    margin-bottom: 6px;
+  }
+  .err-row-vue-info {
+    font-size: 11px;
+    color: #c792ea;
+    margin-bottom: 6px;
+  }
+  .err-row-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 6px;
+  }
+  .err-action-btn {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 6px;
+    color: #ccc;
+    padding: 3px 10px;
+    font-size: 11px;
+    cursor: pointer;
+    font-family: inherit;
+    white-space: nowrap;
+  }
+  .err-action-btn:hover {
+    background: rgba(255,255,255,0.14);
+    color: #fff;
+  }
+  .err-action-btn.primary {
+    background: rgba(99, 102, 241, 0.15);
+    border-color: rgba(99, 102, 241, 0.3);
+    color: #a5b4fc;
+  }
+  .err-action-btn.primary:hover {
+    background: rgba(99, 102, 241, 0.25);
+    color: #c7d2fe;
+  }
+  .err-empty {
+    color: #555;
+    text-align: center;
+    padding: 20px;
+    font-size: 12px;
+  }
+
   ${INSPECTOR_STYLES}
 `;
 
@@ -554,6 +739,9 @@ export class FloatingButton {
   private gearEl: HTMLElement | null = null;
   private inspectorEl: HTMLElement | null = null;
   private a11yIndicatorEl: HTMLElement | null = null;
+  private errBtnEl: HTMLElement | null = null;
+  private errBadgeEl: HTMLElement | null = null;
+  private errorEntries: CapturedError[] = [];
   private cachedA11yResults: ReturnType<typeof scanPageA11y> | null = null;
   private lastA11yScanTime = 0;
   private pendingRafId: number | null = null;
@@ -590,6 +778,7 @@ export class FloatingButton {
   private hotkeyChangeCb: ((combo: string) => void) | null = null;
   private configChangeCb: ((changes: Record<string, unknown>) => void) | null = null;
   private styleChangeCb: ((update: StyleUpdateRequest) => void) | null = null;
+  private errorsClearCb: (() => void) | null = null;
 
   // Bound handlers for cleanup
   private boundPointerDown: ((e: PointerEvent) => void) | null = null;
@@ -695,6 +884,21 @@ export class FloatingButton {
     this.a11yIndicatorEl.innerHTML = A11Y_ICON_SVG;
     this.toolbarRowEl.appendChild(this.a11yIndicatorEl);
 
+    // Divider before errors
+    const divider3 = document.createElement("div");
+    divider3.className = "toolbar-divider";
+    this.toolbarRowEl.appendChild(divider3);
+
+    // Error button
+    this.errBtnEl = document.createElement("div");
+    this.errBtnEl.className = "toolbar-btn err-btn";
+    this.errBtnEl.innerHTML = ERROR_SVG;
+    this.errBadgeEl = document.createElement("span");
+    this.errBadgeEl.className = "err-badge";
+    this.errBadgeEl.style.display = "none";
+    this.errBtnEl.appendChild(this.errBadgeEl);
+    this.toolbarRowEl.appendChild(this.errBtnEl);
+
     this.toolbarEl.appendChild(this.toolbarRowEl);
 
     // Expandable body (separate card element)
@@ -754,6 +958,13 @@ export class FloatingButton {
       this.activatePanel("accessibility");
     });
 
+    // Error click → toggle error panel
+    this.errBtnEl.addEventListener("click", (e: MouseEvent) => {
+      e.stopPropagation();
+      if (this.wasDragged) return;
+      this.activatePanel("errors");
+    });
+
     // Document: close on outside click
     this.boundDocClick = (e: MouseEvent) => {
       if (!this.activePanel) return;
@@ -807,6 +1018,8 @@ export class FloatingButton {
       this.gearEl = null;
       this.inspectorEl = null;
       this.a11yIndicatorEl = null;
+      this.errBtnEl = null;
+      this.errBadgeEl = null;
     }
   }
 
@@ -842,6 +1055,10 @@ export class FloatingButton {
 
   onStyleChange(cb: (update: StyleUpdateRequest) => void): void {
     this.styleChangeCb = cb;
+  }
+
+  onErrorsClear(cb: () => void): void {
+    this.errorsClearCb = cb;
   }
 
   // --- Panel activation (expand/collapse) ---
@@ -916,6 +1133,7 @@ export class FloatingButton {
     this.gearEl!.classList.toggle("active", panel === "settings");
     this.inspectorEl!.classList.toggle("active", panel === "inspector");
     this.a11yIndicatorEl!.classList.toggle("active", panel === "accessibility");
+    this.errBtnEl!.classList.toggle("active", panel === "errors");
   }
 
   private deactivatePanel(): void {
@@ -928,6 +1146,7 @@ export class FloatingButton {
     this.gearEl!.classList.remove("active");
     this.inspectorEl!.classList.remove("active");
     this.a11yIndicatorEl!.classList.remove("active");
+    this.errBtnEl!.classList.remove("active");
 
     // Restore original centering transform and position instantly (no animated shift)
     if (this.host) {
@@ -957,6 +1176,9 @@ export class FloatingButton {
     } else if (this.activePanel === "accessibility") {
       this.expandBodyEl.innerHTML = this.renderA11yPanelContent();
       this.wireA11yPanelEvents();
+    } else if (this.activePanel === "errors") {
+      this.expandBodyEl.innerHTML = this.renderErrorPanelContent();
+      this.wireErrorPanelEvents();
     }
   }
 
@@ -1245,6 +1467,160 @@ export class FloatingButton {
         const chevron = toggle.querySelector(".a11y-row-chevron");
         if (details) details.classList.toggle("open");
         if (chevron) chevron.classList.toggle("open");
+      });
+    }
+  }
+
+  // --- Error panel ---
+
+  setErrors(entries: CapturedError[]): void {
+    this.errorEntries = entries;
+    this.updateErrorBadge();
+    if (this.activePanel === "errors") {
+      this.renderExpandBody();
+    }
+  }
+
+  private updateErrorBadge(): void {
+    if (!this.errBadgeEl) return;
+    const count = this.errorEntries.length;
+    this.errBadgeEl.textContent = count > 99 ? "99+" : String(count);
+    this.errBadgeEl.style.display = count > 0 ? "" : "none";
+  }
+
+  private renderErrorPanelContent(): string {
+    if (this.errorEntries.length === 0) {
+      return '<div class="err-panel"><div class="err-empty">No errors captured</div></div>';
+    }
+
+    let html = '<div class="err-panel">';
+
+    html += '<div class="err-header">';
+    html += '<span class="err-title">Console Errors</span>';
+    html += '<button class="err-clear-btn">Clear</button>';
+    html += "</div>";
+
+    const totalCount = this.errorEntries.reduce((s, e) => s + e.count, 0);
+    html += '<div class="err-summary">';
+    html += `<span style="color:#ef4444;font-weight:600;">${this.errorEntries.length}</span> unique errors`;
+    if (totalCount > this.errorEntries.length) {
+      html += ` (${totalCount} total occurrences)`;
+    }
+    html += "</div>";
+
+    // Render errors in reverse chronological order
+    const sorted = [...this.errorEntries].toSorted((a, b) => b.timestamp - a.timestamp);
+    for (let i = 0; i < sorted.length; i++) {
+      const err = sorted[i];
+      const time = new Date(err.timestamp).toLocaleTimeString();
+      const msgTrunc =
+        err.message.length > 120 ? err.message.slice(0, 120) + "\u2026" : err.message;
+
+      html += `<div class="err-row" data-err-idx="${i}">`;
+      html += '<div class="err-row-header">';
+      html += `<span class="err-row-chevron" data-err-toggle="${i}">\u25B6</span>`;
+      html += `<span class="err-row-type">${esc(err.type)}</span>`;
+      html += `<span class="err-row-msg" title="${esc(err.message)}">${esc(msgTrunc)}</span>`;
+      if (err.count > 1) {
+        html += `<span class="err-row-count">\u00D7${err.count}</span>`;
+      }
+      html += `<span class="err-row-time">${esc(time)}</span>`;
+      html += "</div>";
+
+      // Expandable details
+      html += `<div class="err-row-details" data-err-details="${i}">`;
+      if (err.vueInfo) {
+        html += `<div class="err-row-vue-info">Vue: ${esc(err.vueInfo)}</div>`;
+      }
+      if (err.stack) {
+        html += `<div class="err-row-stack">${esc(err.stack)}</div>`;
+      }
+      html += '<div class="err-row-actions">';
+      html += `<button class="err-action-btn" data-err-copy="${i}">Copy</button>`;
+      html += `<button class="err-action-btn primary" data-err-claude="${i}">Open in Claude Code</button>`;
+      if (err.sourceFile || err.componentStack?.[0]?.filePath) {
+        html += `<button class="err-action-btn" data-err-open="${i}">Open in Editor</button>`;
+      }
+      html += "</div>";
+      html += "</div>";
+
+      html += "</div>";
+    }
+
+    html += "</div>";
+    return html;
+  }
+
+  private wireErrorPanelEvents(): void {
+    if (!this.expandBodyEl) return;
+
+    const sorted = [...this.errorEntries].toSorted((a, b) => b.timestamp - a.timestamp);
+
+    // Clear button
+    const clearBtn = this.expandBodyEl.querySelector(".err-clear-btn");
+    clearBtn?.addEventListener("click", (e: Event) => {
+      e.stopPropagation();
+      this.errorsClearCb?.();
+    });
+
+    // Row expand/collapse toggles
+    for (const header of this.expandBodyEl.querySelectorAll(".err-row-header")) {
+      header.addEventListener("click", (e: Event) => {
+        e.stopPropagation();
+        const row = (header as HTMLElement).closest(".err-row");
+        const idx = row?.getAttribute("data-err-idx");
+        if (idx == null) return;
+        const details = this.expandBodyEl?.querySelector(`[data-err-details="${idx}"]`);
+        const chevron = this.expandBodyEl?.querySelector(`[data-err-toggle="${idx}"]`);
+        if (details) details.classList.toggle("open");
+        if (chevron) chevron.classList.toggle("open");
+      });
+    }
+
+    // Copy buttons
+    for (const btn of this.expandBodyEl.querySelectorAll("[data-err-copy]")) {
+      btn.addEventListener("click", (e: Event) => {
+        e.stopPropagation();
+        const idx = Number((btn as HTMLElement).dataset.errCopy);
+        const err = sorted[idx];
+        if (!err) return;
+        const prompt = buildErrorPrompt(err);
+        navigator.clipboard.writeText(prompt).then(() => {
+          (btn as HTMLElement).textContent = "Copied!";
+          setTimeout(() => {
+            (btn as HTMLElement).textContent = "Copy";
+          }, 1500);
+        });
+      });
+    }
+
+    // Open in Claude Code buttons
+    for (const btn of this.expandBodyEl.querySelectorAll("[data-err-claude]")) {
+      btn.addEventListener("click", (e: Event) => {
+        e.stopPropagation();
+        const idx = Number((btn as HTMLElement).dataset.errClaude);
+        const err = sorted[idx];
+        if (!err) return;
+        const prompt = buildErrorPrompt(err);
+        openInClaudeCode(prompt);
+        (btn as HTMLElement).textContent = "Opened!";
+        setTimeout(() => {
+          (btn as HTMLElement).textContent = "Open in Claude Code";
+        }, 1500);
+      });
+    }
+
+    // Open in Editor buttons
+    for (const btn of this.expandBodyEl.querySelectorAll("[data-err-open]")) {
+      btn.addEventListener("click", (e: Event) => {
+        e.stopPropagation();
+        const idx = Number((btn as HTMLElement).dataset.errOpen);
+        const err = sorted[idx];
+        if (!err) return;
+        const source = resolveErrorSource(err);
+        if (!source) return;
+        const editor = this.getEditorChoice();
+        openInEditor(source.file, source.line, editor || undefined);
       });
     }
   }

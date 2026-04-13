@@ -13,6 +13,9 @@ export function init(options: Partial<GrabConfig> = {}) {
     activate: () => session.engine.activate(),
     deactivate: () => session.engine.deactivate(),
     onGrab: (cb: (result: GrabResult) => void) => session.engine.onGrab(cb),
+    onError: (cb: (errors: import("@sakana-y/vue-grab-shared").CapturedError[]) => void) =>
+      session.errorCapture?.onChange(cb) ?? (() => {}),
+    clearErrors: () => session.errorCapture?.clear(),
     destroy: () => session.destroy(),
   };
 }

@@ -1,4 +1,9 @@
-import type { DevToolsPanelConfig, FloatingButtonConfig, GrabConfig } from "./types";
+import type {
+  DevToolsPanelConfig,
+  ErrorCaptureConfig,
+  FloatingButtonConfig,
+  GrabConfig,
+} from "./types";
 
 export const DEFAULT_HIGHLIGHT_COLOR = "#4f46e5";
 export const DEFAULT_LABEL_TEXT_COLOR = "#ffffff";
@@ -20,6 +25,16 @@ export const DEFAULT_DEVTOOLS_PANEL: DevToolsPanelConfig = {
   panelGeometryStorageKey: "vue-grab-devtools-geometry",
 };
 
+export const VUE_ERROR_EVENT = "vue-grab:vue-error";
+
+export const DEFAULT_ERROR_CAPTURE: ErrorCaptureConfig = {
+  enabled: true,
+  maxErrors: 50,
+  captureConsoleError: true,
+  captureUnhandled: true,
+  captureVueErrors: true,
+};
+
 export const DEFAULT_CONFIG: GrabConfig = {
   highlightColor: DEFAULT_HIGHLIGHT_COLOR,
   labelTextColor: DEFAULT_LABEL_TEXT_COLOR,
@@ -32,13 +47,14 @@ export const DEFAULT_CONFIG: GrabConfig = {
   },
   floatingButton: DEFAULT_FLOATING_BUTTON,
   devtoolsPanel: DEFAULT_DEVTOOLS_PANEL,
+  errorCapture: DEFAULT_ERROR_CAPTURE,
 };
 
 /**
  * Deep-merge user config with defaults, properly handling nested objects.
  */
 export function mergeConfig(defaults: GrabConfig, options: Partial<GrabConfig>): GrabConfig {
-  const { filter, floatingButton, devtoolsPanel, ...rest } = options;
+  const { filter, floatingButton, devtoolsPanel, errorCapture, ...rest } = options;
   return {
     ...defaults,
     ...rest,
@@ -53,6 +69,10 @@ export function mergeConfig(defaults: GrabConfig, options: Partial<GrabConfig>):
     devtoolsPanel: {
       ...defaults.devtoolsPanel,
       ...devtoolsPanel,
+    },
+    errorCapture: {
+      ...defaults.errorCapture,
+      ...errorCapture,
     },
   };
 }

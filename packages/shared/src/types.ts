@@ -26,6 +26,8 @@ export interface GrabConfig {
   floatingButton: FloatingButtonConfig;
   /** DevTools inspector panel configuration */
   devtoolsPanel: DevToolsPanelConfig;
+  /** Error capture configuration */
+  errorCapture: ErrorCaptureConfig;
 }
 
 export interface GrabFilterConfig {
@@ -99,6 +101,39 @@ export interface ComponentA11ySummary {
 
 export type DevToolsPanelMode = "float" | "edge";
 export type EdgeDockSide = "bottom" | "right";
+
+export type CapturedErrorType = "console.error" | "runtime" | "promise" | "vue";
+
+export interface CapturedError {
+  id: number;
+  type: CapturedErrorType;
+  message: string;
+  stack?: string;
+  /** Vue lifecycle info string from app.config.errorHandler */
+  vueInfo?: string;
+  /** Component stack at time of capture (if available from last grab) */
+  componentStack?: ComponentInfo[];
+  /** Source file if extractable from stack trace */
+  sourceFile?: string;
+  /** Source line if extractable */
+  sourceLine?: number;
+  timestamp: number;
+  /** Dedup count — incremented for repeat occurrences */
+  count: number;
+}
+
+export interface ErrorCaptureConfig {
+  /** Enable error capture. Default: true */
+  enabled: boolean;
+  /** Max errors to keep in ring buffer. Default: 50 */
+  maxErrors: number;
+  /** Capture console.error calls. Default: true */
+  captureConsoleError: boolean;
+  /** Capture window error + unhandledrejection. Default: true */
+  captureUnhandled: boolean;
+  /** Capture Vue app.config.errorHandler. Default: true */
+  captureVueErrors: boolean;
+}
 
 export interface DevToolsPanelConfig {
   enabled: boolean;
