@@ -3,6 +3,7 @@ export { useGrab } from "./composables";
 export { init } from "./init";
 export { FloatingButton, FAB_HOST_ID } from "./floating-button";
 export { DevToolsPanel, DEVTOOLS_HOST_ID } from "./devtools-panel";
+export { MagnifierOverlay, MAGNIFIER_HOST_ID } from "./magnifier";
 export { matchCSSRules } from "./css-inspector";
 export { openInEditor, updateStyle } from "./editor";
 export type {
@@ -23,4 +24,5 @@ export type {
   A11yInfo,
   ComponentA11ySummary,
   ElementA11yDetail,
+  MagnifierConfig,
 } from "@sakana-y/vue-grab-shared";

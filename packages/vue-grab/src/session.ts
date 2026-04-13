@@ -3,6 +3,7 @@ import { DEFAULT_HOTKEY } from "@sakana-y/vue-grab-shared";
 import { GrabEngine } from "./core";
 import { HotkeyManager } from "./hotkeys";
 import { FloatingButton } from "./floating-button";
+import { MagnifierOverlay } from "./magnifier";
 import { updateStyle } from "./editor";
 import { ConsoleCapture } from "./utils";
 
@@ -10,6 +11,7 @@ export interface GrabSession {
   engine: GrabEngine;
   hotkeys: HotkeyManager;
   fab: FloatingButton | null;
+  magnifier: MagnifierOverlay | null;
   errorCapture: ConsoleCapture | null;
   destroy: () => void;
 }
@@ -23,6 +25,7 @@ export function createGrabSession(config: GrabConfig): GrabSession {
   const engine = new GrabEngine(config);
   const hotkeys = new HotkeyManager();
   let fab: FloatingButton | null = null;
+  let magnifier: MagnifierOverlay | null = null;
   let errorCapture: ConsoleCapture | null = null;
 
   if (config.errorCapture.enabled) {
@@ -50,7 +53,11 @@ export function createGrabSession(config: GrabConfig): GrabSession {
         localFab.setHighlightColor(partial.highlightColor);
       }
     });
-    engine.onStateChange((active) => localFab.setActive(active));
+    engine.onStateChange((active) => {
+      localFab.setActive(active);
+      // Mutual exclusion: deactivate magnifier when grab activates
+      if (active && magnifier?.isActive) magnifier.deactivate();
+    });
     engine.onGrab((result) => localFab.setLastResult(result));
     localFab.mount();
   } else {
@@ -68,15 +75,38 @@ export function createGrabSession(config: GrabConfig): GrabSession {
     fab.onErrorsClear(() => errorCapture!.clear());
   }
 
+  // Wire magnifier
+  if (config.magnifier.enabled) {
+    const localMagnifier = new MagnifierOverlay(config.magnifier);
+    magnifier = localMagnifier;
+    localMagnifier.mount();
+
+    if (fab) {
+      fab.onMagnifierToggle(() => localMagnifier.toggle());
+      fab.setMagnifierConfig({
+        loupeSize: config.magnifier.loupeSize,
+        zoomLevel: config.magnifier.zoomLevel,
+      });
+      fab.onMagnifierConfigChange((changes) => localMagnifier.updateConfig(changes));
+      localMagnifier.onStateChange((active) => {
+        fab!.setMagnifierActive(active);
+        // Mutual exclusion: deactivate grab when magnifier activates
+        if (active) engine.deactivate();
+      });
+    }
+  }
+
   return {
     engine,
     hotkeys,
     fab,
+    magnifier,
     errorCapture,
     destroy() {
       engine.destroy();
       hotkeys.destroy();
       fab?.destroy();
+      magnifier?.destroy();
       errorCapture?.destroy();
     },
   };

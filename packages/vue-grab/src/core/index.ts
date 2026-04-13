@@ -3,6 +3,7 @@ import { mergeConfig } from "@sakana-y/vue-grab-shared";
 import { GrabOverlay, OVERLAY_HOST_ID } from "../overlay";
 import { FAB_HOST_ID } from "../floating-button";
 import { DEVTOOLS_HOST_ID } from "../devtools-panel";
+import { MAGNIFIER_HOST_ID } from "../magnifier";
 import { hasA11yAttributes, extractA11yInfo } from "../utils";
 
 const COMMON_LAYOUT_NAMES = new Set([
@@ -147,7 +148,12 @@ export class GrabEngine {
 
   private shouldIgnore(el: Element): boolean {
     // Ignore our own overlay and floating button
-    if (el.closest(`#${OVERLAY_HOST_ID}, #${FAB_HOST_ID}, #${DEVTOOLS_HOST_ID}`)) return true;
+    if (
+      el.closest(
+        `#${OVERLAY_HOST_ID}, #${FAB_HOST_ID}, #${DEVTOOLS_HOST_ID}, #${MAGNIFIER_HOST_ID}`,
+      )
+    )
+      return true;
 
     const tag = el.tagName.toLowerCase();
 

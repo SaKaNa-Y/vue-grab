@@ -28,6 +28,8 @@ export interface GrabConfig {
   devtoolsPanel: DevToolsPanelConfig;
   /** Error capture configuration */
   errorCapture: ErrorCaptureConfig;
+  /** Magnifier loupe configuration */
+  magnifier: MagnifierConfig;
 }
 
 export interface GrabFilterConfig {
@@ -141,6 +143,19 @@ export interface DevToolsPanelConfig {
   edgeSide: EdgeDockSide;
   panelModeStorageKey: string;
   panelGeometryStorageKey: string;
+}
+
+export interface MagnifierConfig {
+  /** Enable magnifier feature. Default: true */
+  enabled: boolean;
+  /** Diameter of the loupe circle in pixels. Default: 200 */
+  loupeSize: number;
+  /** Zoom level (multiplier). Default: 3 */
+  zoomLevel: number;
+  /** Show HTML source overlay inside the loupe. Default: true */
+  showHtmlOverlay: boolean;
+  /** Maximum characters of HTML to show in overlay. Default: 200 */
+  maxOverlayHtmlLength: number;
 }
 
 export interface MatchedCSSRule {

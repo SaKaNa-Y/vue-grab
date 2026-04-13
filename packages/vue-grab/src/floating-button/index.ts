@@ -81,13 +81,15 @@ const INSPECTOR_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="non
 
 const ERROR_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`;
 
+const MAGNIFIER_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><circle cx="11" cy="11" r="3" stroke-dasharray="2 2"/></svg>`;
+
 const EDITOR_PRESETS = [
   { label: "Auto-detect", value: "" },
   { label: "VS Code", value: "code" },
   { label: "Cursor", value: "cursor" },
 ];
 
-type TabId = "shortcuts" | "editor";
+type TabId = "shortcuts" | "editor" | "magnifier";
 type PanelId = "settings" | "inspector" | "accessibility" | "errors";
 
 const STYLES = `
@@ -190,6 +192,15 @@ const STYLES = `
     color: #ef4444;
     box-shadow: inset 0 0 0 1.5px #ef4444;
     background: rgba(239, 68, 68, 0.12);
+  }
+  .magnifier-btn.active {
+    color: #f59e0b;
+    box-shadow: inset 0 0 0 1.5px #f59e0b;
+    background: rgba(245, 158, 11, 0.12);
+  }
+  .magnifier-btn.disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
   }
   .err-badge {
     position: absolute;
@@ -432,6 +443,40 @@ const STYLES = `
   }
   .tab-content.active {
     display: block;
+  }
+
+  /* Slider row */
+  .slider-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .slider-row input[type="range"] {
+    flex: 1;
+    height: 4px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: rgba(255,255,255,0.12);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+  .slider-row input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--grab-color, #4f46e5);
+    cursor: pointer;
+  }
+  .slider-value {
+    font-size: 11px;
+    color: #aaa;
+    min-width: 38px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
   }
 
   /* Section label */
@@ -741,6 +786,7 @@ export class FloatingButton {
   private a11yIndicatorEl: HTMLElement | null = null;
   private errBtnEl: HTMLElement | null = null;
   private errBadgeEl: HTMLElement | null = null;
+  private magnifierBtnEl: HTMLElement | null = null;
   private errorEntries: CapturedError[] = [];
   private cachedA11yResults: ReturnType<typeof scanPageA11y> | null = null;
   private lastA11yScanTime = 0;
@@ -750,6 +796,8 @@ export class FloatingButton {
   // Expand state
   private activePanel: PanelId | null = null;
   private settingsTab: TabId = "shortcuts";
+  private isGrabActive = false;
+  private isMagnifierActive = false;
 
   // Editor state
   private editorChoice = "";
@@ -779,6 +827,12 @@ export class FloatingButton {
   private configChangeCb: ((changes: Record<string, unknown>) => void) | null = null;
   private styleChangeCb: ((update: StyleUpdateRequest) => void) | null = null;
   private errorsClearCb: (() => void) | null = null;
+  private magnifierToggleCb: (() => void) | null = null;
+  private magnifierConfigChangeCb:
+    | ((config: { loupeSize?: number; zoomLevel?: number }) => void)
+    | null = null;
+  private magnifierLoupeSize = 400;
+  private magnifierZoomLevel = 3;
 
   // Bound handlers for cleanup
   private boundPointerDown: ((e: PointerEvent) => void) | null = null;
@@ -899,6 +953,18 @@ export class FloatingButton {
     this.errBtnEl.appendChild(this.errBadgeEl);
     this.toolbarRowEl.appendChild(this.errBtnEl);
 
+    // Divider before magnifier
+    const divider4 = document.createElement("div");
+    divider4.className = "toolbar-divider";
+    this.toolbarRowEl.appendChild(divider4);
+
+    // Magnifier button
+    this.magnifierBtnEl = document.createElement("div");
+    this.magnifierBtnEl.className = "toolbar-btn magnifier-btn";
+    this.magnifierBtnEl.innerHTML = MAGNIFIER_SVG;
+    this.magnifierBtnEl.title = "Magnifier loupe";
+    this.toolbarRowEl.appendChild(this.magnifierBtnEl);
+
     this.toolbarEl.appendChild(this.toolbarRowEl);
 
     // Expandable body (separate card element)
@@ -930,6 +996,11 @@ export class FloatingButton {
     this.btnEl.addEventListener("click", (e: MouseEvent) => {
       e.stopPropagation();
       if (this.wasDragged) return;
+      if (this.isGrabActive) {
+        this.toggleCb?.();
+        return;
+      }
+      if (this.isMagnifierActive) return;
       if (this.activePanel) {
         this.deactivatePanel();
         return;
@@ -941,6 +1012,7 @@ export class FloatingButton {
     this.gearEl.addEventListener("click", (e: MouseEvent) => {
       e.stopPropagation();
       if (this.wasDragged) return;
+      if (!this.canActivatePanel()) return;
       this.activatePanel("settings");
     });
 
@@ -948,6 +1020,7 @@ export class FloatingButton {
     this.inspectorEl.addEventListener("click", (e: MouseEvent) => {
       e.stopPropagation();
       if (this.wasDragged) return;
+      if (!this.canActivatePanel()) return;
       this.activatePanel("inspector");
     });
 
@@ -955,6 +1028,7 @@ export class FloatingButton {
     this.a11yIndicatorEl.addEventListener("click", (e: MouseEvent) => {
       e.stopPropagation();
       if (this.wasDragged) return;
+      if (!this.canActivatePanel()) return;
       this.activatePanel("accessibility");
     });
 
@@ -962,7 +1036,22 @@ export class FloatingButton {
     this.errBtnEl.addEventListener("click", (e: MouseEvent) => {
       e.stopPropagation();
       if (this.wasDragged) return;
+      if (!this.canActivatePanel()) return;
       this.activatePanel("errors");
+    });
+
+    // Magnifier click → toggle magnifier (no panel, direct toggle)
+    this.magnifierBtnEl.addEventListener("click", (e: MouseEvent) => {
+      e.stopPropagation();
+      if (this.wasDragged) return;
+      if (this.magnifierBtnEl!.classList.contains("disabled")) return;
+      if (this.isMagnifierActive) {
+        this.magnifierToggleCb?.();
+        return;
+      }
+      if (this.isGrabActive) return;
+      if (this.activePanel) this.deactivatePanel();
+      this.magnifierToggleCb?.();
     });
 
     // Document: close on outside click
@@ -1024,6 +1113,7 @@ export class FloatingButton {
   }
 
   setActive(active: boolean): void {
+    this.isGrabActive = active;
     if (!this.btnEl) return;
     this.btnEl.classList.toggle("active", active);
   }
@@ -1061,7 +1151,38 @@ export class FloatingButton {
     this.errorsClearCb = cb;
   }
 
+  onMagnifierToggle(cb: () => void): void {
+    this.magnifierToggleCb = cb;
+  }
+
+  onMagnifierConfigChange(cb: (config: { loupeSize?: number; zoomLevel?: number }) => void): void {
+    this.magnifierConfigChangeCb = cb;
+  }
+
+  setMagnifierConfig(config: { loupeSize: number; zoomLevel: number }): void {
+    this.magnifierLoupeSize = config.loupeSize;
+    this.magnifierZoomLevel = config.zoomLevel;
+  }
+
+  setMagnifierActive(active: boolean): void {
+    this.isMagnifierActive = active;
+    if (!this.magnifierBtnEl) return;
+    this.magnifierBtnEl.classList.toggle("active", active);
+  }
+
+  setMagnifierDisabled(disabled: boolean): void {
+    if (!this.magnifierBtnEl) return;
+    this.magnifierBtnEl.classList.toggle("disabled", disabled);
+    this.magnifierBtnEl.title = disabled
+      ? "Magnifier requires Chrome 138+ with html-in-canvas support"
+      : "Magnifier loupe";
+  }
+
   // --- Panel activation (expand/collapse) ---
+
+  private canActivatePanel(): boolean {
+    return !this.isGrabActive && !this.isMagnifierActive;
+  }
 
   private activatePanel(panel: PanelId): void {
     // Toggle off if already active
@@ -1198,6 +1319,7 @@ export class FloatingButton {
       <div class="tab-bar">
         <button class="tab-btn${this.settingsTab === "shortcuts" ? " active" : ""}" data-tab="shortcuts">Shortcuts</button>
         <button class="tab-btn${this.settingsTab === "editor" ? " active" : ""}" data-tab="editor">Editor</button>
+        <button class="tab-btn${this.settingsTab === "magnifier" ? " active" : ""}" data-tab="magnifier">Magnifier</button>
       </div>
       <div class="tab-content${this.settingsTab === "shortcuts" ? " active" : ""}" data-tab-content="shortcuts">
         <div class="section-label">Hotkey</div>
@@ -1212,6 +1334,18 @@ export class FloatingButton {
         <div class="section-label">Open file</div>
         <div class="file-path-display">${esc(filePathText)}</div>
         <button class="open-file-btn"${fileDisabled ? " disabled" : ""}>Open in Editor</button>
+      </div>
+      <div class="tab-content${this.settingsTab === "magnifier" ? " active" : ""}" data-tab-content="magnifier">
+        <div class="section-label">Loupe Size</div>
+        <div class="slider-row">
+          <input type="range" class="magnifier-size-slider" min="100" max="600" step="50" value="${this.magnifierLoupeSize}">
+          <span class="slider-value">${this.magnifierLoupeSize}px</span>
+        </div>
+        <div class="section-label">Zoom Level</div>
+        <div class="slider-row">
+          <input type="range" class="magnifier-zoom-slider" min="1" max="8" step="0.5" value="${this.magnifierZoomLevel}">
+          <span class="slider-value">${this.magnifierZoomLevel}x</span>
+        </div>
       </div>
     `;
   }
@@ -1252,6 +1386,26 @@ export class FloatingButton {
     recordBtn?.addEventListener("click", (e: Event) => {
       e.stopPropagation();
       this.toggleRecording();
+    });
+
+    // Magnifier: loupe size slider
+    const sizeSlider = this.expandBodyEl.querySelector<HTMLInputElement>(".magnifier-size-slider");
+    sizeSlider?.addEventListener("input", () => {
+      const val = Number(sizeSlider.value);
+      this.magnifierLoupeSize = val;
+      const label = sizeSlider.parentElement?.querySelector(".slider-value");
+      if (label) label.textContent = `${val}px`;
+      this.magnifierConfigChangeCb?.({ loupeSize: val });
+    });
+
+    // Magnifier: zoom level slider
+    const zoomSlider = this.expandBodyEl.querySelector<HTMLInputElement>(".magnifier-zoom-slider");
+    zoomSlider?.addEventListener("input", () => {
+      const val = Number(zoomSlider.value);
+      this.magnifierZoomLevel = val;
+      const label = zoomSlider.parentElement?.querySelector(".slider-value");
+      if (label) label.textContent = `${val}x`;
+      this.magnifierConfigChangeCb?.({ zoomLevel: val });
     });
   }
 

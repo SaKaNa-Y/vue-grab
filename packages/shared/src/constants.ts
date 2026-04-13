@@ -3,6 +3,7 @@ import type {
   ErrorCaptureConfig,
   FloatingButtonConfig,
   GrabConfig,
+  MagnifierConfig,
 } from "./types";
 
 export const DEFAULT_HIGHLIGHT_COLOR = "#4f46e5";
@@ -35,6 +36,14 @@ export const DEFAULT_ERROR_CAPTURE: ErrorCaptureConfig = {
   captureVueErrors: true,
 };
 
+export const DEFAULT_MAGNIFIER: MagnifierConfig = {
+  enabled: true,
+  loupeSize: 400,
+  zoomLevel: 3,
+  showHtmlOverlay: true,
+  maxOverlayHtmlLength: 200,
+};
+
 export const DEFAULT_CONFIG: GrabConfig = {
   highlightColor: DEFAULT_HIGHLIGHT_COLOR,
   labelTextColor: DEFAULT_LABEL_TEXT_COLOR,
@@ -48,13 +57,14 @@ export const DEFAULT_CONFIG: GrabConfig = {
   floatingButton: DEFAULT_FLOATING_BUTTON,
   devtoolsPanel: DEFAULT_DEVTOOLS_PANEL,
   errorCapture: DEFAULT_ERROR_CAPTURE,
+  magnifier: DEFAULT_MAGNIFIER,
 };
 
 /**
  * Deep-merge user config with defaults, properly handling nested objects.
  */
 export function mergeConfig(defaults: GrabConfig, options: Partial<GrabConfig>): GrabConfig {
-  const { filter, floatingButton, devtoolsPanel, errorCapture, ...rest } = options;
+  const { filter, floatingButton, devtoolsPanel, errorCapture, magnifier, ...rest } = options;
   return {
     ...defaults,
     ...rest,
@@ -73,6 +83,10 @@ export function mergeConfig(defaults: GrabConfig, options: Partial<GrabConfig>):
     errorCapture: {
       ...defaults.errorCapture,
       ...errorCapture,
+    },
+    magnifier: {
+      ...defaults.magnifier,
+      ...magnifier,
     },
   };
 }
