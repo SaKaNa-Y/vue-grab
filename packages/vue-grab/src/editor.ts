@@ -22,3 +22,15 @@ export function updateStyle(request: StyleUpdateRequest): Promise<boolean> {
     body: JSON.stringify(request),
   }).then((r) => r.ok);
 }
+
+/**
+ * Opens Claude Code in VS Code with the given prompt pre-filled via URI scheme.
+ * Also copies the prompt to clipboard as a backup.
+ */
+export function openInClaudeCode(prompt: string): void {
+  navigator.clipboard.writeText(prompt).catch(() => {});
+  const uri = `vscode://anthropic.claude-code/open?prompt=${encodeURIComponent(prompt)}`;
+  if (!window.open(uri, "_blank")) {
+    location.href = uri;
+  }
+}

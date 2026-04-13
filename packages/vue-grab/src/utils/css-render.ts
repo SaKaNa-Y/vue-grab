@@ -60,7 +60,7 @@ export function renderRule(rule: MatchedCSSRule): string {
 export function renderComponentStack(stack: ComponentInfo[]): string {
   if (stack.length > 0) {
     return [...stack]
-      .reverse()
+      .toReversed()
       .map((c) => `<span class="dt-stack-item">${esc(c.name)}</span>`)
       .join('<span class="dt-stack-sep"> &gt; </span>');
   }

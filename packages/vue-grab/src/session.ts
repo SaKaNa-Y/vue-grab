@@ -4,11 +4,13 @@ import { GrabEngine } from "./core";
 import { HotkeyManager } from "./hotkeys";
 import { FloatingButton } from "./floating-button";
 import { updateStyle } from "./editor";
+import { ConsoleCapture } from "./utils";
 
 export interface GrabSession {
   engine: GrabEngine;
   hotkeys: HotkeyManager;
   fab: FloatingButton | null;
+  errorCapture: ConsoleCapture | null;
   destroy: () => void;
 }
 
@@ -21,6 +23,12 @@ export function createGrabSession(config: GrabConfig): GrabSession {
   const engine = new GrabEngine(config);
   const hotkeys = new HotkeyManager();
   let fab: FloatingButton | null = null;
+  let errorCapture: ConsoleCapture | null = null;
+
+  if (config.errorCapture.enabled) {
+    errorCapture = new ConsoleCapture(config.errorCapture);
+    errorCapture.start();
+  }
 
   if (config.floatingButton.enabled) {
     const localFab = new FloatingButton(config.floatingButton);
@@ -54,14 +62,22 @@ export function createGrabSession(config: GrabConfig): GrabSession {
     fab.onStyleChange((update) => updateStyle(update));
   }
 
+  // Wire error capture to FAB
+  if (fab && errorCapture) {
+    errorCapture.onChange((errors) => fab!.setErrors(errors));
+    fab.onErrorsClear(() => errorCapture!.clear());
+  }
+
   return {
     engine,
     hotkeys,
     fab,
+    errorCapture,
     destroy() {
       engine.destroy();
       hotkeys.destroy();
       fab?.destroy();
+      errorCapture?.destroy();
     },
   };
 }
