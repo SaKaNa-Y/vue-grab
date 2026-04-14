@@ -4,7 +4,9 @@ import { GrabOverlay, OVERLAY_HOST_ID } from "../overlay";
 import { FAB_HOST_ID } from "../floating-button";
 import { DEVTOOLS_HOST_ID } from "../devtools-panel";
 import { MAGNIFIER_HOST_ID } from "../magnifier";
-import { hasA11yAttributes, extractA11yInfo } from "../utils";
+import { hasA11yAttributes, extractA11yInfo, getComponentName } from "../utils";
+
+const shortPathCache = new WeakMap<object, string>();
 
 const COMMON_LAYOUT_NAMES = new Set([
   "header",
@@ -63,12 +65,12 @@ export class GrabEngine {
     };
 
     this.handleClick = (e: MouseEvent) => {
+      const el = document.elementFromPoint(e.clientX, e.clientY);
+      if (!el || this.shouldIgnore(el)) return;
+
       e.preventDefault();
       e.stopPropagation();
       e.stopImmediatePropagation();
-
-      const el = document.elementFromPoint(e.clientX, e.clientY);
-      if (!el || this.shouldIgnore(el)) return;
 
       let html = el.outerHTML;
       if (this.config.maxHtmlLength > 0 && html.length > this.config.maxHtmlLength) {
@@ -173,8 +175,7 @@ export class GrabEngine {
     if (this.config.filter.skipCommonComponents) {
       const comp = this.getVueComponent(el);
       if (comp) {
-        const name = (comp.type as any).name || (comp.type as any).__name || "";
-        if (COMMON_LAYOUT_NAMES.has(name.toLowerCase())) return true;
+        if (COMMON_LAYOUT_NAMES.has(getComponentName(comp).toLowerCase())) return true;
       }
     }
 
@@ -192,11 +193,20 @@ export class GrabEngine {
   }
 
   private getComponentLabelFromInstance(el: Element, instance: any): string {
+    const tag = getComponentName(instance, el.tagName.toLowerCase());
+    let label = `<${tag}>`;
     if (instance) {
-      const name = instance.type?.name || instance.type?.__name;
-      if (name) return `<${name}>`;
+      const type = instance.type;
+      if (type?.__file) {
+        if (!shortPathCache.has(type)) {
+          const normalized = type.__file.replace(/\\/g, "/");
+          const srcIndex = normalized.indexOf("src/");
+          shortPathCache.set(type, srcIndex >= 0 ? normalized.slice(srcIndex) : normalized);
+        }
+        label += ` ${shortPathCache.get(type)}`;
+      }
     }
-    return `<${el.tagName.toLowerCase()}>`;
+    return label;
   }
 
   private getComponentStack(el: Element): ComponentInfo[] {
@@ -206,7 +216,7 @@ export class GrabEngine {
     while (node) {
       const instance = (node as any).__vueParentComponent || (node as any).__vue_app__?._instance;
       if (instance) {
-        const name = instance.type?.name || instance.type?.__name || "Anonymous";
+        const name = getComponentName(instance, "Anonymous");
         const filePath = instance.type?.__file;
         const info: ComponentInfo = { name };
         if (filePath) info.filePath = filePath;
