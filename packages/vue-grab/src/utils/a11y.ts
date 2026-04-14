@@ -5,6 +5,7 @@ import type {
   ComponentA11ySummary,
   ElementA11yDetail,
 } from "@sakana-y/vue-grab-shared";
+import { getComponentName } from "./component";
 
 const A11Y_ATTRIBUTES = [
   "role",
@@ -178,7 +179,7 @@ export function scanPageA11y(): ComponentA11ySummary[] {
     if (!instance || seen.has(instance)) continue;
     seen.add(instance);
 
-    const name = instance.type?.name || instance.type?.__name;
+    const name = getComponentName(instance);
     if (!name) continue;
 
     const rootEl = instance.subTree?.el;

@@ -1,3 +1,4 @@
+export { getComponentName } from "./component";
 export { esc, escAttr } from "./html";
 export { tryReadStorage, trySaveStorage } from "./storage";
 export {

@@ -927,6 +927,13 @@ export class FloatingButton {
     this.inspectorEl.innerHTML = INSPECTOR_SVG;
     this.toolbarRowEl.appendChild(this.inspectorEl);
 
+    // Magnifier button
+    this.magnifierBtnEl = document.createElement("div");
+    this.magnifierBtnEl.className = "toolbar-btn magnifier-btn";
+    this.magnifierBtnEl.innerHTML = MAGNIFIER_SVG;
+    this.magnifierBtnEl.title = "Magnifier loupe";
+    this.toolbarRowEl.appendChild(this.magnifierBtnEl);
+
     // Divider before a11y
     const divider2 = document.createElement("div");
     divider2.className = "toolbar-divider";
@@ -952,18 +959,6 @@ export class FloatingButton {
     this.errBadgeEl.style.display = "none";
     this.errBtnEl.appendChild(this.errBadgeEl);
     this.toolbarRowEl.appendChild(this.errBtnEl);
-
-    // Divider before magnifier
-    const divider4 = document.createElement("div");
-    divider4.className = "toolbar-divider";
-    this.toolbarRowEl.appendChild(divider4);
-
-    // Magnifier button
-    this.magnifierBtnEl = document.createElement("div");
-    this.magnifierBtnEl.className = "toolbar-btn magnifier-btn";
-    this.magnifierBtnEl.innerHTML = MAGNIFIER_SVG;
-    this.magnifierBtnEl.title = "Magnifier loupe";
-    this.toolbarRowEl.appendChild(this.magnifierBtnEl);
 
     this.toolbarEl.appendChild(this.toolbarRowEl);
 
