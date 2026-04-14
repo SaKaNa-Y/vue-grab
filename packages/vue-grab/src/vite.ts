@@ -27,7 +27,13 @@ export function vueGrabPlugin(options: VueGrabPluginOptions = {}): Plugin {
         ]).then(([pathMod, launchMod]: any[]) => {
           const p = pathMod.default ?? pathMod;
           const launchFn = launchMod.default ?? launchMod;
-          const resolved = p.isAbsolute(file) ? file : p.resolve(server.config.root, file);
+          const root = server.config.root;
+          const resolved = p.resolve(root, file);
+          if (!isWithinRoot(resolved, root, p.sep)) {
+            res.statusCode = 403;
+            res.end("Path outside project root");
+            return;
+          }
           launchFn(resolved, editor);
           res.end();
         });
@@ -36,7 +42,7 @@ export function vueGrabPlugin(options: VueGrabPluginOptions = {}): Plugin {
       server.middlewares.use("/__vue-grab/update-style", (req: any, res: any) => {
         handleStyleUpdate(req, res, server).catch((err: any) => {
           res.statusCode = 500;
-          res.end(err.message || "Internal Server Error");
+          res.end("Internal Server Error");
         });
       });
     },
@@ -74,7 +80,19 @@ async function handleStyleUpdate(req: any, res: any, server: any): Promise<void>
   const path: any = await import(/* @vite-ignore */ "node:path");
 
   const root = server.config.root;
-  const absPath = path.isAbsolute(file) ? file : path.resolve(root, file.replace(/^\//, ""));
+  const absPath = path.resolve(root, file.replace(/^\//, ""));
+
+  if (!isWithinRoot(absPath, root, path.sep)) {
+    res.statusCode = 403;
+    res.end("Path outside project root");
+    return;
+  }
+
+  if (!absPath.endsWith(".vue")) {
+    res.statusCode = 400;
+    res.end("Only .vue files can be updated");
+    return;
+  }
 
   let content: string;
   try {
@@ -82,7 +100,7 @@ async function handleStyleUpdate(req: any, res: any, server: any): Promise<void>
   } catch (err: any) {
     if (err.code === "ENOENT") {
       res.statusCode = 404;
-      res.end(`File not found: ${absPath}`);
+      res.end("File not found");
       return;
     }
     throw err;
@@ -106,8 +124,10 @@ async function handleStyleUpdate(req: any, res: any, server: any): Promise<void>
   const root_ = parseFn(styleBlock.content);
 
   let found = false;
+  const normalizedSelector = normalizeSel(selector);
   root_.walkRules((rule: any) => {
-    if (rule.selector === selector || normalizeSel(rule.selector) === normalizeSel(selector)) {
+    if (found) return;
+    if (rule.selector === selector || normalizeSel(rule.selector) === normalizedSelector) {
       rule.walkDecls(property, (decl: any) => {
         decl.value = value;
         found = true;
@@ -117,7 +137,7 @@ async function handleStyleUpdate(req: any, res: any, server: any): Promise<void>
 
   if (!found) {
     res.statusCode = 404;
-    res.end(`Rule "${selector}" with property "${property}" not found`);
+    res.end("Rule not found for the given selector and property");
     return;
   }
 
@@ -135,14 +155,39 @@ async function handleStyleUpdate(req: any, res: any, server: any): Promise<void>
 }
 
 function readBody(req: any): Promise<string> {
+  const MAX = 1_048_576; // 1 MB
   return new Promise((resolve, reject) => {
-    let body = "";
+    const chunks: string[] = [];
+    let bytes = 0;
+    let done = false;
     req.on("data", (chunk: any) => {
-      body += chunk.toString();
+      if (done) return;
+      bytes += chunk.length;
+      if (bytes > MAX) {
+        done = true;
+        req.destroy();
+        reject(new Error("Request body too large"));
+        return;
+      }
+      chunks.push(chunk.toString());
     });
-    req.on("end", () => resolve(body));
-    req.on("error", reject);
+    req.on("end", () => {
+      if (!done) {
+        done = true;
+        resolve(chunks.join(""));
+      }
+    });
+    req.on("error", (err: any) => {
+      if (!done) {
+        done = true;
+        reject(err);
+      }
+    });
   });
+}
+
+function isWithinRoot(absPath: string, root: string, sep: string): boolean {
+  return absPath === root || absPath.startsWith(root + sep);
 }
 
 function normalizeSel(sel: string): string {
