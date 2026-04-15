@@ -9,6 +9,8 @@ export interface FloatingButtonConfig {
   hotkeyStorageKey: string;
   /** localStorage key for persisting editor choice. Set to "" to disable persistence. */
   editorStorageKey: string;
+  /** localStorage key for persisting measurer hotkey. Set to "" to disable persistence. */
+  measurerHotkeyStorageKey: string;
 }
 
 export interface GrabConfig {
@@ -28,6 +30,8 @@ export interface GrabConfig {
   errorCapture: ErrorCaptureConfig;
   /** Magnifier loupe configuration */
   magnifier: MagnifierConfig;
+  /** Measurer configuration */
+  measurer: MeasurerConfig;
 }
 
 export interface GrabFilterConfig {
@@ -143,4 +147,19 @@ export interface MagnifierConfig {
   showHtmlOverlay: boolean;
   /** Maximum characters of HTML to show in overlay. Default: 200 */
   maxOverlayHtmlLength: number;
+}
+
+export interface MeasurerConfig {
+  /** Enable measurer feature. Default: true */
+  enabled: boolean;
+  /** Color for dimension boxes and measurement lines. Default: "#06b6d4" */
+  lineColor: string;
+  /** Color for alignment guide lines. Default: "#a855f7" */
+  guideColor: string;
+  /** Line width in pixels. Default: 1 */
+  lineWidth: number;
+  /** Show alignment guides when edges/centers align. Default: true */
+  showAlignmentGuides: boolean;
+  /** Alignment snap tolerance in pixels. Default: 3 */
+  alignmentTolerance: number;
 }

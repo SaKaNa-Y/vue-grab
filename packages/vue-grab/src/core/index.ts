@@ -3,6 +3,7 @@ import { mergeConfig } from "@sakana-y/vue-grab-shared";
 import { GrabOverlay, OVERLAY_HOST_ID } from "../overlay";
 import { FAB_HOST_ID } from "../floating-button";
 import { MAGNIFIER_HOST_ID } from "../magnifier";
+import { MEASURER_HOST_ID } from "../measurer";
 import { hasA11yAttributes, extractA11yInfo, getComponentName } from "../utils";
 
 const shortPathCache = new WeakMap<object, string>();
@@ -151,7 +152,7 @@ export class GrabEngine {
     // Ignore our own overlay and floating button
     if (
       el.closest(
-        `#${OVERLAY_HOST_ID}, #${FAB_HOST_ID}, #${MAGNIFIER_HOST_ID}`,
+        `#${OVERLAY_HOST_ID}, #${FAB_HOST_ID}, #${MAGNIFIER_HOST_ID}, #${MEASURER_HOST_ID}`,
       )
     )
       return true;

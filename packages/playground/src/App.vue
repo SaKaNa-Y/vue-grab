@@ -2,14 +2,14 @@
 import HelloWorld from "./components/HelloWorld.vue";
 import { useGrab, openInEditor } from "@sakana-y/vue-grab";
 
-const { isActive, lastResult, toggle } = useGrab();
+const { isActive, lastResult, toggle, isMeasurerActive, toggleMeasurer } = useGrab();
 </script>
 
 <template>
   <div style="padding: 20px; font-family: sans-serif; max-width: 800px; margin: 0 auto">
     <h1>Vue Grab Playground</h1>
 
-    <div style="margin: 16px 0; display: flex; align-items: center; gap: 8px">
+    <div style="margin: 16px 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap">
       <button
         @click="toggle"
         style="
@@ -25,8 +25,28 @@ const { isActive, lastResult, toggle } = useGrab();
         {{ isActive ? "Cancel Grab" : "Start Grab" }}
       </button>
       <kbd style="font-size: 12px; color: #6b7280">Alt+Shift+G</kbd>
+
+      <button
+        @click="toggleMeasurer"
+        style="
+          padding: 8px 16px;
+          border: 1px solid #06b6d4;
+          border-radius: 6px;
+          background: #06b6d4;
+          color: white;
+          cursor: pointer;
+          font-size: 14px;
+        "
+      >
+        {{ isMeasurerActive ? "Stop Measuring" : "Start Measure" }}
+      </button>
+      <kbd style="font-size: 12px; color: #6b7280">Alt+Shift+M</kbd>
+
       <span v-if="isActive" style="color: #4f46e5; font-size: 14px"
         >Hover over elements and click to grab...</span
+      >
+      <span v-if="isMeasurerActive" style="color: #06b6d4; font-size: 14px"
+        >Click an element, then hover another to measure spacing...</span
       >
     </div>
 

@@ -3,6 +3,7 @@ export { useGrab } from "./composables";
 export { init } from "./init";
 export { FloatingButton, FAB_HOST_ID } from "./floating-button";
 export { MagnifierOverlay, MAGNIFIER_HOST_ID } from "./magnifier";
+export { MeasurerOverlay, MEASURER_HOST_ID } from "./measurer";
 export { openInEditor } from "./editor";
 export type {
   GrabConfig,
@@ -17,4 +18,5 @@ export type {
   ComponentA11ySummary,
   ElementA11yDetail,
   MagnifierConfig,
+  MeasurerConfig,
 } from "@sakana-y/vue-grab-shared";

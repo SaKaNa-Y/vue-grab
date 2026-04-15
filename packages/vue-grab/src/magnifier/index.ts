@@ -1,11 +1,12 @@
 import type { MagnifierConfig } from "@sakana-y/vue-grab-shared";
 import { FAB_HOST_ID } from "../floating-button";
 import { OVERLAY_HOST_ID } from "../overlay";
+import { MEASURER_HOST_ID } from "../measurer";
 
 export const MAGNIFIER_HOST_ID = "vue-grab-magnifier-host";
 
 /** IDs of vue-grab host elements to strip from clones */
-const HOST_IDS = [MAGNIFIER_HOST_ID, FAB_HOST_ID, OVERLAY_HOST_ID];
+const HOST_IDS = [MAGNIFIER_HOST_ID, FAB_HOST_ID, OVERLAY_HOST_ID, MEASURER_HOST_ID];
 
 const CLONE_REFRESH_INTERVAL = 500;
 const BRACKET_INSET = 25; // % inset from edge for corner brackets
@@ -486,11 +487,7 @@ export class MagnifierOverlay {
     if (!el || el === this.lastElement) return;
 
     // Skip vue-grab host elements
-    if (
-      el.closest(
-        `#${MAGNIFIER_HOST_ID}, #${FAB_HOST_ID}, #${OVERLAY_HOST_ID}`,
-      )
-    ) {
+    if (el.closest(`#${MAGNIFIER_HOST_ID}, #${FAB_HOST_ID}, #${OVERLAY_HOST_ID}`)) {
       return;
     }
 
