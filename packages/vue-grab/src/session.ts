@@ -4,6 +4,7 @@ import { GrabEngine } from "./core";
 import { HotkeyManager } from "./hotkeys";
 import { FloatingButton } from "./floating-button";
 import { MagnifierOverlay } from "./magnifier";
+import { MeasurerOverlay } from "./measurer";
 import { ConsoleCapture } from "./utils";
 
 export interface GrabSession {
@@ -11,6 +12,7 @@ export interface GrabSession {
   hotkeys: HotkeyManager;
   fab: FloatingButton | null;
   magnifier: MagnifierOverlay | null;
+  measurer: MeasurerOverlay | null;
   errorCapture: ConsoleCapture | null;
   destroy: () => void;
 }
@@ -25,6 +27,7 @@ export function createGrabSession(config: GrabConfig): GrabSession {
   const hotkeys = new HotkeyManager();
   let fab: FloatingButton | null = null;
   let magnifier: MagnifierOverlay | null = null;
+  let measurer: MeasurerOverlay | null = null;
   let errorCapture: ConsoleCapture | null = null;
 
   if (config.errorCapture.enabled) {
@@ -43,6 +46,9 @@ export function createGrabSession(config: GrabConfig): GrabSession {
     localFab.onHotkeyChange((combo) => {
       hotkeys.destroy();
       hotkeys.register(combo, () => engine.toggle());
+      // Re-register measurer hotkey since destroy() clears all
+      const mhk = localFab.getCurrentMeasurerHotkey();
+      if (mhk && measurer) hotkeys.register(mhk, () => measurer!.toggle());
       localFab.setCurrentHotkey(combo);
     });
     localFab.onConfigChange((changes) => {
@@ -54,8 +60,11 @@ export function createGrabSession(config: GrabConfig): GrabSession {
     });
     engine.onStateChange((active) => {
       localFab.setActive(active);
-      // Mutual exclusion: deactivate magnifier when grab activates
-      if (active && magnifier?.isActive) magnifier.deactivate();
+      // Mutual exclusion: deactivate magnifier and measurer when grab activates
+      if (active) {
+        if (magnifier?.isActive) magnifier.deactivate();
+        if (measurer?.isActive) measurer.deactivate();
+      }
     });
     engine.onGrab((result) => localFab.setLastResult(result));
     localFab.mount();
@@ -84,8 +93,45 @@ export function createGrabSession(config: GrabConfig): GrabSession {
       fab.onMagnifierConfigChange((changes) => localMagnifier.updateConfig(changes));
       localMagnifier.onStateChange((active) => {
         fab!.setMagnifierActive(active);
-        // Mutual exclusion: deactivate grab when magnifier activates
-        if (active) engine.deactivate();
+        // Mutual exclusion: deactivate grab and measurer when magnifier activates
+        if (active) {
+          engine.deactivate();
+          if (measurer?.isActive) measurer.deactivate();
+        }
+      });
+    }
+  }
+
+  // Wire measurer
+  if (config.measurer.enabled) {
+    const localMeasurer = new MeasurerOverlay(config.measurer);
+    measurer = localMeasurer;
+    localMeasurer.mount();
+
+    if (fab) {
+      fab.onMeasurerToggle(() => localMeasurer.toggle());
+      localMeasurer.onStateChange((active) => {
+        fab!.setMeasurerActive(active);
+        // Mutual exclusion: deactivate grab and magnifier when measurer activates
+        if (active) {
+          engine.deactivate();
+          if (magnifier?.isActive) magnifier.deactivate();
+        }
+      });
+
+      // Measurer hotkey
+      const initialMeasurerHotkey = fab.getCurrentMeasurerHotkey() || "Alt+Shift+M";
+      hotkeys.register(initialMeasurerHotkey, () => localMeasurer.toggle());
+      fab.setCurrentMeasurerHotkey(initialMeasurerHotkey);
+
+      fab.onMeasurerHotkeyChange((combo) => {
+        hotkeys.destroy();
+        // Re-register grab hotkey
+        const grabHotkey = fab.getCurrentHotkey() || DEFAULT_HOTKEY;
+        hotkeys.register(grabHotkey, () => engine.toggle());
+        // Register new measurer hotkey
+        hotkeys.register(combo, () => localMeasurer.toggle());
+        fab!.setCurrentMeasurerHotkey(combo);
       });
     }
   }
@@ -95,12 +141,14 @@ export function createGrabSession(config: GrabConfig): GrabSession {
     hotkeys,
     fab,
     magnifier,
+    measurer,
     errorCapture,
     destroy() {
       engine.destroy();
       hotkeys.destroy();
       fab?.destroy();
       magnifier?.destroy();
+      measurer?.destroy();
       errorCapture?.destroy();
     },
   };

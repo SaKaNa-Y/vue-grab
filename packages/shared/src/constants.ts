@@ -3,6 +3,7 @@ import type {
   FloatingButtonConfig,
   GrabConfig,
   MagnifierConfig,
+  MeasurerConfig,
 } from "./types";
 
 export const DEFAULT_HIGHLIGHT_COLOR = "#4f46e5";
@@ -15,6 +16,7 @@ export const DEFAULT_FLOATING_BUTTON: FloatingButtonConfig = {
   storageKey: "vue-grab-fab-pos",
   hotkeyStorageKey: "vue-grab-hotkey",
   editorStorageKey: "vue-grab-editor",
+  measurerHotkeyStorageKey: "vue-grab-measurer-hotkey",
 };
 
 export const VUE_ERROR_EVENT = "vue-grab:vue-error";
@@ -35,6 +37,15 @@ export const DEFAULT_MAGNIFIER: MagnifierConfig = {
   maxOverlayHtmlLength: 200,
 };
 
+export const DEFAULT_MEASURER: MeasurerConfig = {
+  enabled: true,
+  lineColor: "#06b6d4",
+  guideColor: "#a855f7",
+  lineWidth: 1,
+  showAlignmentGuides: true,
+  alignmentTolerance: 3,
+};
+
 export const DEFAULT_CONFIG: GrabConfig = {
   highlightColor: DEFAULT_HIGHLIGHT_COLOR,
   labelTextColor: DEFAULT_LABEL_TEXT_COLOR,
@@ -48,13 +59,14 @@ export const DEFAULT_CONFIG: GrabConfig = {
   floatingButton: DEFAULT_FLOATING_BUTTON,
   errorCapture: DEFAULT_ERROR_CAPTURE,
   magnifier: DEFAULT_MAGNIFIER,
+  measurer: DEFAULT_MEASURER,
 };
 
 /**
  * Deep-merge user config with defaults, properly handling nested objects.
  */
 export function mergeConfig(defaults: GrabConfig, options: Partial<GrabConfig>): GrabConfig {
-  const { filter, floatingButton, errorCapture, magnifier, ...rest } = options;
+  const { filter, floatingButton, errorCapture, magnifier, measurer, ...rest } = options;
   return {
     ...defaults,
     ...rest,
@@ -73,6 +85,10 @@ export function mergeConfig(defaults: GrabConfig, options: Partial<GrabConfig>):
     magnifier: {
       ...defaults.magnifier,
       ...magnifier,
+    },
+    measurer: {
+      ...defaults.measurer,
+      ...measurer,
     },
   };
 }

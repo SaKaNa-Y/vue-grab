@@ -8,9 +8,11 @@ export interface UseGrabReturn {
   config: GrabConfig;
   isActive: Readonly<Ref<boolean>>;
   lastResult: DeepReadonly<Ref<GrabResult | null>>;
+  isMeasurerActive: Readonly<Ref<boolean>>;
   activate: () => void;
   deactivate: () => void;
   toggle: () => void;
+  toggleMeasurer: () => void;
 }
 
 export function useGrab(): UseGrabReturn {
@@ -18,6 +20,7 @@ export function useGrab(): UseGrabReturn {
 
   const isActive = ref(false);
   const lastResult = ref<GrabResult | null>(null);
+  const isMeasurerActive = ref(false);
 
   const session = createGrabSession(config);
   const { engine } = session;
@@ -30,9 +33,17 @@ export function useGrab(): UseGrabReturn {
     isActive.value = active;
   });
 
+  let unsubMeasurer: (() => void) | undefined;
+  if (session.measurer) {
+    unsubMeasurer = session.measurer.onStateChange((active) => {
+      isMeasurerActive.value = active;
+    });
+  }
+
   onUnmounted(() => {
     unsubGrab();
     unsubState();
+    unsubMeasurer?.();
     session.destroy();
   });
 
@@ -40,8 +51,10 @@ export function useGrab(): UseGrabReturn {
     config,
     isActive: readonly(isActive),
     lastResult: readonly(lastResult),
+    isMeasurerActive: readonly(isMeasurerActive),
     activate: () => engine.activate(),
     deactivate: () => engine.deactivate(),
     toggle: () => engine.toggle(),
+    toggleMeasurer: () => session.measurer?.toggle(),
   };
 }
