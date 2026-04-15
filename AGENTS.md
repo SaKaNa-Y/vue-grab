@@ -27,7 +27,7 @@ Use Node 20+ and `pnpm` 10+.
 For package-only work, use filters such as `pnpm --filter @sakana-y/vue-grab test`.
 
 ## Coding Style & Naming Conventions
-Write TypeScript and Vue 3 with ES modules. Prefer `<script setup lang="ts">` in `.vue` files. The codebase uses semicolons, double quotes, and 2-space indentation. Keep filenames lowercase and descriptive; use `index.ts` for package entrypoints and `*.test.ts` for tests. `GrabConfig` has nested objects (`filter`, `floatingButton`, `devtoolsPanel`, `errorCapture`) — always use `mergeConfig()` from shared for config overrides instead of spread. Run `pnpm lint` and `pnpm format` before opening a PR.
+Write TypeScript and Vue 3 with ES modules. Prefer `<script setup lang="ts">` in `.vue` files. The codebase uses semicolons, double quotes, and 2-space indentation. Keep filenames lowercase and descriptive; use `index.ts` for package entrypoints and `*.test.ts` for tests. `GrabConfig` has nested objects (`filter`, `floatingButton`, `errorCapture`, `magnifier`) — always use `mergeConfig()` from shared for config overrides instead of spread. Run `pnpm lint` and `pnpm format` before opening a PR.
 
 ## Testing Guidelines
 Vitest is the test runner across the workspace, configured through `vitest.workspace.ts`. Browser-oriented library tests also use Playwright-backed Vitest browser tooling, so install Chromium when needed with `npx playwright install --with-deps chromium`. Place tests beside the package they validate, usually under `packages/*/tests/`, and name them after the feature, for example `hotkeys.test.ts`.

@@ -4,7 +4,6 @@ import { GrabEngine } from "./core";
 import { HotkeyManager } from "./hotkeys";
 import { FloatingButton } from "./floating-button";
 import { MagnifierOverlay } from "./magnifier";
-import { updateStyle } from "./editor";
 import { ConsoleCapture } from "./utils";
 
 export interface GrabSession {
@@ -62,11 +61,6 @@ export function createGrabSession(config: GrabConfig): GrabSession {
     localFab.mount();
   } else {
     hotkeys.register(DEFAULT_HOTKEY, () => engine.toggle());
-  }
-
-  // Wire FAB inspector style changes
-  if (fab) {
-    fab.onStyleChange((update) => updateStyle(update));
   }
 
   // Wire error capture to FAB

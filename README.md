@@ -17,7 +17,6 @@ Point at any element, click, and get its HTML, CSS selector, and Vue component h
 - **Floating action button** — optional draggable FAB with hotkey settings panel
 - **Hotkey support** — default `Alt+Shift+G`, fully customizable and persistable
 - **Accessibility audit** — a11y attribute extraction and 5-rule audit on every grab
-- **CSS inspector** — matched CSS rules with live style editing back to SFC source
 - **Error capture** — catches console.error, runtime errors, promise rejections, and Vue errorHandler errors
 - **Shadow DOM isolation** — overlay styles never conflict with your app
 - **Works with or without Vue** — use as a Vue plugin or standalone `init()`
@@ -96,11 +95,6 @@ createVueGrab({
     storageKey: "vue-grab-fab-pos",
     hotkeyStorageKey: "vue-grab-hotkey",
     editorStorageKey: "vue-grab-editor",
-  },
-  devtoolsPanel: {
-    enabled: true,             // show DevTools inspector panel
-    initialMode: "float",      // "float" | "edge"
-    edgeSide: "bottom",        // "bottom" | "right"
   },
   errorCapture: {
     enabled: true,             // capture runtime errors
@@ -269,11 +263,6 @@ createVueGrab({
     storageKey: "vue-grab-fab-pos",
     hotkeyStorageKey: "vue-grab-hotkey",
     editorStorageKey: "vue-grab-editor",
-  },
-  devtoolsPanel: {
-    enabled: true,             // 显示 DevTools 检查器面板
-    initialMode: "float",      // "float" | "edge"
-    edgeSide: "bottom",        // "bottom" | "right"
   },
   errorCapture: {
     enabled: true,             // 捕获运行时错误

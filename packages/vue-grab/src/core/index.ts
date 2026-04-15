@@ -2,7 +2,6 @@ import type { GrabConfig, GrabResult, ComponentInfo } from "@sakana-y/vue-grab-s
 import { mergeConfig } from "@sakana-y/vue-grab-shared";
 import { GrabOverlay, OVERLAY_HOST_ID } from "../overlay";
 import { FAB_HOST_ID } from "../floating-button";
-import { DEVTOOLS_HOST_ID } from "../devtools-panel";
 import { MAGNIFIER_HOST_ID } from "../magnifier";
 import { hasA11yAttributes, extractA11yInfo, getComponentName } from "../utils";
 
@@ -152,7 +151,7 @@ export class GrabEngine {
     // Ignore our own overlay and floating button
     if (
       el.closest(
-        `#${OVERLAY_HOST_ID}, #${FAB_HOST_ID}, #${DEVTOOLS_HOST_ID}, #${MAGNIFIER_HOST_ID}`,
+        `#${OVERLAY_HOST_ID}, #${FAB_HOST_ID}, #${MAGNIFIER_HOST_ID}`,
       )
     )
       return true;

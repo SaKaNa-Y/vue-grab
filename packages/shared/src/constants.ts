@@ -1,5 +1,4 @@
 import type {
-  DevToolsPanelConfig,
   ErrorCaptureConfig,
   FloatingButtonConfig,
   GrabConfig,
@@ -16,14 +15,6 @@ export const DEFAULT_FLOATING_BUTTON: FloatingButtonConfig = {
   storageKey: "vue-grab-fab-pos",
   hotkeyStorageKey: "vue-grab-hotkey",
   editorStorageKey: "vue-grab-editor",
-};
-
-export const DEFAULT_DEVTOOLS_PANEL: DevToolsPanelConfig = {
-  enabled: true,
-  initialMode: "float",
-  edgeSide: "bottom",
-  panelModeStorageKey: "vue-grab-devtools-mode",
-  panelGeometryStorageKey: "vue-grab-devtools-geometry",
 };
 
 export const VUE_ERROR_EVENT = "vue-grab:vue-error";
@@ -55,7 +46,6 @@ export const DEFAULT_CONFIG: GrabConfig = {
     skipCommonComponents: false,
   },
   floatingButton: DEFAULT_FLOATING_BUTTON,
-  devtoolsPanel: DEFAULT_DEVTOOLS_PANEL,
   errorCapture: DEFAULT_ERROR_CAPTURE,
   magnifier: DEFAULT_MAGNIFIER,
 };
@@ -64,7 +54,7 @@ export const DEFAULT_CONFIG: GrabConfig = {
  * Deep-merge user config with defaults, properly handling nested objects.
  */
 export function mergeConfig(defaults: GrabConfig, options: Partial<GrabConfig>): GrabConfig {
-  const { filter, floatingButton, devtoolsPanel, errorCapture, magnifier, ...rest } = options;
+  const { filter, floatingButton, errorCapture, magnifier, ...rest } = options;
   return {
     ...defaults,
     ...rest,
@@ -75,10 +65,6 @@ export function mergeConfig(defaults: GrabConfig, options: Partial<GrabConfig>):
     floatingButton: {
       ...defaults.floatingButton,
       ...floatingButton,
-    },
-    devtoolsPanel: {
-      ...defaults.devtoolsPanel,
-      ...devtoolsPanel,
     },
     errorCapture: {
       ...defaults.errorCapture,

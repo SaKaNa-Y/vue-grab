@@ -2,22 +2,14 @@ export { createVueGrab, VUE_GRAB_CONFIG_KEY } from "./plugin";
 export { useGrab } from "./composables";
 export { init } from "./init";
 export { FloatingButton, FAB_HOST_ID } from "./floating-button";
-export { DevToolsPanel, DEVTOOLS_HOST_ID } from "./devtools-panel";
 export { MagnifierOverlay, MAGNIFIER_HOST_ID } from "./magnifier";
-export { matchCSSRules } from "./css-inspector";
-export { openInEditor, updateStyle } from "./editor";
+export { openInEditor } from "./editor";
 export type {
   GrabConfig,
   GrabResult,
   ComponentInfo,
   GrabFilterConfig,
   FloatingButtonConfig,
-  DevToolsPanelConfig,
-  DevToolsPanelMode,
-  EdgeDockSide,
-  MatchedCSSRule,
-  CSSPropertyEntry,
-  StyleUpdateRequest,
   A11yAttribute,
   A11ySeverity,
   A11yAuditItem,

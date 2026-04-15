@@ -6,6 +6,3 @@ export function esc(s: string): string {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
 }
-
-/** Alias for `esc` — both text and attribute escaping use the same replacements. */
-export const escAttr = esc;
