@@ -2,19 +2,13 @@ import type {
   CapturedError,
   FloatingButtonConfig,
   GrabResult,
-  MatchedCSSRule,
-  StyleUpdateRequest,
 } from "@sakana-y/vue-grab-shared";
 import { buildCombo } from "../hotkeys";
 import { openInEditor } from "../editor";
-import { matchCSSRules } from "../css-inspector";
 import {
   esc,
   tryReadStorage,
   trySaveStorage,
-  renderInspectorHTML,
-  wireInspectorEvents,
-  INSPECTOR_STYLES,
   A11Y_ICON_SVG,
   scanPageA11y,
   buildErrorPrompt,
@@ -77,8 +71,6 @@ const CROSSHAIR_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="non
 
 const GEAR_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.32 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`;
 
-const INSPECTOR_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>`;
-
 const ERROR_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`;
 
 const MAGNIFIER_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><circle cx="11" cy="11" r="3" stroke-dasharray="2 2"/></svg>`;
@@ -90,7 +82,7 @@ const EDITOR_PRESETS = [
 ];
 
 type TabId = "shortcuts" | "editor" | "magnifier";
-type PanelId = "settings" | "inspector" | "accessibility" | "errors";
+type PanelId = "settings" | "accessibility" | "errors";
 
 const STYLES = `
   :host {
@@ -168,8 +160,7 @@ const STYLES = `
     box-shadow: inset 0 0 0 1.5px var(--grab-color, #4f46e5);
     background: color-mix(in srgb, var(--grab-color, #4f46e5) 12%, transparent);
   }
-  .gear-btn.active,
-  .inspector-btn.active {
+  .gear-btn.active {
     color: var(--grab-color, #4f46e5);
     box-shadow: inset 0 0 0 1.5px var(--grab-color, #4f46e5);
     background: color-mix(in srgb, var(--grab-color, #4f46e5) 12%, transparent);
@@ -769,8 +760,6 @@ const STYLES = `
     padding: 20px;
     font-size: 12px;
   }
-
-  ${INSPECTOR_STYLES}
 `;
 
 export class FloatingButton {
@@ -782,7 +771,6 @@ export class FloatingButton {
   private expandBodyEl: HTMLElement | null = null;
   private btnEl: HTMLElement | null = null;
   private gearEl: HTMLElement | null = null;
-  private inspectorEl: HTMLElement | null = null;
   private a11yIndicatorEl: HTMLElement | null = null;
   private errBtnEl: HTMLElement | null = null;
   private errBadgeEl: HTMLElement | null = null;
@@ -802,7 +790,6 @@ export class FloatingButton {
   // Editor state
   private editorChoice = "";
   private lastGrabResult: GrabResult | null = null;
-  private lastCSSRules: MatchedCSSRule[] = [];
 
   // Position (viewport %)
   private posX = 97;
@@ -825,7 +812,6 @@ export class FloatingButton {
   private toggleCb: (() => void) | null = null;
   private hotkeyChangeCb: ((combo: string) => void) | null = null;
   private configChangeCb: ((changes: Record<string, unknown>) => void) | null = null;
-  private styleChangeCb: ((update: StyleUpdateRequest) => void) | null = null;
   private errorsClearCb: (() => void) | null = null;
   private magnifierToggleCb: (() => void) | null = null;
   private magnifierConfigChangeCb:
@@ -869,12 +855,8 @@ export class FloatingButton {
 
   setLastResult(result: GrabResult | null): void {
     this.lastGrabResult = result;
-    this.lastCSSRules = [];
-    // Re-render active panel if relevant
-    if (this.activePanel === "inspector") {
-      this.lastCSSRules = result ? matchCSSRules(result.element) : [];
-      this.renderExpandBody();
-    } else if (this.activePanel === "settings") {
+
+    if (this.activePanel === "settings") {
       this.updateEditorTabInPlace();
     } else if (this.activePanel === "accessibility") {
       this.renderExpandBody();
@@ -920,12 +902,6 @@ export class FloatingButton {
     this.gearEl.className = "toolbar-btn gear-btn";
     this.gearEl.innerHTML = GEAR_SVG;
     this.toolbarRowEl.appendChild(this.gearEl);
-
-    // Inspector button
-    this.inspectorEl = document.createElement("div");
-    this.inspectorEl.className = "toolbar-btn inspector-btn";
-    this.inspectorEl.innerHTML = INSPECTOR_SVG;
-    this.toolbarRowEl.appendChild(this.inspectorEl);
 
     // Magnifier button
     this.magnifierBtnEl = document.createElement("div");
@@ -1011,14 +987,6 @@ export class FloatingButton {
       this.activatePanel("settings");
     });
 
-    // Inspector click → toggle inspector panel
-    this.inspectorEl.addEventListener("click", (e: MouseEvent) => {
-      e.stopPropagation();
-      if (this.wasDragged) return;
-      if (!this.canActivatePanel()) return;
-      this.activatePanel("inspector");
-    });
-
     // A11y click → toggle accessibility panel
     this.a11yIndicatorEl.addEventListener("click", (e: MouseEvent) => {
       e.stopPropagation();
@@ -1100,7 +1068,6 @@ export class FloatingButton {
       this.expandBodyEl = null;
       this.btnEl = null;
       this.gearEl = null;
-      this.inspectorEl = null;
       this.a11yIndicatorEl = null;
       this.errBtnEl = null;
       this.errBadgeEl = null;
@@ -1136,10 +1103,6 @@ export class FloatingButton {
 
   onConfigChange(cb: (changes: Record<string, unknown>) => void): void {
     this.configChangeCb = cb;
-  }
-
-  onStyleChange(cb: (update: StyleUpdateRequest) => void): void {
-    this.styleChangeCb = cb;
   }
 
   onErrorsClear(cb: () => void): void {
@@ -1206,10 +1169,6 @@ export class FloatingButton {
     }
 
     this.expandBodyEl!.classList.add("open");
-    // Lazily compute CSS rules when inspector is first opened
-    if (panel === "inspector" && this.lastCSSRules.length === 0 && this.lastGrabResult) {
-      this.lastCSSRules = matchCSSRules(this.lastGrabResult.element);
-    }
     this.renderExpandBody();
 
     // Anchor the host so the toolbar stays in place while the panel expands
@@ -1247,7 +1206,6 @@ export class FloatingButton {
 
     // Update icon highlights
     this.gearEl!.classList.toggle("active", panel === "settings");
-    this.inspectorEl!.classList.toggle("active", panel === "inspector");
     this.a11yIndicatorEl!.classList.toggle("active", panel === "accessibility");
     this.errBtnEl!.classList.toggle("active", panel === "errors");
   }
@@ -1260,7 +1218,6 @@ export class FloatingButton {
     this.wrapperEl!.classList.remove("expanded", "expand-up", "expand-left", "expand-right");
     this.expandBodyEl!.classList.remove("open");
     this.gearEl!.classList.remove("active");
-    this.inspectorEl!.classList.remove("active");
     this.a11yIndicatorEl!.classList.remove("active");
     this.errBtnEl!.classList.remove("active");
 
@@ -1286,9 +1243,6 @@ export class FloatingButton {
     if (this.activePanel === "settings") {
       this.expandBodyEl.innerHTML = this.buildSettingsHTML();
       this.wireSettingsEvents();
-    } else if (this.activePanel === "inspector") {
-      this.expandBodyEl.innerHTML = this.renderInspectorContent();
-      this.wireInspectorEventsOnContainer(this.expandBodyEl);
     } else if (this.activePanel === "accessibility") {
       this.expandBodyEl.innerHTML = this.renderA11yPanelContent();
       this.wireA11yPanelEvents();
@@ -1429,25 +1383,6 @@ export class FloatingButton {
       filePathEl.textContent = "No element grabbed yet";
       openBtn.disabled = true;
     }
-  }
-
-  // --- Inspector content ---
-
-  private renderInspectorContent(): string {
-    if (!this.lastGrabResult) {
-      return '<div class="dt-empty">Grab an element to inspect</div>';
-    }
-    return `<div style="padding:12px 14px;">${renderInspectorHTML(this.lastGrabResult, this.lastCSSRules)}</div>`;
-  }
-
-  private wireInspectorEventsOnContainer(container: HTMLElement): void {
-    wireInspectorEvents(container, {
-      onOpenFile: (file, line) => {
-        const editor = this.getEditorChoice();
-        openInEditor(file, line, editor || undefined);
-      },
-      onStyleChange: (update) => this.styleChangeCb?.(update),
-    });
   }
 
   // --- Accessibility panel ---

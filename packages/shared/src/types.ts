@@ -24,8 +24,6 @@ export interface GrabConfig {
   filter: GrabFilterConfig;
   /** Floating button configuration */
   floatingButton: FloatingButtonConfig;
-  /** DevTools inspector panel configuration */
-  devtoolsPanel: DevToolsPanelConfig;
   /** Error capture configuration */
   errorCapture: ErrorCaptureConfig;
   /** Magnifier loupe configuration */
@@ -101,9 +99,6 @@ export interface ComponentA11ySummary {
   childElements: ElementA11yDetail[];
 }
 
-export type DevToolsPanelMode = "float" | "edge";
-export type EdgeDockSide = "bottom" | "right";
-
 export type CapturedErrorType = "console.error" | "runtime" | "promise" | "vue";
 
 export interface CapturedError {
@@ -137,14 +132,6 @@ export interface ErrorCaptureConfig {
   captureVueErrors: boolean;
 }
 
-export interface DevToolsPanelConfig {
-  enabled: boolean;
-  initialMode: DevToolsPanelMode;
-  edgeSide: EdgeDockSide;
-  panelModeStorageKey: string;
-  panelGeometryStorageKey: string;
-}
-
 export interface MagnifierConfig {
   /** Enable magnifier feature. Default: true */
   enabled: boolean;
@@ -156,27 +143,4 @@ export interface MagnifierConfig {
   showHtmlOverlay: boolean;
   /** Maximum characters of HTML to show in overlay. Default: 200 */
   maxOverlayHtmlLength: number;
-}
-
-export interface MatchedCSSRule {
-  selectorText: string;
-  originalSelectorText: string;
-  sourceFile: string | null;
-  styleIndex: number;
-  properties: CSSPropertyEntry[];
-  editable: boolean;
-}
-
-export interface CSSPropertyEntry {
-  property: string;
-  value: string;
-  priority: string;
-}
-
-export interface StyleUpdateRequest {
-  file: string;
-  selector: string;
-  property: string;
-  value: string;
-  styleIndex: number;
 }
