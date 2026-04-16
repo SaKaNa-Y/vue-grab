@@ -1,10 +1,96 @@
 import { describe, it, expect } from "vitest";
-import { DEFAULT_CONFIG, DEFAULT_HIGHLIGHT_COLOR } from "../src";
+import { DEFAULT_CONFIG, DEFAULT_HIGHLIGHT_COLOR, mergeConfig } from "../src";
 
 describe("constants", () => {
   it("should have default config values", () => {
     expect(DEFAULT_CONFIG.highlightColor).toBe(DEFAULT_HIGHLIGHT_COLOR);
     expect(DEFAULT_CONFIG.showTagHint).toBe(true);
     expect(DEFAULT_CONFIG.filter.ignoreSelectors).toEqual([]);
+  });
+});
+
+describe("mergeConfig", () => {
+  it("returns defaults when options is empty", () => {
+    const result = mergeConfig(DEFAULT_CONFIG, {});
+    expect(result).toEqual(DEFAULT_CONFIG);
+  });
+
+  it("overrides top-level scalar fields", () => {
+    const result = mergeConfig(DEFAULT_CONFIG, {
+      highlightColor: "#ff0000",
+      showTagHint: false,
+      maxHtmlLength: 500,
+    });
+    expect(result.highlightColor).toBe("#ff0000");
+    expect(result.showTagHint).toBe(false);
+    expect(result.maxHtmlLength).toBe(500);
+  });
+
+  it("deep-merges filter — partial override preserves sibling fields", () => {
+    const result = mergeConfig(DEFAULT_CONFIG, {
+      filter: { skipCommonComponents: true },
+    });
+    expect(result.filter.skipCommonComponents).toBe(true);
+    expect(result.filter.ignoreSelectors).toEqual(DEFAULT_CONFIG.filter.ignoreSelectors);
+    expect(result.filter.ignoreTags).toEqual(DEFAULT_CONFIG.filter.ignoreTags);
+  });
+
+  it("deep-merges floatingButton", () => {
+    const result = mergeConfig(DEFAULT_CONFIG, {
+      floatingButton: { enabled: true },
+    });
+    expect(result.floatingButton.enabled).toBe(true);
+    expect(result.floatingButton.storageKey).toBe(DEFAULT_CONFIG.floatingButton.storageKey);
+  });
+
+  it("deep-merges errorCapture", () => {
+    const result = mergeConfig(DEFAULT_CONFIG, {
+      errorCapture: { maxErrors: 10 },
+    });
+    expect(result.errorCapture.maxErrors).toBe(10);
+    expect(result.errorCapture.captureConsoleError).toBe(
+      DEFAULT_CONFIG.errorCapture.captureConsoleError,
+    );
+  });
+
+  it("deep-merges magnifier", () => {
+    const result = mergeConfig(DEFAULT_CONFIG, {
+      magnifier: { zoomLevel: 5 },
+    });
+    expect(result.magnifier.zoomLevel).toBe(5);
+    expect(result.magnifier.loupeSize).toBe(DEFAULT_CONFIG.magnifier.loupeSize);
+  });
+
+  it("deep-merges measurer", () => {
+    const result = mergeConfig(DEFAULT_CONFIG, {
+      measurer: { lineColor: "#000000" },
+    });
+    expect(result.measurer.lineColor).toBe("#000000");
+    expect(result.measurer.guideColor).toBe(DEFAULT_CONFIG.measurer.guideColor);
+  });
+
+  it("does not mutate the defaults object", () => {
+    const original = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+    mergeConfig(DEFAULT_CONFIG, {
+      highlightColor: "#ff0000",
+      filter: { skipCommonComponents: true },
+    });
+    expect(DEFAULT_CONFIG).toEqual(original);
+  });
+
+  it("handles overriding multiple nested objects simultaneously", () => {
+    const result = mergeConfig(DEFAULT_CONFIG, {
+      highlightColor: "#aabbcc",
+      filter: { ignoreTags: ["script"] },
+      magnifier: { loupeSize: 200 },
+      measurer: { lineWidth: 3 },
+    });
+    expect(result.highlightColor).toBe("#aabbcc");
+    expect(result.filter.ignoreTags).toEqual(["script"]);
+    expect(result.magnifier.loupeSize).toBe(200);
+    expect(result.measurer.lineWidth).toBe(3);
+    // Non-overridden fields preserved
+    expect(result.filter.ignoreSelectors).toEqual(DEFAULT_CONFIG.filter.ignoreSelectors);
+    expect(result.magnifier.zoomLevel).toBe(DEFAULT_CONFIG.magnifier.zoomLevel);
   });
 });
