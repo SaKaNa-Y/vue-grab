@@ -26,8 +26,8 @@ export interface GrabConfig {
   filter: GrabFilterConfig;
   /** Floating button configuration */
   floatingButton: FloatingButtonConfig;
-  /** Error capture configuration */
-  errorCapture: ErrorCaptureConfig;
+  /** Console capture configuration */
+  consoleCapture: ConsoleCaptureConfig;
   /** Magnifier loupe configuration */
   magnifier: MagnifierConfig;
   /** Measurer configuration */
@@ -103,11 +103,16 @@ export interface ComponentA11ySummary {
   childElements: ElementA11yDetail[];
 }
 
-export type CapturedErrorType = "console.error" | "runtime" | "promise" | "vue";
+export type LogLevel = "log" | "info" | "warn" | "error" | "debug";
+export type LogSource = "console" | "runtime" | "promise" | "vue";
 
-export interface CapturedError {
+export interface CapturedLog {
   id: number;
-  type: CapturedErrorType;
+  /** Visual severity — determines color + FAB badge eligibility. */
+  level: LogLevel;
+  /** Where the entry originated. */
+  source: LogSource;
+  /** Stringified message from args (console) or Error.message (runtime/promise/vue). */
   message: string;
   stack?: string;
   /** Vue lifecycle info string from app.config.errorHandler */
@@ -123,16 +128,16 @@ export interface CapturedError {
   count: number;
 }
 
-export interface ErrorCaptureConfig {
-  /** Enable error capture. Default: true */
+export interface ConsoleCaptureConfig {
+  /** Enable console capture. Default: true */
   enabled: boolean;
-  /** Max errors to keep in ring buffer. Default: 50 */
-  maxErrors: number;
-  /** Capture console.error calls. Default: true */
-  captureConsoleError: boolean;
-  /** Capture window error + unhandledrejection. Default: true */
+  /** Max entries to keep in ring buffer. Default: 200 */
+  maxEntries: number;
+  /** Which console.* methods to intercept. Default: all 5 standard levels. */
+  levels: readonly LogLevel[];
+  /** Capture window error + unhandledrejection (always level: "error"). Default: true */
   captureUnhandled: boolean;
-  /** Capture Vue app.config.errorHandler. Default: true */
+  /** Capture Vue app.config.errorHandler (always level: "error"). Default: true */
   captureVueErrors: boolean;
 }
 

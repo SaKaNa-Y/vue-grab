@@ -32,5 +32,33 @@ Standalone initialization for non-Vue contexts (e.g., CDN script tag).
 ```ts
 import { init } from "@sakana-y/vue-grab";
 
-init({ highlightColor: "#ef4444" });
+const grab = init({ highlightColor: "#ef4444" });
+
+grab.onLog((entries) => console.table(entries));
+grab.clearLogs();
 ```
+
+The returned object exposes:
+
+| Method         | Description                                                             |
+| -------------- | ----------------------------------------------------------------------- |
+| `activate()`   | Enter grab mode.                                                        |
+| `deactivate()` | Exit grab mode.                                                         |
+| `onGrab(cb)`   | Subscribe to grab results. Returns an unsubscribe function.             |
+| `onLog(cb)`    | Subscribe to captured console entries. Returns an unsubscribe function. |
+| `clearLogs()`  | Clear the captured log buffer.                                          |
+| `destroy()`    | Tear down the session.                                                  |
+
+## `consoleCapture` config
+
+Controls capture of browser console output and runtime errors. Merged via `mergeConfig` — `levels` is replaced wholesale rather than element-merged.
+
+| Field              | Type         | Default                                 | Description                                                                                                      |
+| ------------------ | ------------ | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `enabled`          | `boolean`    | `true`                                  | Enable the capture subsystem.                                                                                    |
+| `maxEntries`       | `number`     | `200`                                   | Ring buffer capacity (oldest evicted when exceeded).                                                             |
+| `levels`           | `LogLevel[]` | `["log","info","warn","error","debug"]` | Which `console.*` methods to intercept.                                                                          |
+| `captureUnhandled` | `boolean`    | `true`                                  | Capture `window.error` and `unhandledrejection` (emitted as `level: "error"`, `source: "runtime" \| "promise"`). |
+| `captureVueErrors` | `boolean`    | `true`                                  | Capture `app.config.errorHandler` errors (emitted as `level: "error"`, `source: "vue"`).                         |
+
+`LogLevel = "log" | "info" | "warn" | "error" | "debug"` and `LogSource = "console" | "runtime" | "promise" | "vue"`. Each `CapturedLog` carries both axes so the FAB panel can filter by level and display the source independently. The FAB badge counts only entries with `level === "warn"` or `"error"`.

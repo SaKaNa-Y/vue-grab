@@ -43,14 +43,30 @@ describe("mergeConfig", () => {
     expect(result.floatingButton.storageKey).toBe(DEFAULT_CONFIG.floatingButton.storageKey);
   });
 
-  it("deep-merges errorCapture", () => {
+  it("deep-merges consoleCapture", () => {
     const result = mergeConfig(DEFAULT_CONFIG, {
-      errorCapture: { maxErrors: 10 },
+      consoleCapture: { maxEntries: 10 },
     });
-    expect(result.errorCapture.maxErrors).toBe(10);
-    expect(result.errorCapture.captureConsoleError).toBe(
-      DEFAULT_CONFIG.errorCapture.captureConsoleError,
+    expect(result.consoleCapture.maxEntries).toBe(10);
+    expect(result.consoleCapture.captureUnhandled).toBe(
+      DEFAULT_CONFIG.consoleCapture.captureUnhandled,
     );
+    expect(result.consoleCapture.captureVueErrors).toBe(
+      DEFAULT_CONFIG.consoleCapture.captureVueErrors,
+    );
+  });
+
+  it("replaces consoleCapture.levels wholesale (not element-merged)", () => {
+    const result = mergeConfig(DEFAULT_CONFIG, {
+      consoleCapture: { levels: ["warn", "error"] },
+    });
+    expect(result.consoleCapture.levels).toEqual(["warn", "error"]);
+  });
+
+  it("defensively clones consoleCapture.levels so the default array is not shared by reference", () => {
+    const result = mergeConfig(DEFAULT_CONFIG, {});
+    expect(result.consoleCapture.levels).toEqual(DEFAULT_CONFIG.consoleCapture.levels);
+    expect(result.consoleCapture.levels).not.toBe(DEFAULT_CONFIG.consoleCapture.levels);
   });
 
   it("deep-merges magnifier", () => {

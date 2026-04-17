@@ -1,7 +1,8 @@
 import type {
-  ErrorCaptureConfig,
+  ConsoleCaptureConfig,
   FloatingButtonConfig,
   GrabConfig,
+  LogLevel,
   MagnifierConfig,
   MeasurerConfig,
 } from "./types";
@@ -21,10 +22,12 @@ export const DEFAULT_FLOATING_BUTTON: FloatingButtonConfig = {
 
 export const VUE_ERROR_EVENT = "vue-grab:vue-error";
 
-export const DEFAULT_ERROR_CAPTURE: ErrorCaptureConfig = {
+export const ALL_LOG_LEVELS: readonly LogLevel[] = ["log", "info", "warn", "error", "debug"];
+
+export const DEFAULT_CONSOLE_CAPTURE: ConsoleCaptureConfig = {
   enabled: true,
-  maxErrors: 50,
-  captureConsoleError: true,
+  maxEntries: 200,
+  levels: [...ALL_LOG_LEVELS],
   captureUnhandled: true,
   captureVueErrors: true,
 };
@@ -57,7 +60,7 @@ export const DEFAULT_CONFIG: GrabConfig = {
     skipCommonComponents: false,
   },
   floatingButton: DEFAULT_FLOATING_BUTTON,
-  errorCapture: DEFAULT_ERROR_CAPTURE,
+  consoleCapture: DEFAULT_CONSOLE_CAPTURE,
   magnifier: DEFAULT_MAGNIFIER,
   measurer: DEFAULT_MEASURER,
 };
@@ -66,7 +69,7 @@ export const DEFAULT_CONFIG: GrabConfig = {
  * Deep-merge user config with defaults, properly handling nested objects.
  */
 export function mergeConfig(defaults: GrabConfig, options: Partial<GrabConfig>): GrabConfig {
-  const { filter, floatingButton, errorCapture, magnifier, measurer, ...rest } = options;
+  const { filter, floatingButton, consoleCapture, magnifier, measurer, ...rest } = options;
   return {
     ...defaults,
     ...rest,
@@ -78,9 +81,10 @@ export function mergeConfig(defaults: GrabConfig, options: Partial<GrabConfig>):
       ...defaults.floatingButton,
       ...floatingButton,
     },
-    errorCapture: {
-      ...defaults.errorCapture,
-      ...errorCapture,
+    consoleCapture: {
+      ...defaults.consoleCapture,
+      ...consoleCapture,
+      levels: [...(consoleCapture?.levels ?? defaults.consoleCapture.levels)],
     },
     magnifier: {
       ...defaults.magnifier,

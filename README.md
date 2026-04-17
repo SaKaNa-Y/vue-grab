@@ -17,7 +17,7 @@ Point at any element, click, and get its HTML, CSS selector, and Vue component h
 - **Floating action button** — optional draggable FAB with hotkey settings panel
 - **Hotkey support** — default `Alt+Shift+G`, fully customizable and persistable
 - **Accessibility audit** — a11y attribute extraction and 5-rule audit on every grab
-- **Error capture** — catches console.error, runtime errors, promise rejections, and Vue errorHandler errors
+- **Console capture** — captures all console output (log/info/warn/error/debug) plus runtime errors, promise rejections, and Vue errorHandler, with per-level filter pills and message search in the FAB panel
 - **Shadow DOM isolation** — overlay styles never conflict with your app
 - **Works with or without Vue** — use as a Vue plugin or standalone `init()`
 
@@ -96,12 +96,12 @@ createVueGrab({
     hotkeyStorageKey: "vue-grab-hotkey",
     editorStorageKey: "vue-grab-editor",
   },
-  errorCapture: {
-    enabled: true,             // capture runtime errors
-    maxErrors: 50,             // ring buffer size
-    captureConsoleError: true,
-    captureUnhandled: true,
-    captureVueErrors: true,
+  consoleCapture: {
+    enabled: true,                                      // capture console output
+    maxEntries: 200,                                    // ring buffer size
+    levels: ["log", "info", "warn", "error", "debug"], // which console.* methods to intercept
+    captureUnhandled: true,                             // window error + unhandledrejection
+    captureVueErrors: true,                             // app.config.errorHandler
   },
 });
 ```
@@ -185,7 +185,7 @@ pnpm lint && pnpm format:check
 - **快捷键支持** — 默认 `Alt+Shift+G`，完全可自定义且可持久化
 - **无障碍审计** — 提取 a11y 属性并在每次抓取时执行 5 条审计规则
 - **CSS 检查器** — 匹配的 CSS 规则，支持实时编辑并写回 SFC 源文件
-- **错误捕获** — 捕获 console.error、运行时错误、Promise 拒绝和 Vue errorHandler 错误
+- **控制台捕获** — 捕获全部 console 输出（log/info/warn/error/debug）以及运行时错误、Promise 拒绝和 Vue errorHandler 错误，FAB 面板提供分级筛选与消息搜索
 - **Shadow DOM 隔离** — 覆盖层样式不会影响你的应用
 - **支持非 Vue 环境** — 既可作为 Vue 插件使用，也可独立调用 `init()`
 
@@ -264,12 +264,12 @@ createVueGrab({
     hotkeyStorageKey: "vue-grab-hotkey",
     editorStorageKey: "vue-grab-editor",
   },
-  errorCapture: {
-    enabled: true,             // 捕获运行时错误
-    maxErrors: 50,             // 环形缓冲区大小
-    captureConsoleError: true,
-    captureUnhandled: true,
-    captureVueErrors: true,
+  consoleCapture: {
+    enabled: true,                                      // 启用控制台捕获
+    maxEntries: 200,                                    // 环形缓冲区大小
+    levels: ["log", "info", "warn", "error", "debug"], // 要拦截的 console.* 方法
+    captureUnhandled: true,                             // window error + unhandledrejection
+    captureVueErrors: true,                             // app.config.errorHandler
   },
 });
 ```

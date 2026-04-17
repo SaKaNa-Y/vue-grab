@@ -1,4 +1,10 @@
-import type { CapturedError, FloatingButtonConfig, GrabResult } from "@sakana-y/vue-grab-shared";
+import type {
+  CapturedLog,
+  FloatingButtonConfig,
+  GrabResult,
+  LogLevel,
+} from "@sakana-y/vue-grab-shared";
+import { ALL_LOG_LEVELS } from "@sakana-y/vue-grab-shared";
 import { buildCombo } from "../hotkeys";
 import { openInEditor } from "../editor";
 import {
@@ -7,8 +13,9 @@ import {
   trySaveStorage,
   A11Y_ICON_SVG,
   scanPageA11y,
-  buildErrorPrompt,
-  resolveErrorSource,
+  buildLogPrompt,
+  resolveLogSource,
+  truncate,
 } from "../utils";
 import { openInClaudeCode } from "../editor";
 
@@ -67,7 +74,7 @@ const CROSSHAIR_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="non
 
 const GEAR_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.32 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`;
 
-const ERROR_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`;
+const LOGS_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>`;
 
 const MAGNIFIER_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><circle cx="11" cy="11" r="3" stroke-dasharray="2 2"/></svg>`;
 
@@ -80,11 +87,16 @@ const EDITOR_PRESETS = [
 ];
 
 type TabId = "shortcuts" | "editor" | "magnifier";
-type PanelId = "settings" | "accessibility" | "errors";
+type PanelId = "settings" | "accessibility" | "logs";
 
 const STYLES = `
   :host {
     all: initial;
+    --lvl-log: #9ca3af;
+    --lvl-info: #60a5fa;
+    --lvl-warn: #f59e0b;
+    --lvl-error: #ef4444;
+    --lvl-debug: #a78bfa;
   }
 
   /* ── FAB wrapper (flex column: bar + panel) ── */
@@ -174,18 +186,18 @@ const STYLES = `
     box-shadow: inset 0 0 0 1.5px #4ade80;
     background: rgba(74, 222, 128, 0.12);
   }
-  .err-btn {
+  .logs-btn {
     position: relative;
   }
-  .err-btn.active {
-    color: #ef4444;
-    box-shadow: inset 0 0 0 1.5px #ef4444;
-    background: rgba(239, 68, 68, 0.12);
-  }
-  .magnifier-btn.active {
+  .logs-btn.active {
     color: #f59e0b;
     box-shadow: inset 0 0 0 1.5px #f59e0b;
     background: rgba(245, 158, 11, 0.12);
+  }
+  .magnifier-btn.active {
+    color: #c084fc;
+    box-shadow: inset 0 0 0 1.5px #c084fc;
+    background: rgba(192, 132, 252, 0.12);
   }
   .magnifier-btn.disabled {
     opacity: 0.35;
@@ -196,14 +208,14 @@ const STYLES = `
     box-shadow: inset 0 0 0 1.5px #06b6d4;
     background: rgba(6, 182, 212, 0.12);
   }
-  .err-badge {
+  .logs-badge {
     position: absolute;
     top: 1px;
     right: 1px;
     min-width: 14px;
     height: 14px;
     border-radius: 7px;
-    background: #ef4444;
+    background: var(--lvl-warn);
     color: #fff;
     font-size: 9px;
     font-weight: 700;
@@ -211,6 +223,9 @@ const STYLES = `
     text-align: center;
     padding: 0 3px;
     pointer-events: none;
+  }
+  .logs-badge.has-error {
+    background: var(--lvl-error);
   }
 
   /* ── A11y panel ── */
@@ -609,20 +624,20 @@ const STYLES = `
     margin: 0 2px;
   }
 
-  /* ── Error panel ── */
-  .err-panel { padding: 12px 14px; }
-  .err-header {
+  /* ── Console (logs) panel ── */
+  .logs-panel { padding: 12px 14px; min-width: 340px; }
+  .logs-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
   }
-  .err-title {
+  .logs-title {
     font-size: 13px;
     font-weight: 600;
     color: #e0e0e0;
   }
-  .err-clear-btn {
+  .logs-clear-btn {
     background: rgba(255,255,255,0.08);
     border: 1px solid rgba(255,255,255,0.15);
     border-radius: 6px;
@@ -632,45 +647,106 @@ const STYLES = `
     cursor: pointer;
     font-family: inherit;
   }
-  .err-clear-btn:hover {
+  .logs-clear-btn:hover {
     background: rgba(255,255,255,0.14);
     color: #fff;
   }
-  .err-summary {
-    font-size: 12px;
-    color: #888;
-    margin-bottom: 12px;
-    padding: 6px 10px;
-    background: rgba(255,255,255,0.03);
-    border-radius: 6px;
+  .logs-filter-bar {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
   }
-  .err-row {
+  .logs-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 999px;
+    cursor: pointer;
+    user-select: none;
+    border: 1px solid transparent;
+    background: rgba(255,255,255,0.04);
+    color: #888;
+    font-family: inherit;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .logs-pill[data-level="log"]   { --c: var(--lvl-log); }
+  .logs-pill[data-level="info"]  { --c: var(--lvl-info); }
+  .logs-pill[data-level="warn"]  { --c: var(--lvl-warn); }
+  .logs-pill[data-level="error"] { --c: var(--lvl-error); }
+  .logs-pill[data-level="debug"] { --c: var(--lvl-debug); }
+  .logs-pill.active {
+    background: color-mix(in srgb, var(--c) 15%, transparent);
+    color: var(--c);
+    border-color: color-mix(in srgb, var(--c) 40%, transparent);
+  }
+  .logs-pill .count {
+    opacity: 0.8;
+    font-weight: 500;
+  }
+  .logs-search {
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 8px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 6px;
+    color: #e0e0e0;
+    padding: 5px 8px;
+    font-size: 12px;
+    font-family: inherit;
+    outline: none;
+  }
+  .logs-search:focus {
+    border-color: rgba(99,102,241,0.5);
+  }
+  .log-row {
     padding: 8px 10px;
     border-radius: 6px;
     margin-bottom: 4px;
-    border-left: 3px solid #ef4444;
-    background: rgba(239, 68, 68, 0.04);
+    border-left: 3px solid var(--c, #666);
+    background: color-mix(in srgb, var(--c, #666) 5%, transparent);
     transition: background 0.1s ease;
   }
-  .err-row:hover {
-    background: rgba(239, 68, 68, 0.08);
+  .log-row:hover {
+    background: color-mix(in srgb, var(--c, #666) 10%, transparent);
   }
-  .err-row-header {
+  .log-row[data-level="log"]   { --c: var(--lvl-log); }
+  .log-row[data-level="info"]  { --c: var(--lvl-info); }
+  .log-row[data-level="warn"]  { --c: var(--lvl-warn); }
+  .log-row[data-level="error"] { --c: var(--lvl-error); }
+  .log-row[data-level="debug"] { --c: var(--lvl-debug); }
+  .log-row-header {
     display: flex;
     align-items: center;
     gap: 6px;
     cursor: pointer;
   }
-  .err-row-type {
+  .log-row-level {
     font-size: 10px;
-    background: rgba(239, 68, 68, 0.15);
-    color: #ef4444;
+    background: color-mix(in srgb, var(--c) 18%, transparent);
+    color: var(--c);
     border-radius: 4px;
     padding: 1px 5px;
     font-weight: 600;
     flex-shrink: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
   }
-  .err-row-msg {
+  .log-row-source {
+    font-size: 9px;
+    color: #888;
+    padding: 1px 4px;
+    border-radius: 3px;
+    background: rgba(255,255,255,0.04);
+    flex-shrink: 0;
+    text-transform: lowercase;
+  }
+  .log-row-msg {
     font-size: 12px;
     color: #e0e0e0;
     white-space: nowrap;
@@ -679,38 +755,38 @@ const STYLES = `
     flex: 1;
     min-width: 0;
   }
-  .err-row-count {
+  .log-row-count {
     font-size: 10px;
-    background: rgba(239, 68, 68, 0.2);
-    color: #ef4444;
+    background: color-mix(in srgb, var(--c) 20%, transparent);
+    color: var(--c);
     border-radius: 8px;
     padding: 0 5px;
     font-weight: 600;
     flex-shrink: 0;
   }
-  .err-row-time {
+  .log-row-time {
     font-size: 10px;
     color: #666;
     flex-shrink: 0;
   }
-  .err-row-chevron {
+  .log-row-chevron {
     display: inline-block;
     transition: transform 0.15s ease;
     font-size: 10px;
     color: #666;
     flex-shrink: 0;
   }
-  .err-row-chevron.open {
+  .log-row-chevron.open {
     transform: rotate(90deg);
   }
-  .err-row-details {
+  .log-row-details {
     display: none;
     margin-top: 8px;
   }
-  .err-row-details.open {
+  .log-row-details.open {
     display: block;
   }
-  .err-row-stack {
+  .log-row-stack {
     font-size: 11px;
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     color: #999;
@@ -723,17 +799,17 @@ const STYLES = `
     border-radius: 4px;
     margin-bottom: 6px;
   }
-  .err-row-vue-info {
+  .log-row-vue-info {
     font-size: 11px;
     color: #c792ea;
     margin-bottom: 6px;
   }
-  .err-row-actions {
+  .log-row-actions {
     display: flex;
     gap: 6px;
     margin-top: 6px;
   }
-  .err-action-btn {
+  .log-action-btn {
     background: rgba(255,255,255,0.08);
     border: 1px solid rgba(255,255,255,0.15);
     border-radius: 6px;
@@ -744,20 +820,20 @@ const STYLES = `
     font-family: inherit;
     white-space: nowrap;
   }
-  .err-action-btn:hover {
+  .log-action-btn:hover {
     background: rgba(255,255,255,0.14);
     color: #fff;
   }
-  .err-action-btn.primary {
+  .log-action-btn.primary {
     background: rgba(99, 102, 241, 0.15);
     border-color: rgba(99, 102, 241, 0.3);
     color: #a5b4fc;
   }
-  .err-action-btn.primary:hover {
+  .log-action-btn.primary:hover {
     background: rgba(99, 102, 241, 0.25);
     color: #c7d2fe;
   }
-  .err-empty {
+  .logs-empty {
     color: #555;
     text-align: center;
     padding: 20px;
@@ -775,14 +851,18 @@ export class FloatingButton {
   private btnEl: HTMLElement | null = null;
   private gearEl: HTMLElement | null = null;
   private a11yIndicatorEl: HTMLElement | null = null;
-  private errBtnEl: HTMLElement | null = null;
-  private errBadgeEl: HTMLElement | null = null;
+  private logsBtnEl: HTMLElement | null = null;
+  private logsBadgeEl: HTMLElement | null = null;
   private magnifierBtnEl: HTMLElement | null = null;
   private measurerBtnEl: HTMLElement | null = null;
-  private errorEntries: CapturedError[] = [];
+  private logEntries: CapturedLog[] = [];
+  private filterLevels: Set<LogLevel> = new Set<LogLevel>(ALL_LOG_LEVELS);
+  private searchTerm = "";
+  private searchDebounceId: number | null = null;
   private cachedA11yResults: ReturnType<typeof scanPageA11y> | null = null;
   private lastA11yScanTime = 0;
   private pendingRafId: number | null = null;
+  private logsRenderRafId: number | null = null;
   private config: FloatingButtonConfig;
 
   // Expand state
@@ -819,7 +899,7 @@ export class FloatingButton {
   private toggleCb: (() => void) | null = null;
   private hotkeyChangeCb: ((combo: string) => void) | null = null;
   private configChangeCb: ((changes: Record<string, unknown>) => void) | null = null;
-  private errorsClearCb: (() => void) | null = null;
+  private logsClearCb: (() => void) | null = null;
   private magnifierToggleCb: (() => void) | null = null;
   private measurerToggleCb: (() => void) | null = null;
   private measurerHotkeyChangeCb: ((combo: string) => void) | null = null;
@@ -943,15 +1023,14 @@ export class FloatingButton {
     divider3.className = "toolbar-divider";
     this.toolbarRowEl.appendChild(divider3);
 
-    // Error button
-    this.errBtnEl = document.createElement("div");
-    this.errBtnEl.className = "toolbar-btn err-btn";
-    this.errBtnEl.innerHTML = ERROR_SVG;
-    this.errBadgeEl = document.createElement("span");
-    this.errBadgeEl.className = "err-badge";
-    this.errBadgeEl.style.display = "none";
-    this.errBtnEl.appendChild(this.errBadgeEl);
-    this.toolbarRowEl.appendChild(this.errBtnEl);
+    this.logsBtnEl = document.createElement("div");
+    this.logsBtnEl.className = "toolbar-btn logs-btn";
+    this.logsBtnEl.innerHTML = LOGS_SVG;
+    this.logsBadgeEl = document.createElement("span");
+    this.logsBadgeEl.className = "logs-badge";
+    this.logsBadgeEl.style.display = "none";
+    this.logsBtnEl.appendChild(this.logsBadgeEl);
+    this.toolbarRowEl.appendChild(this.logsBtnEl);
 
     this.toolbarEl.appendChild(this.toolbarRowEl);
 
@@ -1013,12 +1092,11 @@ export class FloatingButton {
       this.activatePanel("accessibility");
     });
 
-    // Error click → toggle error panel
-    this.errBtnEl.addEventListener("click", (e: MouseEvent) => {
+    this.logsBtnEl.addEventListener("click", (e: MouseEvent) => {
       e.stopPropagation();
       if (this.wasDragged) return;
       if (!this.canActivatePanel()) return;
-      this.activatePanel("errors");
+      this.activatePanel("logs");
     });
 
     // Magnifier click → toggle magnifier (no panel, direct toggle)
@@ -1090,6 +1168,14 @@ export class FloatingButton {
       cancelAnimationFrame(this.pendingRafId);
       this.pendingRafId = null;
     }
+    if (this.logsRenderRafId) {
+      cancelAnimationFrame(this.logsRenderRafId);
+      this.logsRenderRafId = null;
+    }
+    if (this.searchDebounceId != null) {
+      window.clearTimeout(this.searchDebounceId);
+      this.searchDebounceId = null;
+    }
     if (this.host) {
       this.host.remove();
       this.host = null;
@@ -1101,8 +1187,8 @@ export class FloatingButton {
       this.btnEl = null;
       this.gearEl = null;
       this.a11yIndicatorEl = null;
-      this.errBtnEl = null;
-      this.errBadgeEl = null;
+      this.logsBtnEl = null;
+      this.logsBadgeEl = null;
       this.measurerBtnEl = null;
     }
   }
@@ -1138,8 +1224,8 @@ export class FloatingButton {
     this.configChangeCb = cb;
   }
 
-  onErrorsClear(cb: () => void): void {
-    this.errorsClearCb = cb;
+  onLogsClear(cb: () => void): void {
+    this.logsClearCb = cb;
   }
 
   onMagnifierToggle(cb: () => void): void {
@@ -1267,7 +1353,7 @@ export class FloatingButton {
     // Update icon highlights
     this.gearEl!.classList.toggle("active", panel === "settings");
     this.a11yIndicatorEl!.classList.toggle("active", panel === "accessibility");
-    this.errBtnEl!.classList.toggle("active", panel === "errors");
+    this.logsBtnEl!.classList.toggle("active", panel === "logs");
   }
 
   private deactivatePanel(): void {
@@ -1280,9 +1366,8 @@ export class FloatingButton {
     this.expandBodyEl!.classList.remove("open");
     this.gearEl!.classList.remove("active");
     this.a11yIndicatorEl!.classList.remove("active");
-    this.errBtnEl!.classList.remove("active");
+    this.logsBtnEl!.classList.remove("active");
 
-    // Restore original centering transform and position instantly (no animated shift)
     if (this.host) {
       this.host.style.transition = "none";
       this.host.style.transform = "translate(-50%, -50%)";
@@ -1307,9 +1392,10 @@ export class FloatingButton {
     } else if (this.activePanel === "accessibility") {
       this.expandBodyEl.innerHTML = this.renderA11yPanelContent();
       this.wireA11yPanelEvents();
-    } else if (this.activePanel === "errors") {
-      this.expandBodyEl.innerHTML = this.renderErrorPanelContent();
-      this.wireErrorPanelEvents();
+    } else if (this.activePanel === "logs") {
+      const visible = this.visibleLogs();
+      this.expandBodyEl.innerHTML = this.renderLogsPanelContent(visible);
+      this.wireLogsPanelEvents(visible);
     }
   }
 
@@ -1627,75 +1713,112 @@ export class FloatingButton {
     }
   }
 
-  // --- Error panel ---
+  // --- Console (logs) panel ---
 
-  setErrors(entries: CapturedError[]): void {
-    this.errorEntries = entries;
-    this.updateErrorBadge();
-    if (this.activePanel === "errors") {
-      this.renderExpandBody();
+  setLogs(entries: CapturedLog[]): void {
+    this.logEntries = entries;
+    if (this.activePanel === "logs") {
+      this.scheduleLogsRender();
+    } else {
+      this.updateLogsBadge();
     }
   }
 
-  private updateErrorBadge(): void {
-    if (!this.errBadgeEl) return;
-    const count = this.errorEntries.length;
-    this.errBadgeEl.textContent = count > 99 ? "99+" : String(count);
-    this.errBadgeEl.style.display = count > 0 ? "" : "none";
+  private scheduleLogsRender(): void {
+    if (this.logsRenderRafId != null) return;
+    this.logsRenderRafId = requestAnimationFrame(() => {
+      this.logsRenderRafId = null;
+      this.updateLogsBadge();
+      if (this.activePanel === "logs") this.renderExpandBody();
+    });
   }
 
-  private renderErrorPanelContent(): string {
-    if (this.errorEntries.length === 0) {
-      return '<div class="err-panel"><div class="err-empty">No errors captured</div></div>';
-    }
-
-    let html = '<div class="err-panel">';
-
-    html += '<div class="err-header">';
-    html += '<span class="err-title">Console Errors</span>';
-    html += '<button class="err-clear-btn">Clear</button>';
-    html += "</div>";
-
-    const totalCount = this.errorEntries.reduce((s, e) => s + e.count, 0);
-    html += '<div class="err-summary">';
-    html += `<span style="color:#ef4444;font-weight:600;">${this.errorEntries.length}</span> unique errors`;
-    if (totalCount > this.errorEntries.length) {
-      html += ` (${totalCount} total occurrences)`;
-    }
-    html += "</div>";
-
-    // Render errors in reverse chronological order
-    const sorted = [...this.errorEntries].toSorted((a, b) => b.timestamp - a.timestamp);
-    for (let i = 0; i < sorted.length; i++) {
-      const err = sorted[i];
-      const time = new Date(err.timestamp).toLocaleTimeString();
-      const msgTrunc =
-        err.message.length > 120 ? err.message.slice(0, 120) + "\u2026" : err.message;
-
-      html += `<div class="err-row" data-err-idx="${i}">`;
-      html += '<div class="err-row-header">';
-      html += `<span class="err-row-chevron" data-err-toggle="${i}">\u25B6</span>`;
-      html += `<span class="err-row-type">${esc(err.type)}</span>`;
-      html += `<span class="err-row-msg" title="${esc(err.message)}">${esc(msgTrunc)}</span>`;
-      if (err.count > 1) {
-        html += `<span class="err-row-count">\u00D7${err.count}</span>`;
+  private updateLogsBadge(): void {
+    if (!this.logsBadgeEl) return;
+    let count = 0;
+    let hasError = false;
+    for (const e of this.logEntries) {
+      if (e.level === "error") {
+        count++;
+        hasError = true;
+      } else if (e.level === "warn") {
+        count++;
       }
-      html += `<span class="err-row-time">${esc(time)}</span>`;
+    }
+    this.logsBadgeEl.textContent = count > 99 ? "99+" : String(count);
+    this.logsBadgeEl.style.display = count > 0 ? "" : "none";
+    this.logsBadgeEl.classList.toggle("has-error", hasError);
+  }
+
+  private countsByLevel(): Record<LogLevel, number> {
+    const out: Record<LogLevel, number> = { log: 0, info: 0, warn: 0, error: 0, debug: 0 };
+    for (const e of this.logEntries) out[e.level]++;
+    return out;
+  }
+
+  private visibleLogs(): CapturedLog[] {
+    const needle = this.searchTerm.toLowerCase();
+    const filtered = this.logEntries.filter(
+      (e) =>
+        this.filterLevels.has(e.level) &&
+        (needle === "" || e.message.toLowerCase().includes(needle)),
+    );
+    return filtered.toSorted((a, b) => b.timestamp - a.timestamp);
+  }
+
+  private renderLogsPanelContent(visible: CapturedLog[]): string {
+    const counts = this.countsByLevel();
+    const pills = ALL_LOG_LEVELS.map((lvl) => {
+      const active = this.filterLevels.has(lvl);
+      return `<button class="logs-pill${active ? " active" : ""}" data-level="${lvl}" type="button">${lvl}<span class="count">${counts[lvl]}</span></button>`;
+    }).join("");
+
+    let html = '<div class="logs-panel">';
+    html += '<div class="logs-header">';
+    html += '<span class="logs-title">Console</span>';
+    html += '<button class="logs-clear-btn" type="button">Clear</button>';
+    html += "</div>";
+    html += `<div class="logs-filter-bar">${pills}</div>`;
+    html += `<input class="logs-search" type="text" placeholder="Filter messages…" value="${esc(this.searchTerm)}">`;
+
+    if (visible.length === 0) {
+      const empty =
+        this.logEntries.length === 0 ? "No logs captured" : "No logs match the current filter";
+      html += `<div class="logs-empty">${empty}</div></div>`;
+      return html;
+    }
+
+    for (let i = 0; i < visible.length; i++) {
+      const log = visible[i];
+      const time = new Date(log.timestamp).toLocaleTimeString();
+      const msgTrunc = truncate(log.message, 120);
+
+      html += `<div class="log-row" data-level="${log.level}" data-log-idx="${i}">`;
+      html += '<div class="log-row-header">';
+      html += `<span class="log-row-chevron" data-log-toggle="${i}">\u25B6</span>`;
+      html += `<span class="log-row-level">${esc(log.level)}</span>`;
+      if (log.source !== "console") {
+        html += `<span class="log-row-source">${esc(log.source)}</span>`;
+      }
+      html += `<span class="log-row-msg" title="${esc(log.message)}">${esc(msgTrunc)}</span>`;
+      if (log.count > 1) {
+        html += `<span class="log-row-count">\u00D7${log.count}</span>`;
+      }
+      html += `<span class="log-row-time">${esc(time)}</span>`;
       html += "</div>";
 
-      // Expandable details
-      html += `<div class="err-row-details" data-err-details="${i}">`;
-      if (err.vueInfo) {
-        html += `<div class="err-row-vue-info">Vue: ${esc(err.vueInfo)}</div>`;
+      html += `<div class="log-row-details" data-log-details="${i}">`;
+      if (log.vueInfo) {
+        html += `<div class="log-row-vue-info">Vue: ${esc(log.vueInfo)}</div>`;
       }
-      if (err.stack) {
-        html += `<div class="err-row-stack">${esc(err.stack)}</div>`;
+      if (log.stack) {
+        html += `<div class="log-row-stack">${esc(log.stack)}</div>`;
       }
-      html += '<div class="err-row-actions">';
-      html += `<button class="err-action-btn" data-err-copy="${i}">Copy</button>`;
-      html += `<button class="err-action-btn primary" data-err-claude="${i}">Open in Claude Code</button>`;
-      if (err.sourceFile || err.componentStack?.[0]?.filePath) {
-        html += `<button class="err-action-btn" data-err-open="${i}">Open in Editor</button>`;
+      html += '<div class="log-row-actions">';
+      html += `<button class="log-action-btn" data-log-copy="${i}" type="button">Copy</button>`;
+      html += `<button class="log-action-btn primary" data-log-claude="${i}" type="button">Open in Claude Code</button>`;
+      if (log.sourceFile || log.componentStack?.[0]?.filePath) {
+        html += `<button class="log-action-btn" data-log-open="${i}" type="button">Open in Editor</button>`;
       }
       html += "</div>";
       html += "</div>";
@@ -1707,40 +1830,65 @@ export class FloatingButton {
     return html;
   }
 
-  private wireErrorPanelEvents(): void {
+  private wireLogsPanelEvents(sorted: CapturedLog[]): void {
     if (!this.expandBodyEl) return;
 
-    const sorted = [...this.errorEntries].toSorted((a, b) => b.timestamp - a.timestamp);
-
-    // Clear button
-    const clearBtn = this.expandBodyEl.querySelector(".err-clear-btn");
+    const clearBtn = this.expandBodyEl.querySelector(".logs-clear-btn");
     clearBtn?.addEventListener("click", (e: Event) => {
       e.stopPropagation();
-      this.errorsClearCb?.();
+      this.logsClearCb?.();
     });
 
-    // Row expand/collapse toggles
-    for (const header of this.expandBodyEl.querySelectorAll(".err-row-header")) {
+    for (const pill of this.expandBodyEl.querySelectorAll<HTMLElement>(".logs-pill")) {
+      pill.addEventListener("click", (e: Event) => {
+        e.stopPropagation();
+        const lvl = pill.dataset.level as LogLevel | undefined;
+        if (!lvl) return;
+        if (this.filterLevels.has(lvl)) this.filterLevels.delete(lvl);
+        else this.filterLevels.add(lvl);
+        this.renderExpandBody();
+      });
+    }
+
+    const searchInput = this.expandBodyEl.querySelector<HTMLInputElement>(".logs-search");
+    searchInput?.addEventListener("input", () => {
+      this.searchTerm = searchInput.value;
+      if (this.searchDebounceId != null) window.clearTimeout(this.searchDebounceId);
+      this.searchDebounceId = window.setTimeout(() => {
+        this.searchDebounceId = null;
+        if (this.activePanel !== "logs") return;
+        this.renderExpandBody();
+        const fresh = this.expandBodyEl?.querySelector<HTMLInputElement>(".logs-search");
+        if (fresh && document.activeElement !== fresh) {
+          fresh.focus();
+          const pos = this.searchTerm.length;
+          fresh.setSelectionRange(pos, pos);
+        }
+      }, 120);
+    });
+    searchInput?.addEventListener("click", (e: Event) => e.stopPropagation());
+    searchInput?.addEventListener("keydown", (e: KeyboardEvent) => e.stopPropagation());
+
+    for (const header of this.expandBodyEl.querySelectorAll(".log-row-header")) {
       header.addEventListener("click", (e: Event) => {
         e.stopPropagation();
-        const row = (header as HTMLElement).closest(".err-row");
-        const idx = row?.getAttribute("data-err-idx");
+        const row = (header as HTMLElement).closest(".log-row");
+        const idx = row?.getAttribute("data-log-idx");
         if (idx == null) return;
-        const details = this.expandBodyEl?.querySelector(`[data-err-details="${idx}"]`);
-        const chevron = this.expandBodyEl?.querySelector(`[data-err-toggle="${idx}"]`);
+        const details = this.expandBodyEl?.querySelector(`[data-log-details="${idx}"]`);
+        const chevron = this.expandBodyEl?.querySelector(`[data-log-toggle="${idx}"]`);
         if (details) details.classList.toggle("open");
         if (chevron) chevron.classList.toggle("open");
       });
     }
 
-    // Copy buttons
-    for (const btn of this.expandBodyEl.querySelectorAll("[data-err-copy]")) {
+    for (const btn of this.expandBodyEl.querySelectorAll("[data-log-copy]")) {
       btn.addEventListener("click", (e: Event) => {
         e.stopPropagation();
-        const idx = Number((btn as HTMLElement).dataset.errCopy);
-        const err = sorted[idx];
-        if (!err) return;
-        const prompt = buildErrorPrompt(err);
+        const idx = Number((btn as HTMLElement).dataset.logCopy);
+        const log = sorted[idx];
+        if (!log) return;
+        const prompt = buildLogPrompt(log);
         navigator.clipboard.writeText(prompt).then(() => {
           (btn as HTMLElement).textContent = "Copied!";
           setTimeout(() => {
@@ -1750,14 +1898,13 @@ export class FloatingButton {
       });
     }
 
-    // Open in Claude Code buttons
-    for (const btn of this.expandBodyEl.querySelectorAll("[data-err-claude]")) {
+    for (const btn of this.expandBodyEl.querySelectorAll("[data-log-claude]")) {
       btn.addEventListener("click", (e: Event) => {
         e.stopPropagation();
-        const idx = Number((btn as HTMLElement).dataset.errClaude);
-        const err = sorted[idx];
-        if (!err) return;
-        const prompt = buildErrorPrompt(err);
+        const idx = Number((btn as HTMLElement).dataset.logClaude);
+        const log = sorted[idx];
+        if (!log) return;
+        const prompt = buildLogPrompt(log);
         openInClaudeCode(prompt);
         (btn as HTMLElement).textContent = "Opened!";
         setTimeout(() => {
@@ -1766,14 +1913,13 @@ export class FloatingButton {
       });
     }
 
-    // Open in Editor buttons
-    for (const btn of this.expandBodyEl.querySelectorAll("[data-err-open]")) {
+    for (const btn of this.expandBodyEl.querySelectorAll("[data-log-open]")) {
       btn.addEventListener("click", (e: Event) => {
         e.stopPropagation();
-        const idx = Number((btn as HTMLElement).dataset.errOpen);
-        const err = sorted[idx];
-        if (!err) return;
-        const source = resolveErrorSource(err);
+        const idx = Number((btn as HTMLElement).dataset.logOpen);
+        const log = sorted[idx];
+        if (!log) return;
+        const source = resolveLogSource(log);
         if (!source) return;
         const editor = this.getEditorChoice();
         openInEditor(source.file, source.line, editor || undefined);

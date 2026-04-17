@@ -1,28 +1,29 @@
-import type { CapturedError } from "@sakana-y/vue-grab-shared";
+import type { CapturedLog } from "@sakana-y/vue-grab-shared";
 
-export function buildErrorPrompt(error: CapturedError): string {
-  let prompt = `[${error.type}] ${error.message}\n`;
+export function buildLogPrompt(log: CapturedLog): string {
+  const header = log.source === "console" ? log.level : `${log.source}/${log.level}`;
+  let prompt = `[${header}] ${log.message}\n`;
 
-  if (error.stack) {
-    prompt += `\n\`\`\`\n${error.stack}\n\`\`\`\n`;
+  if (log.stack) {
+    prompt += `\n\`\`\`\n${log.stack}\n\`\`\`\n`;
   }
 
-  if (error.vueInfo) {
-    prompt += `\nVue lifecycle: ${error.vueInfo}\n`;
+  if (log.vueInfo) {
+    prompt += `\nVue lifecycle: ${log.vueInfo}\n`;
   }
 
-  if (error.componentStack && error.componentStack.length > 0) {
+  if (log.componentStack && log.componentStack.length > 0) {
     prompt += `\nComponent stack:\n`;
-    for (const comp of error.componentStack) {
+    for (const comp of log.componentStack) {
       prompt += `- ${comp.name}`;
       if (comp.filePath) prompt += ` (${comp.filePath}${comp.line ? `:${comp.line}` : ""})`;
       prompt += "\n";
     }
   }
 
-  if (error.sourceFile) {
-    prompt += `\nSource: ${error.sourceFile}`;
-    if (error.sourceLine) prompt += `:${error.sourceLine}`;
+  if (log.sourceFile) {
+    prompt += `\nSource: ${log.sourceFile}`;
+    if (log.sourceLine) prompt += `:${log.sourceLine}`;
     prompt += `\n`;
   }
 
