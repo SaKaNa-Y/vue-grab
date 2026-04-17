@@ -19,7 +19,8 @@
     "format": "oxfmt --write packages/ website/",
     "format:check": "oxfmt --check packages/ website/",
     "release": "changeset publish",
-    "version-packages": "dotenv -e .env -- changeset version"
+    "version-packages": "dotenv -e .env -- changeset version",
+    "version-packages:ci": "changeset version && pnpm format"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
