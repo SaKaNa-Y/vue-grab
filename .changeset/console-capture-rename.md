@@ -1,7 +1,7 @@
 ---
-"@sakana-y/vue-grab": patch
-"@sakana-y/vue-grab-shared": patch
-"@sakana-y/vue-grab-cli": patch
+"@sakana-y/vue-grab": minor
+"@sakana-y/vue-grab-shared": minor
+"@sakana-y/vue-grab-cli": minor
 ---
 
 Rename `errorCapture` → `consoleCapture` and broaden capture from `console.error` only to all five console levels (`log`, `info`, `warn`, `error`, `debug`). The FloatingButton panel now surfaces every captured entry with per-level filter pills and a message search input; the badge counts only `warn` + `error` entries to keep it actionable.
