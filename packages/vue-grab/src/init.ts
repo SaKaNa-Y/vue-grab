@@ -1,4 +1,4 @@
-import type { GrabConfig, GrabResult } from "@sakana-y/vue-grab-shared";
+import type { CapturedLog, GrabConfig, GrabResult } from "@sakana-y/vue-grab-shared";
 import { DEFAULT_CONFIG, mergeConfig } from "@sakana-y/vue-grab-shared";
 import { createGrabSession } from "./session";
 
@@ -13,9 +13,9 @@ export function init(options: Partial<GrabConfig> = {}) {
     activate: () => session.engine.activate(),
     deactivate: () => session.engine.deactivate(),
     onGrab: (cb: (result: GrabResult) => void) => session.engine.onGrab(cb),
-    onError: (cb: (errors: import("@sakana-y/vue-grab-shared").CapturedError[]) => void) =>
-      session.errorCapture?.onChange(cb) ?? (() => {}),
-    clearErrors: () => session.errorCapture?.clear(),
+    onLog: (cb: (entries: CapturedLog[]) => void) =>
+      session.consoleCapture?.onChange(cb) ?? (() => {}),
+    clearLogs: () => session.consoleCapture?.clear(),
     destroy: () => session.destroy(),
   };
 }

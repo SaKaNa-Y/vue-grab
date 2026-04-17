@@ -1,7 +1,24 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
+import type { CapturedLog, LogLevel } from "@sakana-y/vue-grab-shared";
 import { DEFAULT_FLOATING_BUTTON } from "@sakana-y/vue-grab-shared";
 import { FloatingButton, FAB_HOST_ID } from "../src/floating-button";
 import { cleanupDOM } from "./helpers/setup";
+
+function makeLog(
+  level: LogLevel,
+  message: string,
+  overrides: Partial<CapturedLog> = {},
+): CapturedLog {
+  return {
+    id: Math.random(),
+    level,
+    source: "console",
+    message,
+    count: 1,
+    timestamp: Date.now(),
+    ...overrides,
+  };
+}
 
 function createFab(overrides: Partial<typeof DEFAULT_FLOATING_BUTTON> = {}): FloatingButton {
   return new FloatingButton({ ...DEFAULT_FLOATING_BUTTON, enabled: true, ...overrides });
@@ -215,6 +232,148 @@ describe("FloatingButton", () => {
 
       expect(spy).toHaveBeenCalledWith("Ctrl+Shift+K");
       expect(getShadow()!.querySelector("kbd")!.textContent).toBe("Ctrl+Shift+K");
+    });
+  });
+
+  describe("logs panel", () => {
+    function getLogsBtn(): HTMLElement | null {
+      return getShadow()?.querySelector(".logs-btn") ?? null;
+    }
+    function getLogsBadge(): HTMLElement | null {
+      return getShadow()?.querySelector(".logs-badge") ?? null;
+    }
+    function getLogsPanel(): HTMLElement | null {
+      return getShadow()?.querySelector(".logs-panel") ?? null;
+    }
+    function getPills(): NodeListOf<HTMLElement> {
+      return getShadow()!.querySelectorAll<HTMLElement>(".logs-pill");
+    }
+    function getRows(): NodeListOf<HTMLElement> {
+      return getShadow()!.querySelectorAll<HTMLElement>(".log-row");
+    }
+    function getSearch(): HTMLInputElement | null {
+      return getShadow()?.querySelector<HTMLInputElement>(".logs-search") ?? null;
+    }
+
+    it("clicking logs button opens panel with five level pills", () => {
+      fab = createFab();
+      fab.mount();
+
+      getLogsBtn()!.click();
+      expect(getLogsPanel()).not.toBeNull();
+      expect(getPills()).toHaveLength(5);
+    });
+
+    it("badge counts only warn + error levels", () => {
+      fab = createFab();
+      fab.mount();
+      fab.setLogs([
+        makeLog("log", "a"),
+        makeLog("info", "b"),
+        makeLog("warn", "c"),
+        makeLog("error", "d"),
+        makeLog("debug", "e"),
+      ]);
+
+      const badge = getLogsBadge()!;
+      expect(badge.textContent).toBe("2");
+      expect(badge.style.display).not.toBe("none");
+    });
+
+    it("badge gains has-error class when an error-level entry is present", () => {
+      fab = createFab();
+      fab.mount();
+      fab.setLogs([makeLog("warn", "a"), makeLog("error", "b")]);
+      expect(getLogsBadge()!.classList.contains("has-error")).toBe(true);
+    });
+
+    it("badge does not have has-error class when only warnings exist", () => {
+      fab = createFab();
+      fab.mount();
+      fab.setLogs([makeLog("warn", "a"), makeLog("warn", "b")]);
+      expect(getLogsBadge()!.classList.contains("has-error")).toBe(false);
+    });
+
+    it("badge is hidden when there are no warn or error entries", () => {
+      fab = createFab();
+      fab.mount();
+      fab.setLogs([makeLog("log", "a"), makeLog("info", "b")]);
+      expect(getLogsBadge()!.style.display).toBe("none");
+    });
+
+    it("clicking a level pill toggles visibility of rows at that level", () => {
+      fab = createFab();
+      fab.mount();
+      fab.setLogs([makeLog("log", "a"), makeLog("warn", "b"), makeLog("error", "c")]);
+
+      getLogsBtn()!.click();
+      expect(getRows()).toHaveLength(3);
+
+      const warnPill = getShadow()!.querySelector<HTMLElement>('.logs-pill[data-level="warn"]')!;
+      warnPill.click();
+      expect(getRows()).toHaveLength(2);
+      const remainingLevels = Array.from(getRows()).map((r) => r.dataset.level);
+      expect(remainingLevels).not.toContain("warn");
+
+      warnPill.click();
+      expect(getRows()).toHaveLength(3);
+    });
+
+    it("search input filters rows by message substring", async () => {
+      fab = createFab();
+      fab.mount();
+      fab.setLogs([
+        makeLog("log", "foo bar"),
+        makeLog("log", "baz qux"),
+        makeLog("log", "foo again"),
+      ]);
+
+      getLogsBtn()!.click();
+      const search = getSearch()!;
+      search.value = "foo";
+      search.dispatchEvent(new Event("input", { bubbles: true }));
+
+      await new Promise((r) => setTimeout(r, 150));
+
+      const rows = getRows();
+      expect(rows).toHaveLength(2);
+      const messages = Array.from(rows).map((r) => r.querySelector(".log-row-msg")!.textContent);
+      expect(messages.every((m) => m!.includes("foo"))).toBe(true);
+    });
+
+    it("Clear button triggers onLogsClear callback", () => {
+      fab = createFab();
+      fab.mount();
+      const spy = vi.fn<() => void>();
+      fab.onLogsClear(spy);
+      fab.setLogs([makeLog("error", "x")]);
+
+      getLogsBtn()!.click();
+      const clearBtn = getShadow()!.querySelector<HTMLElement>(".logs-clear-btn")!;
+      clearBtn.click();
+      expect(spy).toHaveBeenCalledOnce();
+    });
+
+    it("non-console sources display an extra source badge", () => {
+      fab = createFab();
+      fab.mount();
+      fab.setLogs([makeLog("error", "boom", { source: "runtime" })]);
+
+      getLogsBtn()!.click();
+      const row = getShadow()!.querySelector<HTMLElement>(".log-row")!;
+      const sourceBadge = row.querySelector(".log-row-source");
+      expect(sourceBadge).not.toBeNull();
+      expect(sourceBadge!.textContent).toBe("runtime");
+    });
+
+    it("console-source entries do not render a source badge", () => {
+      fab = createFab();
+      fab.mount();
+      fab.setLogs([makeLog("log", "hi")]);
+
+      getLogsBtn()!.click();
+      const row = getShadow()!.querySelector<HTMLElement>(".log-row")!;
+      expect(row.querySelector(".log-row-source")).toBeNull();
     });
   });
 

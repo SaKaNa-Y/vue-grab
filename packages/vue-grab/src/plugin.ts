@@ -11,7 +11,7 @@ export function createVueGrab(options: Partial<GrabConfig> = {}) {
     install(app: App) {
       app.provide(VUE_GRAB_CONFIG_KEY, config);
 
-      if (config.errorCapture.enabled && config.errorCapture.captureVueErrors) {
+      if (config.consoleCapture.enabled && config.consoleCapture.captureVueErrors) {
         const prev = app.config.errorHandler;
         app.config.errorHandler = (err, instance, info) => {
           window.dispatchEvent(

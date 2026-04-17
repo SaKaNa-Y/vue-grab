@@ -13,7 +13,7 @@ export interface GrabSession {
   fab: FloatingButton | null;
   magnifier: MagnifierOverlay | null;
   measurer: MeasurerOverlay | null;
-  errorCapture: ConsoleCapture | null;
+  consoleCapture: ConsoleCapture | null;
   destroy: () => void;
 }
 
@@ -28,11 +28,11 @@ export function createGrabSession(config: GrabConfig): GrabSession {
   let fab: FloatingButton | null = null;
   let magnifier: MagnifierOverlay | null = null;
   let measurer: MeasurerOverlay | null = null;
-  let errorCapture: ConsoleCapture | null = null;
+  let consoleCapture: ConsoleCapture | null = null;
 
-  if (config.errorCapture.enabled) {
-    errorCapture = new ConsoleCapture(config.errorCapture);
-    errorCapture.start();
+  if (config.consoleCapture.enabled) {
+    consoleCapture = new ConsoleCapture(config.consoleCapture);
+    consoleCapture.start();
   }
 
   if (config.floatingButton.enabled) {
@@ -72,13 +72,11 @@ export function createGrabSession(config: GrabConfig): GrabSession {
     hotkeys.register(DEFAULT_HOTKEY, () => engine.toggle());
   }
 
-  // Wire error capture to FAB
-  if (fab && errorCapture) {
-    errorCapture.onChange((errors) => fab!.setErrors(errors));
-    fab.onErrorsClear(() => errorCapture!.clear());
+  if (fab && consoleCapture) {
+    consoleCapture.onChange((entries) => fab!.setLogs(entries));
+    fab.onLogsClear(() => consoleCapture!.clear());
   }
 
-  // Wire magnifier
   if (config.magnifier.enabled) {
     const localMagnifier = new MagnifierOverlay(config.magnifier);
     magnifier = localMagnifier;
@@ -102,7 +100,6 @@ export function createGrabSession(config: GrabConfig): GrabSession {
     }
   }
 
-  // Wire measurer
   if (config.measurer.enabled) {
     const localMeasurer = new MeasurerOverlay(config.measurer);
     measurer = localMeasurer;
@@ -142,14 +139,14 @@ export function createGrabSession(config: GrabConfig): GrabSession {
     fab,
     magnifier,
     measurer,
-    errorCapture,
+    consoleCapture,
     destroy() {
       engine.destroy();
       hotkeys.destroy();
       fab?.destroy();
       magnifier?.destroy();
       measurer?.destroy();
-      errorCapture?.destroy();
+      consoleCapture?.destroy();
     },
   };
 }
