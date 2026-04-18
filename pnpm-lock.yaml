@@ -30,6 +30,12 @@ importers:
         specifier: ~5.9.3
         version: 5.9.3
 
+  docs:
+    devDependencies:
+      vitepress:
+        specifier: ^1.6.4
+        version: 1.6.4(@algolia/client-search@5.50.0)(lightningcss@1.32.0)(postcss@8.5.8)(search-insights@2.17.3)(typescript@5.9.3)
+
   packages/cli:
     dependencies:
       cac:
@@ -48,28 +54,6 @@ importers:
       vitest:
         specifier: ^4.1.0
         version: 4.1.2(@vitest/browser-playwright@4.1.2)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1))
-
-  packages/playground:
-    dependencies:
-      '@sakana-y/vue-grab':
-        specifier: workspace:*
-        version: link:../vue-grab
-      vue:
-        specifier: ^3.5.13
-        version: 3.5.31(typescript@5.9.3)
-    devDependencies:
-      '@playwright/test':
-        specifier: ^1.50.0
-        version: 1.58.2
-      '@vitejs/plugin-vue':
-        specifier: ^6.0.0
-        version: 6.0.5(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1))(vue@3.5.31(typescript@5.9.3))
-      typescript:
-        specifier: ~5.9.3
-        version: 5.9.3
-      vite:
-        specifier: ^8.0.0
-        version: 8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)
 
   packages/shared:
     devDependencies:
@@ -129,11 +113,27 @@ importers:
         specifier: ^3.5.13
         version: 3.5.31(typescript@5.9.3)
 
-  website:
+  playground:
+    dependencies:
+      '@sakana-y/vue-grab':
+        specifier: workspace:*
+        version: link:../packages/vue-grab
+      vue:
+        specifier: ^3.5.13
+        version: 3.5.31(typescript@5.9.3)
     devDependencies:
-      vitepress:
-        specifier: ^1.6.4
-        version: 1.6.4(@algolia/client-search@5.50.0)(lightningcss@1.32.0)(postcss@8.5.8)(search-insights@2.17.3)(typescript@5.9.3)
+      '@playwright/test':
+        specifier: ^1.50.0
+        version: 1.58.2
+      '@vitejs/plugin-vue':
+        specifier: ^6.0.0
+        version: 6.0.5(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1))(vue@3.5.31(typescript@5.9.3))
+      typescript:
+        specifier: ~5.9.3
+        version: 5.9.3
+      vite:
+        specifier: ^8.0.0
+        version: 8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)
 
 packages:
 
