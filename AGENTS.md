@@ -6,8 +6,8 @@ This repository is a `pnpm` monorepo managed with Turborepo. Core packages live 
 - `packages/vue-grab`: main Vue library source in `src/`, tests in `tests/`. Two entry points: `index` (core plugin) and `vite` (dev server plugin with editor/style endpoints)
 - `packages/shared`: shared types and constants
 - `packages/cli`: CLI entrypoint and commands
-- `packages/playground`: local demo app for manual testing
-- `website/`: VitePress documentation
+- `playground/`: local demo app for manual testing
+- `docs/`: VitePress documentation
 - `.changeset/`: versioning and release metadata
 
 Keep new code close to the package it belongs to. Export public APIs from each package’s `src/index.ts`.
@@ -21,7 +21,7 @@ Use Node 20+ and `pnpm` 10+.
 - `pnpm build`: build all packages through Turbo
 - `pnpm test`: run all package tests
 - `pnpm typecheck`: run workspace TypeScript checks
-- `pnpm lint`: run `oxlint` on `packages/` and `website/`
+- `pnpm lint`: run `oxlint` on `packages/`, `playground/`, and `docs/`
 - `pnpm format`: auto-format with `oxfmt`
 
 For package-only work, use filters such as `pnpm --filter @sakana-y/vue-grab test`.

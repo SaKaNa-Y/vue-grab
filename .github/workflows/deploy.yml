@@ -1,14 +1,14 @@
-name: Deploy Website
+name: Deploy Docs
 
 on:
   push:
     branches: [main]
     paths:
-      - 'website/**'
+      - 'docs/**'
   pull_request:
     branches: [main]
     paths:
-      - 'website/**'
+      - 'docs/**'
 
 jobs:
   deploy:
@@ -25,11 +25,11 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - run: pnpm --filter website build
+      - run: pnpm --filter docs build
 
       # Vercel handles deployment via GitHub integration
       # This workflow builds to verify the site compiles correctly
       # Connect the repo to Vercel and set:
-      #   Root Directory: website
-      #   Build Command: pnpm install --frozen-lockfile && pnpm --filter website build
-      #   Output Directory: website/.vitepress/dist
+      #   Root Directory: docs
+      #   Build Command: pnpm install --frozen-lockfile && pnpm --filter docs build
+      #   Output Directory: docs/.vitepress/dist

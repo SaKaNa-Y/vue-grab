@@ -32,8 +32,8 @@ playwright-report
 .vercel
 
 # VitePress
-website/.vitepress/cache
-website/.vitepress/dist
+docs/.vitepress/cache
+docs/.vitepress/dist
 
 # npm config (may contain auth tokens)
 .npmrc

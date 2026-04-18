@@ -33,13 +33,13 @@ pnpm monorepo orchestrated by Turbo. All packages build with Vite 8.
 @sakana-y/vue-grab-shared   — Shared types (GrabConfig, GrabResult, ComponentInfo) and constants (DEFAULT_CONFIG, mergeConfig)
 @sakana-y/vue-grab          — Core Vue 3 plugin: GrabEngine, GrabOverlay, HotkeyManager, useGrab composable, createVueGrab plugin, init() for non-Vue
 @sakana-y/vue-grab-cli      — CLI tool (CAC) with `vue-grab init` command
-playground                — Dev demo app (private)
-website                   — VitePress documentation site (private)
+playground                — Dev demo app (private, root-level)
+docs                      — VitePress documentation site (private, root-level)
 ```
 
-Dependency graph: `vue-grab → shared`, `playground → vue-grab`. CLI and website are standalone.
+Dependency graph: `vue-grab → shared`, `playground → vue-grab`. CLI and docs are standalone.
 
-Changesets links vue-grab, cli, and shared for coordinated versioning. Playground and website are excluded from releases.
+Changesets links vue-grab, cli, and shared for coordinated versioning. Playground and docs are excluded from releases.
 
 ## Key Patterns
 

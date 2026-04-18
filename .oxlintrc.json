@@ -19,7 +19,7 @@
     "coverage",
     "test-results",
     "playwright-report",
-    "website/.vitepress/cache",
-    "website/.vitepress/dist"
+    "docs/.vitepress/cache",
+    "docs/.vitepress/dist"
   ]
 }
