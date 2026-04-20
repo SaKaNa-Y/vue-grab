@@ -5,6 +5,8 @@ import type {
   LogLevel,
   MagnifierConfig,
   MeasurerConfig,
+  NetworkCaptureConfig,
+  NetworkStatusClass,
 } from "./types";
 
 export const DEFAULT_HIGHLIGHT_COLOR = "#4f46e5";
@@ -30,6 +32,42 @@ export const DEFAULT_CONSOLE_CAPTURE: ConsoleCaptureConfig = {
   levels: [...ALL_LOG_LEVELS],
   captureUnhandled: true,
   captureVueErrors: true,
+};
+
+export const ALL_NETWORK_STATUS_CLASSES: readonly NetworkStatusClass[] = [
+  "2xx",
+  "3xx",
+  "4xx",
+  "5xx",
+  "failed",
+];
+
+export const NETWORK_ERROR_CLASSES: ReadonlySet<NetworkStatusClass> = new Set(["5xx", "failed"]);
+export const NETWORK_WARN_CLASSES: ReadonlySet<NetworkStatusClass> = new Set(["4xx"]);
+
+export const DEFAULT_REDACT_HEADERS: readonly string[] = [
+  "authorization",
+  "cookie",
+  "set-cookie",
+  "x-api-key",
+];
+
+export const DEFAULT_URL_DENY_LIST: readonly string[] = ["/__open-in-editor"];
+
+export const DEFAULT_NETWORK_CAPTURE: NetworkCaptureConfig = {
+  enabled: true,
+  maxEntries: 100,
+  captureFetch: true,
+  captureXhr: true,
+  captureBodies: true,
+  bodyMaxBytes: 2048,
+  redactHeaders: [...DEFAULT_REDACT_HEADERS],
+  urlDenyList: [...DEFAULT_URL_DENY_LIST],
+  grabSnapshot: {
+    enabled: true,
+    maxEntries: 20,
+    windowMs: 10_000,
+  },
 };
 
 export const DEFAULT_MAGNIFIER: MagnifierConfig = {
@@ -61,6 +99,7 @@ export const DEFAULT_CONFIG: GrabConfig = {
   },
   floatingButton: DEFAULT_FLOATING_BUTTON,
   consoleCapture: DEFAULT_CONSOLE_CAPTURE,
+  networkCapture: DEFAULT_NETWORK_CAPTURE,
   magnifier: DEFAULT_MAGNIFIER,
   measurer: DEFAULT_MEASURER,
 };
@@ -69,7 +108,8 @@ export const DEFAULT_CONFIG: GrabConfig = {
  * Deep-merge user config with defaults, properly handling nested objects.
  */
 export function mergeConfig(defaults: GrabConfig, options: Partial<GrabConfig>): GrabConfig {
-  const { filter, floatingButton, consoleCapture, magnifier, measurer, ...rest } = options;
+  const { filter, floatingButton, consoleCapture, networkCapture, magnifier, measurer, ...rest } =
+    options;
   return {
     ...defaults,
     ...rest,
@@ -85,6 +125,16 @@ export function mergeConfig(defaults: GrabConfig, options: Partial<GrabConfig>):
       ...defaults.consoleCapture,
       ...consoleCapture,
       levels: [...(consoleCapture?.levels ?? defaults.consoleCapture.levels)],
+    },
+    networkCapture: {
+      ...defaults.networkCapture,
+      ...networkCapture,
+      redactHeaders: [...(networkCapture?.redactHeaders ?? defaults.networkCapture.redactHeaders)],
+      urlDenyList: [...(networkCapture?.urlDenyList ?? defaults.networkCapture.urlDenyList)],
+      grabSnapshot: {
+        ...defaults.networkCapture.grabSnapshot,
+        ...networkCapture?.grabSnapshot,
+      },
     },
     magnifier: {
       ...defaults.magnifier,

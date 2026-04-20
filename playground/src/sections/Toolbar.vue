@@ -23,6 +23,31 @@ function throwRuntime() {
 function rejectPromise() {
   void Promise.reject(new Error("Unhandled promise rejection"));
 }
+
+function netFetch200() {
+  void fetch("/__vg_demo/ok");
+}
+function netFetch404() {
+  void fetch("/__vg_demo/404");
+}
+function netFetch500() {
+  void fetch("/__vg_demo/500");
+}
+function netFetchFail() {
+  void fetch("https://vg-unreachable.invalid/").catch(() => {});
+}
+function netFetchPostJson() {
+  void fetch("/__vg_demo/ok", {
+    method: "POST",
+    headers: { "content-type": "application/json", Authorization: "Bearer demo-secret" },
+    body: JSON.stringify({ click: Date.now() }),
+  });
+}
+function netXhr() {
+  const xhr = new XMLHttpRequest();
+  xhr.open("GET", "/__vg_demo/ok");
+  xhr.send();
+}
 </script>
 
 <template>
@@ -60,6 +85,19 @@ function rejectPromise() {
       <button class="btn btn-danger" @click="emitError">console.error</button>
       <button class="btn btn-danger" @click="throwRuntime">Throw runtime error</button>
       <button class="btn btn-danger" @click="rejectPromise">Unhandled rejection</button>
+    </div>
+
+    <h3>Exercise network capture</h3>
+    <p class="section-sub">
+      Each button triggers a request — open the floating button's network panel to inspect.
+    </p>
+    <div class="toolbar-row">
+      <button class="btn" @click="netFetch200">fetch 200</button>
+      <button class="btn btn-warn" @click="netFetch404">fetch 404</button>
+      <button class="btn btn-danger" @click="netFetch500">fetch 500</button>
+      <button class="btn btn-danger" @click="netFetchFail">fetch (network error)</button>
+      <button class="btn" @click="netFetchPostJson">POST JSON (auth redacted)</button>
+      <button class="btn" @click="netXhr">XHR GET</button>
     </div>
   </section>
 </template>

@@ -1,10 +1,17 @@
 import type {
   CapturedLog,
+  CapturedRequest,
   FloatingButtonConfig,
   GrabResult,
   LogLevel,
+  NetworkStatusClass,
 } from "@sakana-y/vue-grab-shared";
-import { ALL_LOG_LEVELS } from "@sakana-y/vue-grab-shared";
+import {
+  ALL_LOG_LEVELS,
+  ALL_NETWORK_STATUS_CLASSES,
+  NETWORK_ERROR_CLASSES,
+  NETWORK_WARN_CLASSES,
+} from "@sakana-y/vue-grab-shared";
 import { buildCombo } from "../hotkeys";
 import { openInEditor } from "../editor";
 import {
@@ -14,7 +21,10 @@ import {
   A11Y_ICON_SVG,
   scanPageA11y,
   buildLogPrompt,
+  buildRequestPrompt,
+  formatNetworkStatusLabel,
   resolveLogSource,
+  resolveRequestSource,
   truncate,
 } from "../utils";
 import { openInClaudeCode } from "../editor";
@@ -76,6 +86,8 @@ const GEAR_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" st
 
 const LOGS_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>`;
 
+const NETWORK_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h4l3 9 6-18 3 9h4"/></svg>`;
+
 const MAGNIFIER_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><circle cx="11" cy="11" r="3" stroke-dasharray="2 2"/></svg>`;
 
 const MEASURER_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.4 2.4 0 0 1 0-3.4l2.6-2.6a2.4 2.4 0 0 1 3.4 0z"/><line x1="14" y1="14" x2="10" y2="10"/><line x1="7.5" y1="7.5" x2="5.5" y2="9.5"/><line x1="10.5" y1="10.5" x2="8.5" y2="12.5"/><line x1="13.5" y1="13.5" x2="11.5" y2="15.5"/><line x1="16.5" y1="16.5" x2="14.5" y2="18.5"/></svg>`;
@@ -87,7 +99,7 @@ const EDITOR_PRESETS = [
 ];
 
 type TabId = "shortcuts" | "editor" | "magnifier";
-type PanelId = "settings" | "accessibility" | "logs";
+type PanelId = "settings" | "accessibility" | "logs" | "network";
 
 const STYLES = `
   :host {
@@ -839,6 +851,189 @@ const STYLES = `
     padding: 20px;
     font-size: 12px;
   }
+
+  /* ── Network panel ── */
+  .network-btn {
+    position: relative;
+  }
+  .network-btn.active {
+    color: #60a5fa;
+    box-shadow: inset 0 0 0 1.5px #60a5fa;
+    background: rgba(96,165,250,0.12);
+  }
+  .network-badge {
+    position: absolute;
+    top: 1px;
+    right: 1px;
+    min-width: 14px;
+    height: 14px;
+    border-radius: 7px;
+    background: var(--lvl-warn);
+    color: #fff;
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 14px;
+    text-align: center;
+    padding: 0 3px;
+    pointer-events: none;
+  }
+  .network-badge.has-error {
+    background: var(--lvl-error);
+  }
+  .network-panel { padding: 12px 14px; min-width: 380px; }
+  .net-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 999px;
+    cursor: pointer;
+    user-select: none;
+    border: 1px solid transparent;
+    background: rgba(255,255,255,0.04);
+    color: #888;
+    font-family: inherit;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .net-pill[data-status="2xx"]    { --c: var(--lvl-log); }
+  .net-pill[data-status="3xx"]    { --c: var(--lvl-info); }
+  .net-pill[data-status="4xx"]    { --c: var(--lvl-warn); }
+  .net-pill[data-status="5xx"]    { --c: var(--lvl-error); }
+  .net-pill[data-status="failed"] { --c: var(--lvl-error); }
+  .net-pill.active {
+    background: color-mix(in srgb, var(--c) 15%, transparent);
+    color: var(--c);
+    border-color: color-mix(in srgb, var(--c) 40%, transparent);
+  }
+  .net-pill .count {
+    opacity: 0.8;
+    font-weight: 500;
+  }
+  .net-row {
+    padding: 8px 10px;
+    border-radius: 6px;
+    margin-bottom: 4px;
+    border-left: 3px solid var(--c, #666);
+    background: color-mix(in srgb, var(--c, #666) 5%, transparent);
+    transition: background 0.1s ease;
+  }
+  .net-row:hover {
+    background: color-mix(in srgb, var(--c, #666) 10%, transparent);
+  }
+  .net-row[data-status="2xx"]    { --c: var(--lvl-log); }
+  .net-row[data-status="3xx"]    { --c: var(--lvl-info); }
+  .net-row[data-status="4xx"]    { --c: var(--lvl-warn); }
+  .net-row[data-status="5xx"]    { --c: var(--lvl-error); }
+  .net-row[data-status="failed"] { --c: var(--lvl-error); }
+  .net-row-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+  }
+  .net-row-method {
+    font-size: 10px;
+    background: rgba(255,255,255,0.1);
+    color: #ddd;
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-weight: 600;
+    flex-shrink: 0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+  .net-row-status {
+    font-size: 10px;
+    background: color-mix(in srgb, var(--c) 18%, transparent);
+    color: var(--c);
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-weight: 600;
+    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+  }
+  .net-row-url {
+    font-size: 12px;
+    color: #e0e0e0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    min-width: 0;
+    direction: rtl;
+    text-align: left;
+  }
+  .net-row-duration {
+    font-size: 10px;
+    color: #888;
+    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+  }
+  .net-row-count {
+    font-size: 10px;
+    background: color-mix(in srgb, var(--c) 20%, transparent);
+    color: var(--c);
+    border-radius: 8px;
+    padding: 0 5px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .net-row-time {
+    font-size: 10px;
+    color: #666;
+    flex-shrink: 0;
+  }
+  .net-row-chevron {
+    display: inline-block;
+    transition: transform 0.15s ease;
+    font-size: 10px;
+    color: #666;
+    flex-shrink: 0;
+  }
+  .net-row-chevron.open {
+    transform: rotate(90deg);
+  }
+  .net-row-details {
+    display: none;
+    margin-top: 8px;
+  }
+  .net-row-details.open {
+    display: block;
+  }
+  .net-section-title {
+    font-size: 10px;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 8px 0 4px;
+  }
+  .net-kv {
+    font-size: 11px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    color: #bbb;
+    padding: 1px 0;
+    word-break: break-all;
+  }
+  .net-kv .k { color: #7dd3fc; }
+  .net-body {
+    font-size: 11px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    color: #ddd;
+    white-space: pre-wrap;
+    word-break: break-all;
+    max-height: 200px;
+    overflow-y: auto;
+    padding: 6px 8px;
+    background: rgba(0,0,0,0.2);
+    border-radius: 4px;
+  }
+  .net-row-error {
+    font-size: 11px;
+    color: var(--lvl-error);
+    margin-bottom: 6px;
+  }
 `;
 
 export class FloatingButton {
@@ -853,12 +1048,22 @@ export class FloatingButton {
   private a11yIndicatorEl: HTMLElement | null = null;
   private logsBtnEl: HTMLElement | null = null;
   private logsBadgeEl: HTMLElement | null = null;
+  private networkBtnEl: HTMLElement | null = null;
+  private networkBadgeEl: HTMLElement | null = null;
   private magnifierBtnEl: HTMLElement | null = null;
   private measurerBtnEl: HTMLElement | null = null;
   private logEntries: CapturedLog[] = [];
   private filterLevels: Set<LogLevel> = new Set<LogLevel>(ALL_LOG_LEVELS);
   private searchTerm = "";
   private searchDebounceId: number | null = null;
+  private networkEntries: CapturedRequest[] = [];
+  private networkFilterStatus: Set<NetworkStatusClass> = new Set<NetworkStatusClass>(
+    ALL_NETWORK_STATUS_CLASSES,
+  );
+  private networkSearchTerm = "";
+  private networkSearchDebounceId: number | null = null;
+  private networkRenderRafId: number | null = null;
+  private lastNetworkBadge: { count: number; hasError: boolean } | null = null;
   private cachedA11yResults: ReturnType<typeof scanPageA11y> | null = null;
   private lastA11yScanTime = 0;
   private pendingRafId: number | null = null;
@@ -900,6 +1105,7 @@ export class FloatingButton {
   private hotkeyChangeCb: ((combo: string) => void) | null = null;
   private configChangeCb: ((changes: Record<string, unknown>) => void) | null = null;
   private logsClearCb: (() => void) | null = null;
+  private networkClearCb: (() => void) | null = null;
   private magnifierToggleCb: (() => void) | null = null;
   private measurerToggleCb: (() => void) | null = null;
   private measurerHotkeyChangeCb: ((combo: string) => void) | null = null;
@@ -1026,11 +1232,22 @@ export class FloatingButton {
     this.logsBtnEl = document.createElement("div");
     this.logsBtnEl.className = "toolbar-btn logs-btn";
     this.logsBtnEl.innerHTML = LOGS_SVG;
+    this.logsBtnEl.title = "Console logs";
     this.logsBadgeEl = document.createElement("span");
     this.logsBadgeEl.className = "logs-badge";
     this.logsBadgeEl.style.display = "none";
     this.logsBtnEl.appendChild(this.logsBadgeEl);
     this.toolbarRowEl.appendChild(this.logsBtnEl);
+
+    this.networkBtnEl = document.createElement("div");
+    this.networkBtnEl.className = "toolbar-btn network-btn";
+    this.networkBtnEl.innerHTML = NETWORK_SVG;
+    this.networkBtnEl.title = "Network requests";
+    this.networkBadgeEl = document.createElement("span");
+    this.networkBadgeEl.className = "network-badge";
+    this.networkBadgeEl.style.display = "none";
+    this.networkBtnEl.appendChild(this.networkBadgeEl);
+    this.toolbarRowEl.appendChild(this.networkBtnEl);
 
     this.toolbarEl.appendChild(this.toolbarRowEl);
 
@@ -1097,6 +1314,13 @@ export class FloatingButton {
       if (this.wasDragged) return;
       if (!this.canActivatePanel()) return;
       this.activatePanel("logs");
+    });
+
+    this.networkBtnEl.addEventListener("click", (e: MouseEvent) => {
+      e.stopPropagation();
+      if (this.wasDragged) return;
+      if (!this.canActivatePanel()) return;
+      this.activatePanel("network");
     });
 
     // Magnifier click → toggle magnifier (no panel, direct toggle)
@@ -1172,9 +1396,17 @@ export class FloatingButton {
       cancelAnimationFrame(this.logsRenderRafId);
       this.logsRenderRafId = null;
     }
+    if (this.networkRenderRafId) {
+      cancelAnimationFrame(this.networkRenderRafId);
+      this.networkRenderRafId = null;
+    }
     if (this.searchDebounceId != null) {
       window.clearTimeout(this.searchDebounceId);
       this.searchDebounceId = null;
+    }
+    if (this.networkSearchDebounceId != null) {
+      window.clearTimeout(this.networkSearchDebounceId);
+      this.networkSearchDebounceId = null;
     }
     if (this.host) {
       this.host.remove();
@@ -1189,6 +1421,8 @@ export class FloatingButton {
       this.a11yIndicatorEl = null;
       this.logsBtnEl = null;
       this.logsBadgeEl = null;
+      this.networkBtnEl = null;
+      this.networkBadgeEl = null;
       this.measurerBtnEl = null;
     }
   }
@@ -1354,6 +1588,7 @@ export class FloatingButton {
     this.gearEl!.classList.toggle("active", panel === "settings");
     this.a11yIndicatorEl!.classList.toggle("active", panel === "accessibility");
     this.logsBtnEl!.classList.toggle("active", panel === "logs");
+    this.networkBtnEl!.classList.toggle("active", panel === "network");
   }
 
   private deactivatePanel(): void {
@@ -1367,6 +1602,7 @@ export class FloatingButton {
     this.gearEl!.classList.remove("active");
     this.a11yIndicatorEl!.classList.remove("active");
     this.logsBtnEl!.classList.remove("active");
+    this.networkBtnEl!.classList.remove("active");
 
     if (this.host) {
       this.host.style.transition = "none";
@@ -1396,6 +1632,10 @@ export class FloatingButton {
       const visible = this.visibleLogs();
       this.expandBodyEl.innerHTML = this.renderLogsPanelContent(visible);
       this.wireLogsPanelEvents(visible);
+    } else if (this.activePanel === "network") {
+      const visible = this.visibleNetwork();
+      this.expandBodyEl.innerHTML = this.renderNetworkPanelContent(visible);
+      this.wireNetworkPanelEvents(visible);
     }
   }
 
@@ -1920,6 +2160,258 @@ export class FloatingButton {
         const log = sorted[idx];
         if (!log) return;
         const source = resolveLogSource(log);
+        if (!source) return;
+        const editor = this.getEditorChoice();
+        openInEditor(source.file, source.line, editor || undefined);
+      });
+    }
+  }
+
+  // --- Network panel ---
+
+  setNetwork(entries: CapturedRequest[]): void {
+    this.networkEntries = entries;
+    if (this.activePanel === "network") {
+      this.scheduleNetworkRender();
+    } else {
+      this.updateNetworkBadge();
+    }
+  }
+
+  onNetworkClear(cb: () => void): void {
+    this.networkClearCb = cb;
+  }
+
+  private scheduleNetworkRender(): void {
+    if (this.networkRenderRafId != null) return;
+    this.networkRenderRafId = requestAnimationFrame(() => {
+      this.networkRenderRafId = null;
+      this.updateNetworkBadge();
+      if (this.activePanel === "network") this.renderExpandBody();
+    });
+  }
+
+  private updateNetworkBadge(): void {
+    if (!this.networkBadgeEl) return;
+    let count = 0;
+    let hasError = false;
+    for (const e of this.networkEntries) {
+      if (NETWORK_ERROR_CLASSES.has(e.statusClass)) {
+        count++;
+        hasError = true;
+      } else if (NETWORK_WARN_CLASSES.has(e.statusClass)) {
+        count++;
+      }
+    }
+    if (
+      this.lastNetworkBadge &&
+      this.lastNetworkBadge.count === count &&
+      this.lastNetworkBadge.hasError === hasError
+    ) {
+      return;
+    }
+    this.lastNetworkBadge = { count, hasError };
+    this.networkBadgeEl.textContent = count > 99 ? "99+" : String(count);
+    this.networkBadgeEl.style.display = count > 0 ? "" : "none";
+    this.networkBadgeEl.classList.toggle("has-error", hasError);
+  }
+
+  private countsByStatusClass(): Record<NetworkStatusClass, number> {
+    const out: Record<NetworkStatusClass, number> = {
+      "2xx": 0,
+      "3xx": 0,
+      "4xx": 0,
+      "5xx": 0,
+      failed: 0,
+    };
+    for (const e of this.networkEntries) out[e.statusClass]++;
+    return out;
+  }
+
+  private visibleNetwork(): CapturedRequest[] {
+    const needle = this.networkSearchTerm.toLowerCase();
+    const filtered = this.networkEntries.filter(
+      (e) =>
+        this.networkFilterStatus.has(e.statusClass) &&
+        (needle === "" || e.url.toLowerCase().includes(needle)),
+    );
+    return filtered.toSorted((a, b) => b.timestamp - a.timestamp);
+  }
+
+  private renderNetworkPanelContent(visible: CapturedRequest[]): string {
+    const counts = this.countsByStatusClass();
+    const pills = ALL_NETWORK_STATUS_CLASSES.map((cls) => {
+      const active = this.networkFilterStatus.has(cls);
+      return `<button class="net-pill${active ? " active" : ""}" data-status="${cls}" type="button">${cls}<span class="count">${counts[cls]}</span></button>`;
+    }).join("");
+
+    let html = '<div class="network-panel">';
+    html += '<div class="logs-header">';
+    html += '<span class="logs-title">Network</span>';
+    html += '<button class="logs-clear-btn net-clear-btn" type="button">Clear</button>';
+    html += "</div>";
+    html += `<div class="logs-filter-bar">${pills}</div>`;
+    html += `<input class="logs-search net-search" type="text" placeholder="Filter by URL…" value="${esc(this.networkSearchTerm)}">`;
+
+    if (visible.length === 0) {
+      const empty =
+        this.networkEntries.length === 0
+          ? "No network activity captured"
+          : "No requests match the current filter";
+      html += `<div class="logs-empty">${empty}</div></div>`;
+      return html;
+    }
+
+    for (let i = 0; i < visible.length; i++) {
+      const req = visible[i];
+      const time = new Date(req.timestamp).toLocaleTimeString();
+      const statusLabel = formatNetworkStatusLabel(req);
+      const duration = req.duration != null ? `${Math.round(req.duration)}ms` : "";
+      const urlTrunc = truncate(req.url, 160);
+
+      html += `<div class="net-row" data-status="${req.statusClass}" data-net-idx="${i}">`;
+      html += '<div class="net-row-header">';
+      html += `<span class="net-row-chevron" data-net-toggle="${i}">\u25B6</span>`;
+      html += `<span class="net-row-method">${esc(req.method)}</span>`;
+      html += `<span class="net-row-status">${esc(statusLabel)}</span>`;
+      html += `<span class="net-row-url" title="${esc(req.url)}">${esc(urlTrunc)}</span>`;
+      if (req.count > 1) {
+        html += `<span class="net-row-count">\u00D7${req.count}</span>`;
+      }
+      if (duration) html += `<span class="net-row-duration">${duration}</span>`;
+      html += `<span class="net-row-time">${esc(time)}</span>`;
+      html += "</div>";
+
+      html += `<div class="net-row-details" data-net-details="${i}">`;
+      if (req.error) {
+        html += `<div class="net-row-error">Error: ${esc(req.error)}</div>`;
+      }
+      if (req.requestHeaders && Object.keys(req.requestHeaders).length > 0) {
+        html += `<div class="net-section-title">Request headers</div>`;
+        for (const [k, v] of Object.entries(req.requestHeaders)) {
+          html += `<div class="net-kv"><span class="k">${esc(k)}</span>: ${esc(v)}</div>`;
+        }
+      }
+      if (req.requestBody) {
+        html += `<div class="net-section-title">Request body</div>`;
+        html += `<div class="net-body">${esc(req.requestBody)}</div>`;
+      }
+      if (req.responseHeaders && Object.keys(req.responseHeaders).length > 0) {
+        html += `<div class="net-section-title">Response headers</div>`;
+        for (const [k, v] of Object.entries(req.responseHeaders)) {
+          html += `<div class="net-kv"><span class="k">${esc(k)}</span>: ${esc(v)}</div>`;
+        }
+      }
+      if (req.responseBody) {
+        html += `<div class="net-section-title">Response body</div>`;
+        html += `<div class="net-body">${esc(req.responseBody)}</div>`;
+      }
+      html += '<div class="log-row-actions">';
+      html += `<button class="log-action-btn" data-net-copy="${i}" type="button">Copy</button>`;
+      html += `<button class="log-action-btn primary" data-net-claude="${i}" type="button">Open in Claude Code</button>`;
+      if (req.sourceFile) {
+        html += `<button class="log-action-btn" data-net-open="${i}" type="button">Open in Editor</button>`;
+      }
+      html += "</div>";
+      html += "</div>";
+
+      html += "</div>";
+    }
+
+    html += "</div>";
+    return html;
+  }
+
+  private wireNetworkPanelEvents(sorted: CapturedRequest[]): void {
+    if (!this.expandBodyEl) return;
+
+    const clearBtn = this.expandBodyEl.querySelector(".net-clear-btn");
+    clearBtn?.addEventListener("click", (e: Event) => {
+      e.stopPropagation();
+      this.networkClearCb?.();
+    });
+
+    for (const pill of this.expandBodyEl.querySelectorAll<HTMLElement>(".net-pill")) {
+      pill.addEventListener("click", (e: Event) => {
+        e.stopPropagation();
+        const cls = pill.dataset.status as NetworkStatusClass | undefined;
+        if (!cls) return;
+        if (this.networkFilterStatus.has(cls)) this.networkFilterStatus.delete(cls);
+        else this.networkFilterStatus.add(cls);
+        this.renderExpandBody();
+      });
+    }
+
+    const searchInput = this.expandBodyEl.querySelector<HTMLInputElement>(".net-search");
+    searchInput?.addEventListener("input", () => {
+      this.networkSearchTerm = searchInput.value;
+      if (this.networkSearchDebounceId != null) window.clearTimeout(this.networkSearchDebounceId);
+      this.networkSearchDebounceId = window.setTimeout(() => {
+        this.networkSearchDebounceId = null;
+        if (this.activePanel !== "network") return;
+        this.renderExpandBody();
+        const fresh = this.expandBodyEl?.querySelector<HTMLInputElement>(".net-search");
+        if (fresh && document.activeElement !== fresh) {
+          fresh.focus();
+          const pos = this.networkSearchTerm.length;
+          fresh.setSelectionRange(pos, pos);
+        }
+      }, 120);
+    });
+    searchInput?.addEventListener("click", (e: Event) => e.stopPropagation());
+    searchInput?.addEventListener("keydown", (e: KeyboardEvent) => e.stopPropagation());
+
+    for (const header of this.expandBodyEl.querySelectorAll(".net-row-header")) {
+      header.addEventListener("click", (e: Event) => {
+        e.stopPropagation();
+        const row = (header as HTMLElement).closest(".net-row");
+        const idx = row?.getAttribute("data-net-idx");
+        if (idx == null) return;
+        const details = this.expandBodyEl?.querySelector(`[data-net-details="${idx}"]`);
+        const chevron = this.expandBodyEl?.querySelector(`[data-net-toggle="${idx}"]`);
+        if (details) details.classList.toggle("open");
+        if (chevron) chevron.classList.toggle("open");
+      });
+    }
+
+    for (const btn of this.expandBodyEl.querySelectorAll("[data-net-copy]")) {
+      btn.addEventListener("click", (e: Event) => {
+        e.stopPropagation();
+        const idx = Number((btn as HTMLElement).dataset.netCopy);
+        const req = sorted[idx];
+        if (!req) return;
+        const prompt = buildRequestPrompt(req);
+        navigator.clipboard.writeText(prompt).then(() => {
+          (btn as HTMLElement).textContent = "Copied!";
+          setTimeout(() => {
+            (btn as HTMLElement).textContent = "Copy";
+          }, 1500);
+        });
+      });
+    }
+
+    for (const btn of this.expandBodyEl.querySelectorAll("[data-net-claude]")) {
+      btn.addEventListener("click", (e: Event) => {
+        e.stopPropagation();
+        const idx = Number((btn as HTMLElement).dataset.netClaude);
+        const req = sorted[idx];
+        if (!req) return;
+        const prompt = buildRequestPrompt(req);
+        openInClaudeCode(prompt);
+        (btn as HTMLElement).textContent = "Opened!";
+        setTimeout(() => {
+          (btn as HTMLElement).textContent = "Open in Claude Code";
+        }, 1500);
+      });
+    }
+
+    for (const btn of this.expandBodyEl.querySelectorAll("[data-net-open]")) {
+      btn.addEventListener("click", (e: Event) => {
+        e.stopPropagation();
+        const idx = Number((btn as HTMLElement).dataset.netOpen);
+        const req = sorted[idx];
+        if (!req) return;
+        const source = resolveRequestSource(req);
         if (!source) return;
         const editor = this.getEditorChoice();
         openInEditor(source.file, source.line, editor || undefined);

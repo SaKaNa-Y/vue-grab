@@ -30,6 +30,7 @@ export default defineConfig({
             { text: "Interactive Grab", link: "/features/grab" },
             { text: "Element Measurer", link: "/features/measurer" },
             { text: "Console Capture", link: "/features/console-capture" },
+            { text: "Network Capture", link: "/features/network-capture" },
             { text: "Accessibility Audit", link: "/features/a11y" },
             { text: "Floating Button", link: "/features/floating-button" },
             { text: "Vite Integration", link: "/features/vite-integration" },

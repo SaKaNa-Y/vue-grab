@@ -6,28 +6,51 @@ describe("openInEditor", () => {
     vi.restoreAllMocks();
   });
 
-  it("calls fetch with /__open-in-editor and file parameter", () => {
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response());
-    openInEditor("App.vue");
+  it("calls fetch with /__open-in-editor and file parameter", async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(new Response("", { status: 200 }));
+    await openInEditor("App.vue");
     expect(fetchSpy).toHaveBeenCalledOnce();
     const url = fetchSpy.mock.calls[0][0] as string;
     expect(url).toContain("/__open-in-editor");
     expect(url).toContain("file=App.vue");
   });
 
-  it("includes line number in file param when provided", () => {
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response());
-    openInEditor("App.vue", 10);
+  it("includes line number in file param when provided", async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(new Response("", { status: 200 }));
+    await openInEditor("App.vue", 10);
     const url = fetchSpy.mock.calls[0][0] as string;
     expect(url).toContain("file=App.vue");
     expect(url).toContain("10");
   });
 
-  it("includes editor parameter when provided", () => {
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response());
-    openInEditor("App.vue", undefined, "code");
+  it("includes editor parameter when provided", async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(new Response("", { status: 200 }));
+    await openInEditor("App.vue", undefined, "code");
     const url = fetchSpy.mock.calls[0][0] as string;
     expect(url).toContain("editor=code");
+  });
+
+  it("warns when the server responds with an error status", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response("Path outside project root", { status: 403 }),
+    );
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    await openInEditor("App.vue");
+    expect(warnSpy).toHaveBeenCalledOnce();
+    expect(warnSpy.mock.calls[0][0]).toContain("403");
+  });
+
+  it("warns when the fetch itself rejects", async () => {
+    vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("offline"));
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    await openInEditor("App.vue");
+    expect(warnSpy).toHaveBeenCalledOnce();
   });
 });
 

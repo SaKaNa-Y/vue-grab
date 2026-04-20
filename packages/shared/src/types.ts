@@ -28,6 +28,8 @@ export interface GrabConfig {
   floatingButton: FloatingButtonConfig;
   /** Console capture configuration */
   consoleCapture: ConsoleCaptureConfig;
+  /** Network capture configuration */
+  networkCapture: NetworkCaptureConfig;
   /** Magnifier loupe configuration */
   magnifier: MagnifierConfig;
   /** Measurer configuration */
@@ -54,6 +56,8 @@ export interface GrabResult {
   selector: string;
   /** Accessibility information for the element */
   a11y: A11yInfo;
+  /** Recent network activity snapshot, when networkCapture.grabSnapshot.enabled */
+  network?: CapturedRequest[];
 }
 
 export interface ComponentInfo {
@@ -152,6 +156,77 @@ export interface MagnifierConfig {
   showHtmlOverlay: boolean;
   /** Maximum characters of HTML to show in overlay. Default: 200 */
   maxOverlayHtmlLength: number;
+}
+
+export type NetworkStatusClass = "2xx" | "3xx" | "4xx" | "5xx" | "failed";
+export type NetworkInitiator = "fetch" | "xhr";
+
+export interface CapturedRequest {
+  id: number;
+  /** HTTP method, uppercased (GET/POST/...). */
+  method: string;
+  /** Request URL as originally supplied. */
+  url: string;
+  /** Which API produced this entry. */
+  initiator: NetworkInitiator;
+  /** HTTP status code — undefined until response received; stays undefined on failure. */
+  status?: number;
+  statusText?: string;
+  /** Classification for FAB pills + badge. */
+  statusClass: NetworkStatusClass;
+  /** performance.now() at request start */
+  startTime: number;
+  /** Milliseconds; undefined until settled */
+  duration?: number;
+  /** Redacted request headers */
+  requestHeaders?: Record<string, string>;
+  /** Truncated request body, if captureBodies */
+  requestBody?: string;
+  /** Redacted response headers */
+  responseHeaders?: Record<string, string>;
+  /** Truncated response body — only captured for text/JSON content types */
+  responseBody?: string;
+  /** Bytes, from Content-Length when available */
+  responseSize?: number;
+  /** Failure reason (network error, abort, CORS) when no response arrived */
+  error?: string;
+  /** Date.now() for display */
+  timestamp: number;
+  /** Dedup count — incremented for repeat occurrences */
+  count: number;
+  /** Source file extracted from initiator stack */
+  sourceFile?: string;
+  sourceLine?: number;
+}
+
+export interface NetworkGrabSnapshotConfig {
+  /** Attach recent network entries to GrabResult.network. Default: true */
+  enabled: boolean;
+  /** Max entries in the snapshot. Default: 20 */
+  maxEntries: number;
+  /** Only entries newer than this (ms) are included. Default: 10_000 */
+  windowMs: number;
+}
+
+export interface NetworkCaptureConfig {
+  /** Enable network capture. Default: true */
+  enabled: boolean;
+  /** Max entries to keep in ring buffer. Default: 100 */
+  maxEntries: number;
+  /** Intercept window.fetch. Default: true */
+  captureFetch: boolean;
+  /** Intercept XMLHttpRequest. Default: true */
+  captureXhr: boolean;
+  /** Capture request + response bodies (subject to size + content-type). Default: true */
+  captureBodies: boolean;
+  /** Max bytes retained per body. Default: 2048 */
+  bodyMaxBytes: number;
+  /** Lowercase header names to redact. Default: auth/cookie/set-cookie/x-api-key. */
+  redactHeaders: readonly string[];
+  /** URL substrings to skip entirely. Default includes vue-grab's own /__open-in-editor. */
+  urlDenyList: readonly string[];
+  /** Snapshot attached to GrabResult at grab time. */
+  grabSnapshot: NetworkGrabSnapshotConfig;
 }
 
 export interface MeasurerConfig {
