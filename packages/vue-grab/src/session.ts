@@ -5,7 +5,7 @@ import { HotkeyManager } from "./hotkeys";
 import { FloatingButton } from "./floating-button";
 import { MagnifierOverlay } from "./magnifier";
 import { MeasurerOverlay } from "./measurer";
-import { ConsoleCapture } from "./utils";
+import { ConsoleCapture, NetworkCapture } from "./utils";
 
 export interface GrabSession {
   engine: GrabEngine;
@@ -14,6 +14,7 @@ export interface GrabSession {
   magnifier: MagnifierOverlay | null;
   measurer: MeasurerOverlay | null;
   consoleCapture: ConsoleCapture | null;
+  networkCapture: NetworkCapture | null;
   destroy: () => void;
 }
 
@@ -29,10 +30,22 @@ export function createGrabSession(config: GrabConfig): GrabSession {
   let magnifier: MagnifierOverlay | null = null;
   let measurer: MeasurerOverlay | null = null;
   let consoleCapture: ConsoleCapture | null = null;
+  let networkCapture: NetworkCapture | null = null;
 
   if (config.consoleCapture.enabled) {
     consoleCapture = new ConsoleCapture(config.consoleCapture);
     consoleCapture.start();
+  }
+
+  if (config.networkCapture.enabled) {
+    networkCapture = new NetworkCapture(config.networkCapture);
+    networkCapture.start();
+    if (config.networkCapture.grabSnapshot.enabled) {
+      const nc = networkCapture;
+      engine.addResultEnricher((result) => {
+        result.network = nc.getSnapshotForGrab();
+      });
+    }
   }
 
   if (config.floatingButton.enabled) {
@@ -75,6 +88,11 @@ export function createGrabSession(config: GrabConfig): GrabSession {
   if (fab && consoleCapture) {
     consoleCapture.onChange((entries) => fab!.setLogs(entries));
     fab.onLogsClear(() => consoleCapture!.clear());
+  }
+
+  if (fab && networkCapture) {
+    networkCapture.onChange((entries) => fab!.setNetwork(entries));
+    fab.onNetworkClear(() => networkCapture!.clear());
   }
 
   if (config.magnifier.enabled) {
@@ -140,6 +158,7 @@ export function createGrabSession(config: GrabConfig): GrabSession {
     magnifier,
     measurer,
     consoleCapture,
+    networkCapture,
     destroy() {
       engine.destroy();
       hotkeys.destroy();
@@ -147,6 +166,7 @@ export function createGrabSession(config: GrabConfig): GrabSession {
       magnifier?.destroy();
       measurer?.destroy();
       consoleCapture?.destroy();
+      networkCapture?.destroy();
     },
   };
 }

@@ -22,6 +22,7 @@ export class GrabEngine {
   private config: GrabConfig;
   private overlay: GrabOverlay | null = null;
   private callbacks: Set<(result: GrabResult) => void> = new Set();
+  private enrichers: Array<(result: GrabResult) => void> = [];
   private stateListeners: Set<(active: boolean) => void> = new Set();
   private _isActive = false;
   private prevCursor = "";
@@ -85,6 +86,7 @@ export class GrabEngine {
         a11y: extractA11yInfo(el),
       };
 
+      for (const enrich of this.enrichers) enrich(result);
       this.callbacks.forEach((cb) => cb(result));
       this.deactivate();
     };
@@ -128,6 +130,15 @@ export class GrabEngine {
     return () => this.callbacks.delete(cb);
   }
 
+  /** Synchronously mutate a GrabResult before any onGrab listeners run. */
+  addResultEnricher(fn: (result: GrabResult) => void): () => void {
+    this.enrichers.push(fn);
+    return () => {
+      const idx = this.enrichers.indexOf(fn);
+      if (idx >= 0) this.enrichers.splice(idx, 1);
+    };
+  }
+
   onStateChange(cb: (active: boolean) => void): () => void {
     this.stateListeners.add(cb);
     return () => this.stateListeners.delete(cb);
@@ -141,6 +152,7 @@ export class GrabEngine {
   destroy(): void {
     this.deactivate();
     this.callbacks.clear();
+    this.enrichers.length = 0;
     this.stateListeners.clear();
   }
 

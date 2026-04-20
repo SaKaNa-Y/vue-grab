@@ -2,11 +2,23 @@
  * Opens a file in the user's editor via the Vite dev server middleware.
  * Requires the `vueGrabPlugin()` Vite plugin to be configured.
  */
-export function openInEditor(filePath: string, line?: number, editor?: string): void {
+export async function openInEditor(
+  filePath: string,
+  line?: number,
+  editor?: string,
+): Promise<void> {
   const file = line ? `${filePath}:${line}` : filePath;
   const params = new URLSearchParams({ file });
   if (editor) params.set("editor", editor);
-  fetch(`/__open-in-editor?${params}`);
+  try {
+    const res = await fetch(`/__open-in-editor?${params}`);
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      console.warn(`[vue-grab] Open in Editor failed (${res.status}): ${body}`);
+    }
+  } catch (err) {
+    console.warn("[vue-grab] Open in Editor request failed:", err);
+  }
 }
 
 /**

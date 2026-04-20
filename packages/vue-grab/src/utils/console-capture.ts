@@ -6,33 +6,16 @@ import type {
   LogSource,
 } from "@sakana-y/vue-grab-shared";
 import { VUE_ERROR_EVENT } from "@sakana-y/vue-grab-shared";
+import { stringifyCircularSafe } from "./serialize";
+import { extractSource, normalizeSourceFile } from "./stack";
 
 const STRINGIFY_MAX_LEN = 500;
-
-const SOURCE_RE = /at\s+.*?\((.+?):(\d+):\d+\)|at\s+(.+?):(\d+):\d+$/;
-
-function extractSource(stack?: string): { file?: string; line?: number } {
-  if (!stack) return {};
-  for (const line of stack.split("\n")) {
-    const m = line.match(SOURCE_RE);
-    if (m) {
-      return { file: m[1] ?? m[3], line: Number(m[2] ?? m[4]) };
-    }
-  }
-  return {};
-}
 
 export function resolveLogSource(log: CapturedLog): { file: string; line?: number } | null {
   const comp = log.componentStack?.[0];
   if (comp?.filePath) return { file: comp.filePath, line: comp.line };
   if (!log.sourceFile) return null;
-  let file = log.sourceFile;
-  try {
-    file = new URL(file).pathname;
-    file = file.replace(/^\//, "");
-  } catch {}
-  file = file.replace(/\?.*$/, "");
-  return { file, line: log.sourceLine };
+  return { file: normalizeSourceFile(log.sourceFile), line: log.sourceLine };
 }
 
 function fingerprint(source: LogSource, level: LogLevel, message: string): string {
@@ -53,25 +36,16 @@ function safeStringify(value: unknown): string {
   if (t === "symbol") return (value as symbol).toString();
   if (t === "function") return `[Function ${(value as { name?: string }).name || "anonymous"}]`;
   if (value instanceof Error) return value.message || value.name || "Error";
-  try {
-    const seen = new WeakSet<object>();
-    const json = JSON.stringify(value, (_key, val) => {
-      if (typeof val === "object" && val !== null) {
-        if (seen.has(val as object)) return "[Circular]";
-        seen.add(val as object);
-      }
+  return truncate(
+    stringifyCircularSafe(value, (_key, val) => {
       if (typeof val === "function") {
         return `[Function ${(val as { name?: string }).name || "anonymous"}]`;
       }
       if (typeof val === "bigint") return `${String(val)}n`;
       if (typeof val === "symbol") return (val as symbol).toString();
       return val;
-    });
-    if (json === undefined) return String(value);
-    return truncate(json);
-  } catch {
-    return "[Unserializable]";
-  }
+    }),
+  );
 }
 
 function formatArgs(args: unknown[]): { message: string; stack?: string } {

@@ -20,4 +20,3 @@ import NestedLayer from "./NestedLayer.vue";
     </NestedLayer>
   </section>
 </template>
-
