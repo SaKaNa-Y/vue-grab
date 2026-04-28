@@ -1,4 +1,5 @@
 import type { CapturedLog, CapturedRequest } from "@sakana-y/vue-grab-shared";
+import { toRelativePath } from "./path";
 
 export function buildLogPrompt(log: CapturedLog): string {
   const header = log.source === "console" ? log.level : `${log.source}/${log.level}`;
@@ -16,7 +17,8 @@ export function buildLogPrompt(log: CapturedLog): string {
     prompt += `\nComponent stack:\n`;
     for (const comp of log.componentStack) {
       prompt += `- ${comp.name}`;
-      if (comp.filePath) prompt += ` (${comp.filePath}${comp.line ? `:${comp.line}` : ""})`;
+      if (comp.filePath)
+        prompt += ` (${toRelativePath(comp.filePath)}${comp.line ? `:${comp.line}` : ""})`;
       prompt += "\n";
     }
   }

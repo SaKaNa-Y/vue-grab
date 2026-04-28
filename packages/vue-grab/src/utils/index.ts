@@ -5,3 +5,4 @@ export { hasA11yAttributes, extractA11yInfo, scanPageA11y, A11Y_ICON_SVG } from 
 export { ConsoleCapture, resolveLogSource, truncate } from "./console-capture";
 export { NetworkCapture, resolveRequestSource, formatNetworkStatusLabel } from "./network-capture";
 export { buildLogPrompt, buildRequestPrompt } from "./prompt-builder";
+export { toRelativePath, normalizeRoot } from "./path";

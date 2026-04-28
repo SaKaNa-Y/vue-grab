@@ -5,6 +5,7 @@ export { FloatingButton, FAB_HOST_ID } from "./floating-button";
 export { MagnifierOverlay, MAGNIFIER_HOST_ID } from "./magnifier";
 export { MeasurerOverlay, MEASURER_HOST_ID } from "./measurer";
 export { openInEditor } from "./editor";
+export { toRelativePath } from "./utils/path";
 export type {
   GrabConfig,
   GrabResult,

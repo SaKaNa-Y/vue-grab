@@ -1,4 +1,5 @@
 import type { Plugin } from "vite";
+import { normalizeRoot } from "./utils/path";
 
 export interface VueGrabPluginOptions {
   /** Default editor command. e.g. "code", "cursor", "webstorm". Auto-detected if omitted. */
@@ -6,9 +7,41 @@ export interface VueGrabPluginOptions {
 }
 
 export function vueGrabPlugin(options: VueGrabPluginOptions = {}): Plugin {
+  let resolvedRoot = "";
   return {
     name: "vue-grab:open-in-editor",
     apply: "serve",
+    async config(userConfig) {
+      // @ts-ignore — node:path available at runtime in Vite dev server
+      const pathMod: any = await import(/* @vite-ignore */ "node:path");
+      const p = pathMod.default ?? pathMod;
+      // @ts-ignore — node:process available at runtime
+      const procMod: any = await import(/* @vite-ignore */ "node:process");
+      const proc = procMod.default ?? procMod;
+      const rawRoot = userConfig.root ? p.resolve(proc.cwd(), userConfig.root) : proc.cwd();
+      resolvedRoot = normalizeRoot(rawRoot);
+      return {
+        define: {
+          __VUE_GRAB_ROOT__: JSON.stringify(resolvedRoot),
+        },
+      };
+    },
+    // Inject the root as a runtime global so pre-built workspace packages
+    // (served via /@fs/ without Vite transformation) can still strip it.
+    transformIndexHtml: {
+      order: "pre",
+      handler() {
+        if (!resolvedRoot) return;
+        return [
+          {
+            tag: "script",
+            attrs: { "data-vue-grab": "root" },
+            children: `globalThis.__VUE_GRAB_ROOT__=${JSON.stringify(resolvedRoot)};`,
+            injectTo: "head-prepend",
+          },
+        ];
+      },
+    },
     configureServer(server) {
       server.middlewares.use("/__open-in-editor", (req: any, res: any) => {
         const url = new URL(req.url!, "http://localhost");

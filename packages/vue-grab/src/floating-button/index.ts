@@ -26,6 +26,7 @@ import {
   resolveLogSource,
   resolveRequestSource,
   truncate,
+  toRelativePath,
 } from "../utils";
 import { openInClaudeCode } from "../editor";
 
@@ -1648,7 +1649,7 @@ export class FloatingButton {
     ).join("");
 
     const comp = this.lastGrabResult?.componentStack[0];
-    const filePathText = comp?.filePath ?? "No element grabbed yet";
+    const filePathText = comp?.filePath ? toRelativePath(comp.filePath) : "No element grabbed yet";
     const fileDisabled = !comp?.filePath;
 
     return `
@@ -1775,7 +1776,7 @@ export class FloatingButton {
 
     const comp = this.lastGrabResult?.componentStack[0];
     if (comp?.filePath) {
-      filePathEl.textContent = comp.filePath;
+      filePathEl.textContent = toRelativePath(comp.filePath);
       openBtn.disabled = false;
     } else {
       filePathEl.textContent = "No element grabbed yet";
@@ -1887,7 +1888,7 @@ export class FloatingButton {
     html += "</div>";
 
     if (item.filePath) {
-      html += `<div class="a11y-row-file">${esc(item.filePath)}</div>`;
+      html += `<div class="a11y-row-file">${esc(toRelativePath(item.filePath))}</div>`;
     }
 
     // Show attributes if passing
