@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useGrab, openInEditor } from "@sakana-y/vue-grab";
+import { useGrab, openInEditor, toRelativePath } from "@sakana-y/vue-grab";
 
 const { lastResult } = useGrab();
 </script>
@@ -29,7 +29,7 @@ const { lastResult } = useGrab();
               class="editor-link"
               @click="openInEditor(comp.filePath!, comp.line)"
             >
-              {{ comp.filePath }}{{ comp.line ? `:${comp.line}` : "" }}
+              {{ toRelativePath(comp.filePath) }}{{ comp.line ? `:${comp.line}` : "" }}
             </button>
           </li>
         </ul>
