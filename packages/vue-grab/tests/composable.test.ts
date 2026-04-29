@@ -1,10 +1,11 @@
 import { describe, it, expect, afterEach } from "vitest";
-import { defineComponent } from "vue";
+import { defineComponent, h } from "vue";
 import { mount, type VueWrapper } from "@vue/test-utils";
 import { DEFAULT_HIGHLIGHT_COLOR } from "@sakana-y/vue-grab-shared";
 import { createVueGrab } from "../src";
 import { useGrab, type UseGrabReturn } from "../src/composables";
 import { OVERLAY_HOST_ID } from "../src/overlay";
+import { FAB_HOST_ID } from "../src/floating-button";
 import { cleanupDOM } from "./helpers/setup";
 
 function mountWithGrab(pluginOptions = {}) {
@@ -22,6 +23,30 @@ function mountWithGrab(pluginOptions = {}) {
   });
 
   return { wrapper, grab };
+}
+
+function mountGrabPair(pluginOptions?: Parameters<typeof createVueGrab>[0]) {
+  const grabs: UseGrabReturn[] = [];
+
+  const Child = defineComponent({
+    setup() {
+      grabs.push(useGrab());
+      return () => null;
+    },
+  });
+
+  const Parent = defineComponent({
+    setup() {
+      return () => h("div", [h(Child), h(Child)]);
+    },
+  });
+
+  const wrapper = mount(
+    Parent,
+    pluginOptions ? { global: { plugins: [createVueGrab(pluginOptions)] } } : {},
+  );
+
+  return { wrapper, grabs };
 }
 
 describe("useGrab", () => {
@@ -99,6 +124,40 @@ describe("useGrab", () => {
     // Mount WITHOUT the plugin
     wrapper = mount(Comp);
     expect(grab.config.highlightColor).toBe(DEFAULT_HIGHLIGHT_COLOR);
+  });
+
+  it("shares plugin state across multiple useGrab calls", () => {
+    const result = mountGrabPair({
+      floatingButton: { enabled: true },
+      consoleCapture: { enabled: false },
+      networkCapture: { enabled: false },
+      magnifier: { enabled: false },
+      measurer: { enabled: false },
+    });
+    wrapper = result.wrapper;
+
+    expect(result.grabs).toHaveLength(2);
+    expect(document.querySelectorAll(`#${FAB_HOST_ID}`)).toHaveLength(1);
+
+    result.grabs[0].activate();
+    expect(result.grabs[0].isActive.value).toBe(true);
+    expect(result.grabs[1].isActive.value).toBe(true);
+
+    result.grabs[1].deactivate();
+    expect(result.grabs[0].isActive.value).toBe(false);
+    expect(result.grabs[1].isActive.value).toBe(false);
+  });
+
+  it("shares the fallback context when no plugin is installed", () => {
+    const result = mountGrabPair();
+    wrapper = result.wrapper;
+
+    result.grabs[0].activate();
+    expect(result.grabs[1].isActive.value).toBe(true);
+
+    wrapper.unmount();
+    expect(document.getElementById(OVERLAY_HOST_ID)).toBeNull();
+    wrapper = undefined;
   });
 
   it("cleans up on unmount", () => {

@@ -1104,7 +1104,6 @@ export class FloatingButton {
   // Callbacks
   private toggleCb: (() => void) | null = null;
   private hotkeyChangeCb: ((combo: string) => void) | null = null;
-  private configChangeCb: ((changes: Record<string, unknown>) => void) | null = null;
   private logsClearCb: (() => void) | null = null;
   private networkClearCb: (() => void) | null = null;
   private magnifierToggleCb: (() => void) | null = null;
@@ -1453,10 +1452,6 @@ export class FloatingButton {
 
   onHotkeyChange(cb: (combo: string) => void): void {
     this.hotkeyChangeCb = cb;
-  }
-
-  onConfigChange(cb: (changes: Record<string, unknown>) => void): void {
-    this.configChangeCb = cb;
   }
 
   onLogsClear(cb: () => void): void {

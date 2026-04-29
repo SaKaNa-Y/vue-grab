@@ -7,11 +7,12 @@ export async function openInEditor(
   line?: number,
   editor?: string,
 ): Promise<void> {
-  const file = line ? `${filePath}:${line}` : filePath;
-  const params = new URLSearchParams({ file });
-  if (editor) params.set("editor", editor);
   try {
-    const res = await fetch(`/__open-in-editor?${params}`);
+    const res = await fetch("/__open-in-editor", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ file: filePath, line, editor }),
+    });
     if (!res.ok) {
       const body = await res.text().catch(() => "");
       console.warn(`[vue-grab] Open in Editor failed (${res.status}): ${body}`);

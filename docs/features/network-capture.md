@@ -4,12 +4,12 @@ Vue Grab captures `fetch` and `XMLHttpRequest` traffic into a ring buffer so you
 
 ## What gets captured
 
-| Source           | How it's captured                                                            | Emitted as                                  |
-| ---------------- | ---------------------------------------------------------------------------- | ------------------------------------------- |
-| `window.fetch`   | Wrapping `fetch` — original is always invoked; response cloned to read body  | `initiator: "fetch"`, full request/response |
-| `XMLHttpRequest` | Patching `open` / `setRequestHeader` / `send` + listening on `loadend` group | `initiator: "xhr"`, same schema             |
+| Source           | How it's captured                                                                            | Emitted as                                      |
+| ---------------- | -------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| `window.fetch`   | Wrapping `fetch`; original is always invoked and textual bodies are cloned only when enabled | `initiator: "fetch"`, request/response metadata |
+| `XMLHttpRequest` | Patching `open` / `setRequestHeader` / `send` + listening on `loadend`                       | `initiator: "xhr"`, same schema                 |
 
-Each entry carries: `method`, `url`, `status` (+ `statusClass`: `2xx`/`3xx`/`4xx`/`5xx`/`failed`), `duration`, redacted headers, truncated bodies, and the source file/line of the initiator when extractable from the call stack.
+Each entry carries: `method`, `url`, `status` (+ `statusClass`: `2xx`/`3xx`/`4xx`/`5xx`/`failed`), `duration`, redacted headers, and the source file/line of the initiator when extractable from the call stack. Request and response bodies are included only when `captureBodies` is enabled.
 
 Aborted requests, network errors, and CORS failures all land as `statusClass: "failed"` with an `error` string.
 
@@ -47,7 +47,7 @@ Consecutive entries with the same fingerprint — `${method}::${url}::${statusCl
 
 ## Body capture + redaction
 
-Bodies are captured by default, truncated to **2048 bytes** per body. Only textual content types (`text/*`, `*/json`, `application/x-www-form-urlencoded`, `application/xml`, `application/javascript`) are read; binary responses skip the body entirely.
+Bodies are not captured by default. If you enable `captureBodies`, request and textual response bodies are truncated to **2048 bytes** per body. Only textual content types (`text/*`, `*/json`, `application/x-www-form-urlencoded`, `application/xml`, `application/javascript`) are read; binary responses skip the body entirely.
 
 Sensitive headers are redacted by default: `Authorization`, `Cookie`, `Set-Cookie`, `X-API-Key` (case-insensitive). The original values never enter the buffer.
 

@@ -6,6 +6,7 @@ describe("constants", () => {
     expect(DEFAULT_CONFIG.highlightColor).toBe(DEFAULT_HIGHLIGHT_COLOR);
     expect(DEFAULT_CONFIG.showTagHint).toBe(true);
     expect(DEFAULT_CONFIG.filter.ignoreSelectors).toEqual([]);
+    expect(DEFAULT_CONFIG.networkCapture.captureBodies).toBe(false);
   });
 });
 

@@ -1,8 +1,8 @@
 import type {
   CapturedLog,
   CapturedRequest,
-  GrabConfig,
   GrabResult,
+  GrabUserConfig,
 } from "@sakana-y/vue-grab-shared";
 import { DEFAULT_CONFIG, mergeConfig } from "@sakana-y/vue-grab-shared";
 import { createGrabSession } from "./session";
@@ -10,7 +10,7 @@ import { createGrabSession } from "./session";
 /**
  * Standalone initialization for non-Vue contexts (e.g., script tag usage).
  */
-export function init(options: Partial<GrabConfig> = {}) {
+export function init(options: GrabUserConfig = {}) {
   const config = mergeConfig(DEFAULT_CONFIG, options);
   const session = createGrabSession(config);
 

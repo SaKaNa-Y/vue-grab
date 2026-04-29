@@ -11,8 +11,8 @@ Point at any element, click, and get its HTML, CSS selector, and Vue component h
 ## Features
 
 - **Interactive element selection** — hover to highlight, click to capture
-- **Vue component stack** — extracts component names, file paths, and line numbers
-- **CSS selector generation** — unique selector for the selected element
+- **Vue component stack** — extracts component names and file paths when Vue exposes them
+- **CSS selector generation** — useful selector for the selected element
 - **HTML capture** — outerHTML with configurable max length
 - **Floating action button** — optional draggable FAB with hotkey settings panel
 - **Hotkey support** — default `Alt+Shift+G`, fully customizable and persistable
@@ -80,42 +80,42 @@ All options are optional. Pass them to `createVueGrab()` or `init()`:
 
 ```ts
 createVueGrab({
-  highlightColor: "#4f46e5",   // highlight border/background color
-  labelTextColor: "#ffffff",   // tag label text color
-  showTagHint: true,           // show component tag on hover
-  maxHtmlLength: 10000,        // 0 = unlimited
+  highlightColor: "#4f46e5", // highlight border/background color
+  labelTextColor: "#ffffff", // tag label text color
+  showTagHint: true, // show component tag on hover
+  maxHtmlLength: 10000, // 0 = unlimited
   filter: {
-    ignoreSelectors: [],       // CSS selectors to skip
-    ignoreTags: [],            // HTML tags to skip
-    skipCommonComponents: false // skip header, nav, footer, sidebar, etc.
+    ignoreSelectors: [], // CSS selectors to skip
+    ignoreTags: [], // HTML tags to skip
+    skipCommonComponents: false, // skip header, nav, footer, sidebar, etc.
   },
   floatingButton: {
-    enabled: false,            // show draggable FAB
+    enabled: false, // show draggable FAB
     initialPosition: "top-center",
     storageKey: "vue-grab-fab-pos",
     hotkeyStorageKey: "vue-grab-hotkey",
     editorStorageKey: "vue-grab-editor",
   },
   consoleCapture: {
-    enabled: true,                                      // capture console output
-    maxEntries: 200,                                    // ring buffer size
+    enabled: true, // capture console output
+    maxEntries: 200, // ring buffer size
     levels: ["log", "info", "warn", "error", "debug"], // which console.* methods to intercept
-    captureUnhandled: true,                             // window error + unhandledrejection
-    captureVueErrors: true,                             // app.config.errorHandler
+    captureUnhandled: true, // window error + unhandledrejection
+    captureVueErrors: true, // app.config.errorHandler
   },
 });
 ```
 
 ## `useGrab()` API
 
-| Property | Type | Description |
-|---|---|---|
-| `config` | `GrabConfig` | Resolved configuration |
-| `isActive` | `Readonly<Ref<boolean>>` | Whether grab mode is active |
-| `lastResult` | `DeepReadonly<Ref<GrabResult \| null>>` | Last captured result |
-| `activate()` | `() => void` | Enter grab mode |
-| `deactivate()` | `() => void` | Exit grab mode |
-| `toggle()` | `() => void` | Toggle grab mode |
+| Property       | Type                                    | Description                 |
+| -------------- | --------------------------------------- | --------------------------- |
+| `config`       | `GrabConfig`                            | Resolved configuration      |
+| `isActive`     | `Readonly<Ref<boolean>>`                | Whether grab mode is active |
+| `lastResult`   | `DeepReadonly<Ref<GrabResult \| null>>` | Last captured result        |
+| `activate()`   | `() => void`                            | Enter grab mode             |
+| `deactivate()` | `() => void`                            | Exit grab mode              |
+| `toggle()`     | `() => void`                            | Toggle grab mode            |
 
 ### `GrabResult`
 
@@ -143,11 +143,11 @@ interface A11yInfo {
 
 ## Packages
 
-| Package | Description |
-|---|---|
-| [`@sakana-y/vue-grab`](./packages/vue-grab) | Core library — plugin, composable, engine |
-| [`@sakana-y/vue-grab-shared`](./packages/shared) | Shared types and constants |
-| [`@sakana-y/vue-grab-cli`](./packages/cli) | CLI tool (`vue-grab init`) |
+| Package                                          | Description                               |
+| ------------------------------------------------ | ----------------------------------------- |
+| [`@sakana-y/vue-grab`](./packages/vue-grab)      | Core library — plugin, composable, engine |
+| [`@sakana-y/vue-grab-shared`](./packages/shared) | Shared types and constants                |
+| [`@sakana-y/vue-grab-cli`](./packages/cli)       | CLI tool (`vue-grab init`)                |
 
 ## Development
 
@@ -248,28 +248,28 @@ grabber.destroy();
 
 ```ts
 createVueGrab({
-  highlightColor: "#4f46e5",   // 高亮边框/背景色
-  labelTextColor: "#ffffff",   // 标签文字颜色
-  showTagHint: true,           // 悬停时显示组件标签
-  maxHtmlLength: 10000,        // 0 = 不限制
+  highlightColor: "#4f46e5", // 高亮边框/背景色
+  labelTextColor: "#ffffff", // 标签文字颜色
+  showTagHint: true, // 悬停时显示组件标签
+  maxHtmlLength: 10000, // 0 = 不限制
   filter: {
-    ignoreSelectors: [],       // 需跳过的 CSS 选择器
-    ignoreTags: [],            // 需跳过的 HTML 标签
-    skipCommonComponents: false // 跳过 header、nav、footer、sidebar 等
+    ignoreSelectors: [], // 需跳过的 CSS 选择器
+    ignoreTags: [], // 需跳过的 HTML 标签
+    skipCommonComponents: false, // 跳过 header、nav、footer、sidebar 等
   },
   floatingButton: {
-    enabled: false,            // 显示可拖拽悬浮按钮
+    enabled: false, // 显示可拖拽悬浮按钮
     initialPosition: "top-center",
     storageKey: "vue-grab-fab-pos",
     hotkeyStorageKey: "vue-grab-hotkey",
     editorStorageKey: "vue-grab-editor",
   },
   consoleCapture: {
-    enabled: true,                                      // 启用控制台捕获
-    maxEntries: 200,                                    // 环形缓冲区大小
+    enabled: true, // 启用控制台捕获
+    maxEntries: 200, // 环形缓冲区大小
     levels: ["log", "info", "warn", "error", "debug"], // 要拦截的 console.* 方法
-    captureUnhandled: true,                             // window error + unhandledrejection
-    captureVueErrors: true,                             // app.config.errorHandler
+    captureUnhandled: true, // window error + unhandledrejection
+    captureVueErrors: true, // app.config.errorHandler
   },
 });
 ```

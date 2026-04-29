@@ -1,6 +1,6 @@
 # Configuration
 
-All configuration is optional. Pass a partial `GrabConfig` to `createVueGrab()` or `init()` — it is deep-merged with `DEFAULT_CONFIG` via `mergeConfig()` from `@sakana-y/vue-grab-shared`.
+All configuration is optional. Pass a nested partial `GrabConfig` to `createVueGrab()` or `init()` - it is deep-merged with `DEFAULT_CONFIG` via `mergeConfig()` from `@sakana-y/vue-grab-shared`.
 
 ```ts
 import { createVueGrab } from "@sakana-y/vue-grab";
@@ -25,6 +25,7 @@ createVueGrab({
 | `filter`         | `GrabFilterConfig`     | see below   | What the engine skips when hovering.           |
 | `floatingButton` | `FloatingButtonConfig` | disabled    | Optional FAB with settings/logs/a11y panels.   |
 | `consoleCapture` | `ConsoleCaptureConfig` | enabled     | Ring-buffered console + runtime error capture. |
+| `networkCapture` | `NetworkCaptureConfig` | enabled     | Ring-buffered fetch/XHR metadata capture.      |
 | `magnifier`      | `MagnifierConfig`      | enabled     | Loupe overlay that appears while grabbing.     |
 | `measurer`       | `MeasurerConfig`       | enabled     | Element-to-element spacing inspector.          |
 
@@ -58,6 +59,21 @@ See [Console Capture →](../features/console-capture) for the full behavior. De
   levels: ["log", "info", "warn", "error", "debug"],
   captureUnhandled: true,
   captureVueErrors: true,
+}
+```
+
+## `networkCapture`
+
+See [Network Capture](../features/network-capture) for the full behavior. Defaults:
+
+```ts
+{
+  enabled: true,
+  maxEntries: 100,
+  captureFetch: true,
+  captureXhr: true,
+  captureBodies: false,
+  bodyMaxBytes: 2048,
 }
 ```
 

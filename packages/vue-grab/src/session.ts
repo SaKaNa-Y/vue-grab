@@ -64,13 +64,6 @@ export function createGrabSession(config: GrabConfig): GrabSession {
       if (mhk && measurer) hotkeys.register(mhk, () => measurer!.toggle());
       localFab.setCurrentHotkey(combo);
     });
-    localFab.onConfigChange((changes) => {
-      const partial = changes as Partial<GrabConfig>;
-      engine.updateConfig(partial);
-      if (partial.highlightColor) {
-        localFab.setHighlightColor(partial.highlightColor);
-      }
-    });
     engine.onStateChange((active) => {
       localFab.setActive(active);
       // Mutual exclusion: deactivate magnifier and measurer when grab activates

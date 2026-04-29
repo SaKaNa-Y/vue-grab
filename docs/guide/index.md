@@ -10,10 +10,10 @@ When you're iterating on UI with an AI agent, the agent needs context that usual
 
 ## What you get on every grab
 
-- **CSS selector** — unique, stable for the element
+- **CSS selector** — useful locator for the element
 - **outerHTML** — truncated at `maxHtmlLength` (default 10,000 chars)
-- **Component stack** — walked via `__vueParentComponent`, with file paths and line numbers when available
-- **Accessibility info** — ARIA attributes, role, accessible name/description, computed label
+- **Component stack** — walked via `__vueParentComponent`, with file paths when Vue exposes them
+- **Accessibility info** — ARIA attributes and audit findings
 
 ## How activation works
 

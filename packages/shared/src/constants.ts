@@ -2,6 +2,7 @@ import type {
   ConsoleCaptureConfig,
   FloatingButtonConfig,
   GrabConfig,
+  GrabUserConfig,
   LogLevel,
   MagnifierConfig,
   MeasurerConfig,
@@ -59,7 +60,7 @@ export const DEFAULT_NETWORK_CAPTURE: NetworkCaptureConfig = {
   maxEntries: 100,
   captureFetch: true,
   captureXhr: true,
-  captureBodies: true,
+  captureBodies: false,
   bodyMaxBytes: 2048,
   redactHeaders: [...DEFAULT_REDACT_HEADERS],
   urlDenyList: [...DEFAULT_URL_DENY_LIST],
@@ -107,7 +108,7 @@ export const DEFAULT_CONFIG: GrabConfig = {
 /**
  * Deep-merge user config with defaults, properly handling nested objects.
  */
-export function mergeConfig(defaults: GrabConfig, options: Partial<GrabConfig>): GrabConfig {
+export function mergeConfig(defaults: GrabConfig, options: GrabUserConfig): GrabConfig {
   const { filter, floatingButton, consoleCapture, networkCapture, magnifier, measurer, ...rest } =
     options;
   return {

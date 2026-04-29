@@ -8,6 +8,7 @@ export { openInEditor } from "./editor";
 export { toRelativePath } from "./utils/path";
 export type {
   GrabConfig,
+  GrabUserConfig,
   GrabResult,
   ComponentInfo,
   GrabFilterConfig,
