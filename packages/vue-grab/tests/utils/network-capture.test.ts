@@ -47,7 +47,7 @@ describe("NetworkCapture", () => {
             headers: { "content-type": "application/json" },
           }),
       );
-      capture = new NetworkCapture(makeConfig());
+      capture = new NetworkCapture(makeConfig({ captureBodies: true }));
       capture.start();
 
       await fetch("/api/ok");
@@ -116,7 +116,7 @@ describe("NetworkCapture", () => {
             headers: { "content-type": "text/plain" },
           }),
       );
-      capture = new NetworkCapture(makeConfig({ bodyMaxBytes: 100 }));
+      capture = new NetworkCapture(makeConfig({ captureBodies: true, bodyMaxBytes: 100 }));
       capture.start();
 
       await fetch("/api/big");
@@ -142,7 +142,7 @@ describe("NetworkCapture", () => {
 
     it("captures request body when captureBodies is true", async () => {
       mockFetch(() => new Response("ok", { status: 200 }));
-      capture = new NetworkCapture(makeConfig());
+      capture = new NetworkCapture(makeConfig({ captureBodies: true }));
       capture.start();
 
       await fetch("/api/post", { method: "POST", body: JSON.stringify({ a: 1 }) });

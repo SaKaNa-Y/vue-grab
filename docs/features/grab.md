@@ -4,11 +4,11 @@ The core feature: point at an element, click, and get its context.
 
 ## Activation
 
-Three ways to enter grab mode — pick whichever fits your app:
+Three ways to enter grab mode:
 
-- **Hotkey** — default `Alt+Shift+G`, toggles on/off. Registered at the **capture phase** so it wins against app-level handlers.
-- **Floating button** — click the "Grab" button in the FAB (opt in with `floatingButton.enabled`).
-- **Programmatic** — `useGrab().toggle()` inside a component, or `init().activate()` outside Vue.
+- **Hotkey** - default `Alt+Shift+G`, toggles on/off. Registered at the capture phase so it wins against app-level handlers.
+- **Floating button** - click the "Grab" button in the FAB (opt in with `floatingButton.enabled`).
+- **Programmatic** - `useGrab().toggle()` inside a component, or `init().activate()` outside Vue.
 
 ```ts
 import { useGrab } from "@sakana-y/vue-grab";
@@ -18,30 +18,32 @@ const { isActive, toggle, activate, deactivate, lastResult } = useGrab();
 
 ## What a grab captures
 
-A `GrabResult` carries everything needed to describe the element to an agent:
+A `GrabResult` carries the element context used by the FAB and agent prompts:
 
 ```ts
 interface GrabResult {
-  selector: string; // unique CSS selector
-  html: string; // outerHTML, truncated to maxHtmlLength
-  element: HTMLElement; // the raw DOM reference
-  componentStack: ComponentInfo[]; // walked via __vueParentComponent
-  a11y?: A11yInfo; // ARIA + computed label
-  timestamp: number;
+  selector: string;
+  html: string;
+  element: Element;
+  componentStack: ComponentInfo[];
+  a11y: A11yInfo;
+  network?: CapturedRequest[];
 }
 ```
 
 ### Component stack
 
-The engine walks `__vueParentComponent` from the target element up to the root, producing a `ComponentInfo[]` with each entry's `name`, `filePath`, and `line`. If you pair it with `@sakana-y/vue-grab/vite`, the file paths are absolute and clickable — see [Vite Integration](./vite-integration).
+The engine walks `__vueParentComponent` from the target element up to the root, producing a `ComponentInfo[]` with each entry's `name` and `filePath` when Vue exposes it. Source line numbers are optional and are currently populated by capture utilities when they can extract one from a stack trace.
+
+If you pair Vue Grab with `@sakana-y/vue-grab/vite`, available file paths become clickable - see [Vite Integration](./vite-integration).
 
 ### CSS selector
 
-Selectors are built to be unique within the current document, favoring `id` and stable class names over positional `:nth-child()` when possible.
+Selectors favor `id` and stable class names over positional selectors. They are intended as a useful locator for the current document, not a permanent test selector contract.
 
 ### HTML
 
-`outerHTML` truncated at `maxHtmlLength` (default `10_000`). Truncated results end with `<!-- truncated -->`.
+`outerHTML` is truncated at `maxHtmlLength` (default `10_000`). Truncated results end with `<!-- truncated -->`.
 
 ## Filtering what can be grabbed
 
@@ -50,14 +52,14 @@ createVueGrab({
   filter: {
     ignoreSelectors: [".tooltip", "[data-internal]"],
     ignoreTags: ["script", "style"],
-    skipCommonComponents: true, // skip Fragment, Transition, etc.
+    skipCommonComponents: true,
   },
 });
 ```
 
 ## Overlay isolation
 
-The highlight/label and magnifier render inside a **Shadow DOM** host — your app's styles cannot bleed in, and Vue Grab's styles cannot bleed out. See `GrabOverlay` in the source if you want to know how the host is created.
+The highlight/label and magnifier render inside Shadow DOM hosts. Your app's styles cannot bleed in, and Vue Grab's styles cannot bleed out.
 
 ## Opening the matched file
 

@@ -36,6 +36,18 @@ export interface GrabConfig {
   measurer: MeasurerConfig;
 }
 
+export type DeepPartial<T> = {
+  [K in keyof T]?: T[K] extends (infer U)[]
+    ? U[]
+    : T[K] extends readonly (infer U)[]
+      ? readonly U[]
+      : T[K] extends object
+        ? DeepPartial<T[K]>
+        : T[K];
+};
+
+export type GrabUserConfig = DeepPartial<GrabConfig>;
+
 export interface GrabFilterConfig {
   /** CSS selectors to ignore */
   ignoreSelectors: string[];
@@ -217,7 +229,7 @@ export interface NetworkCaptureConfig {
   captureFetch: boolean;
   /** Intercept XMLHttpRequest. Default: true */
   captureXhr: boolean;
-  /** Capture request + response bodies (subject to size + content-type). Default: true */
+  /** Capture request + response bodies (subject to size + content-type). Default: false */
   captureBodies: boolean;
   /** Max bytes retained per body. Default: 2048 */
   bodyMaxBytes: number;

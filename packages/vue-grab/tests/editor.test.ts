@@ -6,34 +6,36 @@ describe("openInEditor", () => {
     vi.restoreAllMocks();
   });
 
-  it("calls fetch with /__open-in-editor and file parameter", async () => {
+  it("POSTs JSON to /__open-in-editor with the file path", async () => {
     const fetchSpy = vi
       .spyOn(globalThis, "fetch")
       .mockResolvedValue(new Response("", { status: 200 }));
     await openInEditor("App.vue");
     expect(fetchSpy).toHaveBeenCalledOnce();
     const url = fetchSpy.mock.calls[0][0] as string;
-    expect(url).toContain("/__open-in-editor");
-    expect(url).toContain("file=App.vue");
+    const init = fetchSpy.mock.calls[0][1] as RequestInit;
+    expect(url).toBe("/__open-in-editor");
+    expect(init.method).toBe("POST");
+    expect(init.headers).toEqual({ "content-type": "application/json" });
+    expect(JSON.parse(init.body as string)).toEqual({ file: "App.vue" });
   });
 
-  it("includes line number in file param when provided", async () => {
+  it("includes line number in JSON body when provided", async () => {
     const fetchSpy = vi
       .spyOn(globalThis, "fetch")
       .mockResolvedValue(new Response("", { status: 200 }));
     await openInEditor("App.vue", 10);
-    const url = fetchSpy.mock.calls[0][0] as string;
-    expect(url).toContain("file=App.vue");
-    expect(url).toContain("10");
+    const init = fetchSpy.mock.calls[0][1] as RequestInit;
+    expect(JSON.parse(init.body as string)).toEqual({ file: "App.vue", line: 10 });
   });
 
-  it("includes editor parameter when provided", async () => {
+  it("includes editor in JSON body when provided", async () => {
     const fetchSpy = vi
       .spyOn(globalThis, "fetch")
       .mockResolvedValue(new Response("", { status: 200 }));
     await openInEditor("App.vue", undefined, "code");
-    const url = fetchSpy.mock.calls[0][0] as string;
-    expect(url).toContain("editor=code");
+    const init = fetchSpy.mock.calls[0][1] as RequestInit;
+    expect(JSON.parse(init.body as string)).toEqual({ file: "App.vue", editor: "code" });
   });
 
   it("warns when the server responds with an error status", async () => {

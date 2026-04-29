@@ -1,4 +1,9 @@
-import type { GrabConfig, GrabResult, ComponentInfo } from "@sakana-y/vue-grab-shared";
+import type {
+  GrabConfig,
+  GrabResult,
+  ComponentInfo,
+  GrabUserConfig,
+} from "@sakana-y/vue-grab-shared";
 import { mergeConfig } from "@sakana-y/vue-grab-shared";
 import { GrabOverlay, OVERLAY_HOST_ID } from "../overlay";
 import { FAB_HOST_ID } from "../floating-button";
@@ -156,7 +161,7 @@ export class GrabEngine {
     this.stateListeners.clear();
   }
 
-  updateConfig(config: Partial<GrabConfig>): void {
+  updateConfig(config: GrabUserConfig): void {
     this.config = mergeConfig(this.config, config);
   }
 

@@ -18,7 +18,7 @@ hero:
 features:
   - icon: 🎯
     title: Interactive Grab
-    details: Hover to highlight, click to capture. Extracts CSS selector, outerHTML (truncatable), and the full Vue component stack with file paths and line numbers.
+    details: Hover to highlight, click to capture. Extracts CSS selector, outerHTML (truncatable), and the Vue component stack with file paths when Vue exposes them.
     link: /features/grab
     linkText: Learn more
   - icon: 📏
@@ -43,7 +43,7 @@ features:
     linkText: Learn more
   - icon: ⚡
     title: Vite Integration
-    details: Companion Vite plugin exposes /__open-in-editor so clicking a file path in a grab result opens your editor at the exact line.
+    details: Companion Vite plugin exposes /__open-in-editor so clicking a file path in a grab result opens your editor.
     link: /features/vite-integration
     linkText: Learn more
 ---

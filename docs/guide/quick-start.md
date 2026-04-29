@@ -68,7 +68,7 @@ const { isActive, lastResult, toggle } = useGrab();
 
 ## 5. Feed it to your agent
 
-The `lastResult` object is JSON-serializable. Pipe it into a chat prompt, a clipboard copy, or a file — whatever your agent accepts.
+`lastResult` includes the raw DOM element, so pass a serializable subset such as `selector`, `html`, `componentStack`, `a11y`, and `network` into a chat prompt, clipboard copy, or file.
 
 ---
 

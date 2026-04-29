@@ -2,11 +2,6 @@
   "name": "vue-grab-monorepo",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@10.24.0",
-  "engines": {
-    "node": ">=22.0.0",
-    "pnpm": ">=10.0.0"
-  },
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
@@ -16,16 +11,11 @@
     "typecheck": "turbo run typecheck",
     "lint": "oxlint --vue-plugin --vitest-plugin packages/ playground/ docs/",
     "lint:fix": "oxlint --fix --vue-plugin --vitest-plugin packages/ playground/ docs/",
-    "format": "oxfmt --write packages/ playground/ docs/",
-    "format:check": "oxfmt --check packages/ playground/ docs/",
+    "format": "oxfmt --write packages/ playground/ docs/ \"!**/dist/**\" \"!docs/.vitepress/dist/**\" \"!docs/.vitepress/cache/**\" \"!docs/.vitepress/.temp/**\"",
+    "format:check": "oxfmt --check packages/ playground/ docs/ \"!**/dist/**\" \"!docs/.vitepress/dist/**\" \"!docs/.vitepress/cache/**\" \"!docs/.vitepress/.temp/**\"",
     "release": "changeset publish",
     "version-packages": "dotenv -e .env -- changeset version",
     "version-packages:ci": "changeset version && pnpm format"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild"
-    ]
   },
   "devDependencies": {
     "@changesets/changelog-github": "^0.5.1",
@@ -35,5 +25,15 @@
     "oxlint": "^1.58.0",
     "turbo": "^2.8.0",
     "typescript": "~5.9.3"
+  },
+  "engines": {
+    "node": ">=22.0.0",
+    "pnpm": ">=10.0.0"
+  },
+  "packageManager": "pnpm@10.24.0",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
   }
 }

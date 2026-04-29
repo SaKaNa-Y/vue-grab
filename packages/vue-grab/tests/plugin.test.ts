@@ -1,9 +1,11 @@
-import { describe, it, expect, afterEach } from "vitest";
-import { defineComponent, inject } from "vue";
+import { describe, it, expect, afterEach, vi } from "vitest";
+import { defineComponent, inject, onUnmounted } from "vue";
 import { mount } from "@vue/test-utils";
 import { DEFAULT_CONFIG, DEFAULT_HIGHLIGHT_COLOR } from "@sakana-y/vue-grab-shared";
 import { createVueGrab, VUE_GRAB_CONFIG_KEY } from "../src";
 import type { GrabConfig } from "@sakana-y/vue-grab-shared";
+import { FAB_HOST_ID } from "../src/floating-button";
+import { ConsoleCapture } from "../src/utils";
 import { cleanupDOM } from "./helpers/setup";
 
 function mountAndInject(pluginOptions = {}): GrabConfig | undefined {
@@ -16,15 +18,17 @@ function mountAndInject(pluginOptions = {}): GrabConfig | undefined {
     },
   });
 
-  mount(Comp, {
+  const wrapper = mount(Comp, {
     global: { plugins: [createVueGrab(pluginOptions)] },
   });
+  wrapper.unmount();
 
   return injected;
 }
 
 describe("createVueGrab", () => {
   afterEach(() => {
+    vi.restoreAllMocks();
     cleanupDOM();
   });
 
@@ -57,5 +61,69 @@ describe("createVueGrab", () => {
   it("uses DEFAULT_CONFIG when no options provided", () => {
     const injected = mountAndInject();
     expect(injected).toEqual(DEFAULT_CONFIG);
+  });
+
+  it("captures console output during component mount lifecycle", () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const Comp = defineComponent({
+      setup() {
+        console.warn("mount warning");
+        return () => null;
+      },
+    });
+
+    const wrapper = mount(Comp, {
+      global: {
+        plugins: [
+          createVueGrab({
+            floatingButton: { enabled: true },
+            networkCapture: { enabled: false },
+            magnifier: { enabled: false },
+            measurer: { enabled: false },
+          }),
+        ],
+      },
+    });
+
+    const badge = document
+      .getElementById(FAB_HOST_ID)
+      ?.shadowRoot?.querySelector<HTMLElement>(".logs-badge");
+    expect(badge?.textContent).toBe("1");
+    wrapper.unmount();
+  });
+
+  it("captures Vue errors during component unmount lifecycle", () => {
+    const captureVueError = vi.spyOn(ConsoleCapture.prototype, "captureVueError");
+
+    const Comp = defineComponent({
+      setup() {
+        onUnmounted(() => {
+          throw new Error("unmount boom");
+        });
+        return () => null;
+      },
+    });
+
+    const wrapper = mount(Comp, {
+      global: {
+        plugins: [
+          createVueGrab({
+            consoleCapture: { levels: [] },
+            networkCapture: { enabled: false },
+            magnifier: { enabled: false },
+            measurer: { enabled: false },
+          }),
+        ],
+      },
+    });
+
+    wrapper.unmount();
+
+    expect(captureVueError).toHaveBeenCalledWith(
+      expect.objectContaining({ message: "unmount boom" }),
+      expect.any(String),
+      undefined,
+    );
   });
 });

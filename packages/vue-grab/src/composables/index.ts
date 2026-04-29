@@ -1,8 +1,7 @@
-import { inject, ref, onUnmounted, readonly, type DeepReadonly, type Ref } from "vue";
+import { getCurrentInstance, inject, onUnmounted, type DeepReadonly, type Ref } from "vue";
 import type { GrabConfig, GrabResult } from "@sakana-y/vue-grab-shared";
-import { DEFAULT_CONFIG } from "@sakana-y/vue-grab-shared";
-import { createGrabSession } from "../session";
-import { VUE_GRAB_CONFIG_KEY } from "../plugin";
+import { DEFAULT_CONFIG, mergeConfig } from "@sakana-y/vue-grab-shared";
+import { createVueGrabContext, VUE_GRAB_CONTEXT_KEY, type VueGrabContext } from "../plugin";
 
 export interface UseGrabReturn {
   config: GrabConfig;
@@ -15,46 +14,40 @@ export interface UseGrabReturn {
   toggleMeasurer: () => void;
 }
 
+let fallbackContext: VueGrabContext | null = null;
+let fallbackUsers = 0;
+
+// Keeps useGrab() usable without app.use(createVueGrab()) and ref-counts teardown after unmount.
+function getFallbackContext(): VueGrabContext {
+  fallbackContext ??= createVueGrabContext(mergeConfig(DEFAULT_CONFIG, {}));
+  return fallbackContext;
+}
+
 export function useGrab(): UseGrabReturn {
-  const config = inject(VUE_GRAB_CONFIG_KEY, { ...DEFAULT_CONFIG });
+  const instance = getCurrentInstance();
+  const provided = instance ? inject(VUE_GRAB_CONTEXT_KEY, null) : null;
+  const context = provided ?? getFallbackContext();
 
-  const isActive = ref(false);
-  const lastResult = ref<GrabResult | null>(null);
-  const isMeasurerActive = ref(false);
-
-  const session = createGrabSession(config);
-  const { engine } = session;
-
-  const unsubGrab = engine.onGrab((result) => {
-    lastResult.value = result;
-  });
-
-  const unsubState = engine.onStateChange((active) => {
-    isActive.value = active;
-  });
-
-  let unsubMeasurer: (() => void) | undefined;
-  if (session.measurer) {
-    unsubMeasurer = session.measurer.onStateChange((active) => {
-      isMeasurerActive.value = active;
+  if (!provided && instance) {
+    fallbackUsers += 1;
+    onUnmounted(() => {
+      fallbackUsers -= 1;
+      if (fallbackUsers <= 0) {
+        context.destroy();
+        fallbackContext = null;
+        fallbackUsers = 0;
+      }
     });
   }
 
-  onUnmounted(() => {
-    unsubGrab();
-    unsubState();
-    unsubMeasurer?.();
-    session.destroy();
-  });
-
   return {
-    config,
-    isActive: readonly(isActive),
-    lastResult: readonly(lastResult),
-    isMeasurerActive: readonly(isMeasurerActive),
-    activate: () => engine.activate(),
-    deactivate: () => engine.deactivate(),
-    toggle: () => engine.toggle(),
-    toggleMeasurer: () => session.measurer?.toggle(),
+    config: context.config,
+    isActive: context.isActive,
+    lastResult: context.lastResult,
+    isMeasurerActive: context.isMeasurerActive,
+    activate: context.activate,
+    deactivate: context.deactivate,
+    toggle: context.toggle,
+    toggleMeasurer: context.toggleMeasurer,
   };
 }
