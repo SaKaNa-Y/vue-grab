@@ -4,6 +4,14 @@ The shortest path from a clean Vite + Vue project to a working Vue Grab setup.
 
 ## 1. Install
 
+For a Vite + Vue app, you can let the CLI apply the setup:
+
+```bash
+npx @sakana-y/vue-grab-cli init
+```
+
+Or install and wire it manually:
+
 ```bash
 pnpm add -D @sakana-y/vue-grab
 ```
