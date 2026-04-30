@@ -19,8 +19,10 @@ app.mount("#app");
 
 ## CLI
 
-The CLI is available for project scaffolding experiments, but the manual setup above is the recommended path for now.
+For Vite + Vue projects, the CLI can install Vue Grab and wire the runtime plugin plus the Vite editor companion. The generated runtime setup is development-only and enables the floating button by default.
 
 ```bash
 npx @sakana-y/vue-grab-cli init
 ```
+
+Use `--dry-run` to preview the planned changes, or `--skip-install` if you want to install dependencies yourself.
