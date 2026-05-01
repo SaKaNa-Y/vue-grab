@@ -121,7 +121,10 @@ async function findAndReadFirst(
   cwd: string,
   candidates: readonly string[],
 ): Promise<FileHit | undefined> {
-  for (const candidate of candidates) {
+  async function readCandidate(index: number): Promise<FileHit | undefined> {
+    const candidate = candidates[index];
+    if (candidate === undefined) return undefined;
+
     try {
       const content = await readFile(path.join(cwd, candidate), "utf8");
       return { relativePath: candidate, content };
@@ -129,10 +132,12 @@ async function findAndReadFirst(
       if ((err as NodeJS.ErrnoException).code !== "ENOENT") {
         throw err;
       }
+
+      return readCandidate(index + 1);
     }
   }
 
-  return undefined;
+  return readCandidate(0);
 }
 
 function detectEol(source: string): "\r\n" | "\n" {

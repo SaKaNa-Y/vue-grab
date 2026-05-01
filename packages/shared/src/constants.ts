@@ -9,6 +9,7 @@ import type {
   NetworkCaptureConfig,
   NetworkStatusClass,
 } from "./types";
+import { OPEN_IN_EDITOR_ENDPOINT } from "./protocol";
 
 export const DEFAULT_HIGHLIGHT_COLOR = "#4f46e5";
 export const DEFAULT_LABEL_TEXT_COLOR = "#ffffff";
@@ -53,7 +54,7 @@ export const DEFAULT_REDACT_HEADERS: readonly string[] = [
   "x-api-key",
 ];
 
-export const DEFAULT_URL_DENY_LIST: readonly string[] = ["/__open-in-editor"];
+export const DEFAULT_URL_DENY_LIST: readonly string[] = [OPEN_IN_EDITOR_ENDPOINT];
 
 export const DEFAULT_NETWORK_CAPTURE: NetworkCaptureConfig = {
   enabled: true,

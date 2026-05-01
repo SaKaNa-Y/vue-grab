@@ -1,3 +1,6 @@
+import type { OpenInEditorRequest } from "@sakana-y/vue-grab-shared";
+import { OPEN_IN_EDITOR_CONTENT_TYPE, OPEN_IN_EDITOR_ENDPOINT } from "@sakana-y/vue-grab-shared";
+
 /**
  * Opens a file in the user's editor via the Vite dev server middleware.
  * Requires the `vueGrabPlugin()` Vite plugin to be configured.
@@ -7,11 +10,12 @@ export async function openInEditor(
   line?: number,
   editor?: string,
 ): Promise<void> {
+  const payload: OpenInEditorRequest = { file: filePath, line, editor };
   try {
-    const res = await fetch("/__open-in-editor", {
+    const res = await fetch(OPEN_IN_EDITOR_ENDPOINT, {
       method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ file: filePath, line, editor }),
+      headers: { "content-type": OPEN_IN_EDITOR_CONTENT_TYPE },
+      body: JSON.stringify(payload),
     });
     if (!res.ok) {
       const body = await res.text().catch(() => "");
