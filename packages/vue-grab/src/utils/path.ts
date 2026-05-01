@@ -1,8 +1,12 @@
+import { VUE_GRAB_ROOT_GLOBAL } from "@sakana-y/vue-grab-shared";
+
+// Vite define replaces bare identifiers, not dynamic globalThis property reads.
+// Keep this literal in sync with VUE_GRAB_ROOT_GLOBAL.
 declare const __VUE_GRAB_ROOT__: string | undefined;
 
 function readInjectedRoot(): string | undefined {
   // Runtime global takes precedence so tests can override without rebuilding.
-  const g = (globalThis as { __VUE_GRAB_ROOT__?: unknown }).__VUE_GRAB_ROOT__;
+  const g = (globalThis as Record<string, unknown>)[VUE_GRAB_ROOT_GLOBAL];
   if (typeof g === "string" && g.length > 0) return g;
   try {
     return typeof __VUE_GRAB_ROOT__ === "string" && __VUE_GRAB_ROOT__.length > 0

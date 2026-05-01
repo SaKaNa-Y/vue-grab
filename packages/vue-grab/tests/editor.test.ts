@@ -1,4 +1,5 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
+import { OPEN_IN_EDITOR_CONTENT_TYPE, OPEN_IN_EDITOR_ENDPOINT } from "@sakana-y/vue-grab-shared";
 import { openInEditor, openInClaudeCode } from "../src/editor";
 
 describe("openInEditor", () => {
@@ -14,9 +15,9 @@ describe("openInEditor", () => {
     expect(fetchSpy).toHaveBeenCalledOnce();
     const url = fetchSpy.mock.calls[0][0] as string;
     const init = fetchSpy.mock.calls[0][1] as RequestInit;
-    expect(url).toBe("/__open-in-editor");
+    expect(url).toBe(OPEN_IN_EDITOR_ENDPOINT);
     expect(init.method).toBe("POST");
-    expect(init.headers).toEqual({ "content-type": "application/json" });
+    expect(init.headers).toEqual({ "content-type": OPEN_IN_EDITOR_CONTENT_TYPE });
     expect(JSON.parse(init.body as string)).toEqual({ file: "App.vue" });
   });
 

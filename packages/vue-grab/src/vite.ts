@@ -1,25 +1,17 @@
 import type { Plugin } from "vite";
+import {
+  OPEN_IN_EDITOR_CONTENT_TYPE,
+  OPEN_IN_EDITOR_ENDPOINT,
+  OPEN_IN_EDITOR_REQUEST_MAX_BYTES,
+  VUE_GRAB_ROOT_GLOBAL,
+  isOpenInEditorAllowedEditor,
+} from "@sakana-y/vue-grab-shared";
 import { normalizeRoot } from "./utils/path";
 
 export interface VueGrabPluginOptions {
   /** Default editor command. e.g. "code", "cursor", "webstorm". Auto-detected if omitted. */
   editor?: string;
 }
-
-const REQUEST_MAX_BYTES = 8192;
-const ALLOWED_REQUEST_EDITORS = new Set([
-  "atom",
-  "code",
-  "cursor",
-  "emacs",
-  "idea",
-  "nvim",
-  "phpstorm",
-  "sublime",
-  "vim",
-  "visualstudio",
-  "webstorm",
-]);
 
 function readBody(req: any): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -37,7 +29,7 @@ function readBody(req: any): Promise<string> {
     req.on("data", (chunk: string) => {
       if (settled) return;
       body += chunk;
-      if (body.length > REQUEST_MAX_BYTES) {
+      if (body.length > OPEN_IN_EDITOR_REQUEST_MAX_BYTES) {
         fail(new Error("Request body too large"));
       }
     });
@@ -80,10 +72,14 @@ function normalizePositiveInteger(value: unknown): number | undefined {
 
 function normalizeEditor(value: unknown): string | undefined {
   if (value == null || value === "") return undefined;
-  if (typeof value !== "string" || !ALLOWED_REQUEST_EDITORS.has(value)) {
+  if (!isOpenInEditorAllowedEditor(value)) {
     throw new Error("Unsupported editor");
   }
   return value;
+}
+
+function isObjectPayload(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 export function vueGrabPlugin(options: VueGrabPluginOptions = {}): Plugin {
@@ -103,7 +99,7 @@ export function vueGrabPlugin(options: VueGrabPluginOptions = {}): Plugin {
       resolvedRoot = normalizeRoot(rawRoot);
       return {
         define: {
-          __VUE_GRAB_ROOT__: JSON.stringify(resolvedRoot),
+          [VUE_GRAB_ROOT_GLOBAL]: JSON.stringify(resolvedRoot),
         },
       };
     },
@@ -115,14 +111,14 @@ export function vueGrabPlugin(options: VueGrabPluginOptions = {}): Plugin {
           {
             tag: "script",
             attrs: { "data-vue-grab": "root" },
-            children: `globalThis.__VUE_GRAB_ROOT__=${JSON.stringify(resolvedRoot)};`,
+            children: `globalThis[${JSON.stringify(VUE_GRAB_ROOT_GLOBAL)}]=${JSON.stringify(resolvedRoot)};`,
             injectTo: "head-prepend",
           },
         ];
       },
     },
     configureServer(server) {
-      server.middlewares.use("/__open-in-editor", (req: any, res: any) => {
+      server.middlewares.use(OPEN_IN_EDITOR_ENDPOINT, (req: any, res: any) => {
         void (async () => {
           if (req.method !== "POST") {
             res.setHeader("allow", "POST");
@@ -136,14 +132,21 @@ export function vueGrabPlugin(options: VueGrabPluginOptions = {}): Plugin {
           }
 
           const contentType = req.headers?.["content-type"];
-          if (typeof contentType !== "string" || !contentType.includes("application/json")) {
-            writeError(res, 415, "Expected application/json");
+          if (
+            typeof contentType !== "string" ||
+            !contentType.includes(OPEN_IN_EDITOR_CONTENT_TYPE)
+          ) {
+            writeError(res, 415, `Expected ${OPEN_IN_EDITOR_CONTENT_TYPE}`);
             return;
           }
 
-          let payload: { file?: unknown; line?: unknown; editor?: unknown };
+          let payload: Record<string, unknown>;
           try {
-            payload = JSON.parse(await readBody(req));
+            const parsed: unknown = JSON.parse(await readBody(req));
+            if (!isObjectPayload(parsed)) {
+              throw new Error("Invalid request body");
+            }
+            payload = parsed;
           } catch (err) {
             writeError(res, 400, err instanceof Error ? err.message : "Invalid request body");
             return;

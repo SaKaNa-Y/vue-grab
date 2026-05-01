@@ -62,3 +62,12 @@ Controls capture of browser console output and runtime errors. Merged via `merge
 | `captureVueErrors` | `boolean`    | `true`                                  | Capture `app.config.errorHandler` errors (emitted as `level: "error"`, `source: "vue"`).                         |
 
 `LogLevel = "log" | "info" | "warn" | "error" | "debug"` and `LogSource = "console" | "runtime" | "promise" | "vue"`. Each `CapturedLog` carries both axes so the FAB panel can filter by level and display the source independently. The FAB badge counts only entries with `level === "warn"` or `"error"`.
+
+## Advanced shared API
+
+Most applications should import from `@sakana-y/vue-grab`. Integrations and tooling can import stable contracts from `@sakana-y/vue-grab-shared` when they need Vue Grab data types, default config, `mergeConfig()`, or protocol constants without depending on the Vue runtime entrypoint.
+
+```ts
+import type { GrabResult, OpenInEditorRequest } from "@sakana-y/vue-grab-shared";
+import { OPEN_IN_EDITOR_ENDPOINT } from "@sakana-y/vue-grab-shared";
+```
