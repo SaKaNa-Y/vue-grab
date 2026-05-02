@@ -38,7 +38,7 @@ features:
     linkText: Learn more
   - icon: 🎈
     title: Floating Button
-    details: Optional draggable FAB with settings, logs, and a11y panels. Snaps to edges, persists position and hotkey choice to localStorage.
+    details: Optional draggable FAB with settings, logs, and a11y panels. Snaps to edges, persists appearance, position, and hotkey choices to localStorage.
     link: /features/floating-button
     linkText: Learn more
   - icon: ⚡

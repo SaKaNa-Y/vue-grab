@@ -18,10 +18,14 @@ export const DEFAULT_HOTKEY = "Alt+Shift+G";
 export const DEFAULT_FLOATING_BUTTON: FloatingButtonConfig = {
   enabled: false,
   initialPosition: "top-center",
+  dockMode: "float",
   storageKey: "vue-grab-fab-pos",
+  dockModeStorageKey: "vue-grab-dock-mode",
   hotkeyStorageKey: "vue-grab-hotkey",
   editorStorageKey: "vue-grab-editor",
   measurerHotkeyStorageKey: "vue-grab-measurer-hotkey",
+  closeOnOutsideClick: true,
+  closeOnOutsideClickStorageKey: "vue-grab-close-on-outside-click",
 };
 
 export const VUE_ERROR_EVENT = "vue-grab:vue-error";

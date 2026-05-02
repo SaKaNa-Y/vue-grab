@@ -29,7 +29,7 @@ export class GrabEngine {
   private callbacks: Set<(result: GrabResult) => void> = new Set();
   private enrichers: Array<(result: GrabResult) => void> = [];
   private stateListeners: Set<(active: boolean) => void> = new Set();
-  private _isActive = false;
+  private active = false;
   private prevCursor = "";
 
   // Bound handlers for cleanup
@@ -42,12 +42,12 @@ export class GrabEngine {
   }
 
   get isActive(): boolean {
-    return this._isActive;
+    return this.active;
   }
 
   activate(): void {
-    if (this._isActive) return;
-    this._isActive = true;
+    if (this.active) return;
+    this.active = true;
     this.stateListeners.forEach((fn) => fn(true));
 
     this.overlay = new GrabOverlay(this.config);
@@ -109,8 +109,8 @@ export class GrabEngine {
   }
 
   deactivate(): void {
-    if (!this._isActive) return;
-    this._isActive = false;
+    if (!this.active) return;
+    this.active = false;
     this.stateListeners.forEach((fn) => fn(false));
 
     if (this.handleMouseMove)
@@ -150,7 +150,7 @@ export class GrabEngine {
   }
 
   toggle(): void {
-    if (this._isActive) this.deactivate();
+    if (this.active) this.deactivate();
     else this.activate();
   }
 

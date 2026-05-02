@@ -1,16 +1,26 @@
+export type FloatingButtonDockMode = "float" | "edge" | "popup";
+
 export interface FloatingButtonConfig {
   /** Show the floating button. Default: false (opt-in). */
   enabled: boolean;
   /** Initial position before any localStorage override. */
   initialPosition: "bottom-right" | "bottom-left" | "top-right" | "top-left" | "top-center";
+  /** Preferred panel display mode. Default: "float". */
+  dockMode: FloatingButtonDockMode;
   /** localStorage key for persisting position. Set to "" to disable persistence. */
   storageKey: string;
+  /** localStorage key for persisting dock mode. Set to "" to disable persistence. */
+  dockModeStorageKey: string;
   /** localStorage key for persisting hotkey. Set to "" to disable persistence. */
   hotkeyStorageKey: string;
   /** localStorage key for persisting editor choice. Set to "" to disable persistence. */
   editorStorageKey: string;
   /** localStorage key for persisting measurer hotkey. Set to "" to disable persistence. */
   measurerHotkeyStorageKey: string;
+  /** Close the active panel when clicking outside it. Default: true. */
+  closeOnOutsideClick: boolean;
+  /** localStorage key for persisting outside-click close behavior. Set to "" to disable persistence. */
+  closeOnOutsideClickStorageKey: string;
 }
 
 export interface GrabConfig {

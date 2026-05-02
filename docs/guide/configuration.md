@@ -39,14 +39,18 @@ createVueGrab({
 
 ## `floatingButton`
 
-| Field                      | Type                               | Default                      | Description                                             |
-| -------------------------- | ---------------------------------- | ---------------------------- | ------------------------------------------------------- |
-| `enabled`                  | `boolean`                          | `false`                      | Render the FAB. Off by default so you can opt in.       |
-| `initialPosition`          | `"top-center" \| "top-right" \| …` | `"top-center"`               | Starting position before the user drags it.             |
-| `storageKey`               | `string`                           | `"vue-grab-fab-pos"`         | localStorage key for persisted position.                |
-| `hotkeyStorageKey`         | `string`                           | `"vue-grab-hotkey"`          | localStorage key for the user-customized grab hotkey.   |
-| `editorStorageKey`         | `string`                           | `"vue-grab-editor"`          | localStorage key for the user-preferred editor command. |
-| `measurerHotkeyStorageKey` | `string`                           | `"vue-grab-measurer-hotkey"` | localStorage key for the measurer hotkey.               |
+| Field                           | Type                               | Default                             | Description                                                                          |
+| ------------------------------- | ---------------------------------- | ----------------------------------- | ------------------------------------------------------------------------------------ |
+| `enabled`                       | `boolean`                          | `false`                             | Render the FAB. Off by default so you can opt in.                                    |
+| `initialPosition`               | `"top-center" \| "top-right" \| …` | `"top-center"`                      | Starting position before the user drags it.                                          |
+| `dockMode`                      | `"float" \| "edge" \| "popup"`     | `"float"`                           | Display mode for FAB panels: draggable float, full-edge dock rail, or browser popup. |
+| `storageKey`                    | `string`                           | `"vue-grab-fab-pos"`                | localStorage key for persisted position.                                             |
+| `dockModeStorageKey`            | `string`                           | `"vue-grab-dock-mode"`              | localStorage key for the dock mode preference.                                       |
+| `hotkeyStorageKey`              | `string`                           | `"vue-grab-hotkey"`                 | localStorage key for the user-customized grab hotkey.                                |
+| `editorStorageKey`              | `string`                           | `"vue-grab-editor"`                 | localStorage key for the user-preferred editor command.                              |
+| `measurerHotkeyStorageKey`      | `string`                           | `"vue-grab-measurer-hotkey"`        | localStorage key for the measurer hotkey.                                            |
+| `closeOnOutsideClick`           | `boolean`                          | `true`                              | Close the active FAB panel when clicking outside it.                                 |
+| `closeOnOutsideClickStorageKey` | `string`                           | `"vue-grab-close-on-outside-click"` | localStorage key for outside-click close behavior.                                   |
 
 ## `consoleCapture`
 

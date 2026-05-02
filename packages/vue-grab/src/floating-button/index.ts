@@ -2,6 +2,7 @@ import type {
   CapturedLog,
   CapturedRequest,
   FloatingButtonConfig,
+  FloatingButtonDockMode,
   GrabResult,
   LogLevel,
   NetworkStatusClass,
@@ -36,6 +37,11 @@ const DRAG_THRESHOLD = 3;
 const SNAP_TRANSITION = "left 0.3s ease, top 0.3s ease";
 const EDGE_MARGIN = 3; // reference margin as % of viewport height
 const INITIAL_SNAP_ZONE = 5; // positions within this % of edge get adjusted to responsive margin
+const POPUP_WINDOW_NAME = "vue-grab-devtools";
+const POPUP_WINDOW_FEATURES = "popup,width=960,height=640,noopener=false,noreferrer=false";
+
+type DockEdge = "top" | "bottom" | "left" | "right";
+type ToolbarAnchorRect = Pick<DOMRect, "left" | "top" | "right" | "bottom" | "width" | "height">;
 
 function edgeMarginX(): number {
   return (EDGE_MARGIN * window.innerHeight) / window.innerWidth;
@@ -50,8 +56,43 @@ const INITIAL_POSITIONS: Record<FloatingButtonConfig["initialPosition"], { x: nu
     "top-center": { x: 50, y: 3 },
   };
 
+const DOCK_MODE_OPTIONS: readonly {
+  value: FloatingButtonDockMode;
+  label: string;
+  title: string;
+  icon: string;
+}[] = [
+  {
+    value: "float",
+    label: "Float",
+    title: "Floating panel",
+    icon: `<svg class="dock-mode-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="7" width="14" height="11" rx="2"/><path d="M8 7V5h8v2"/></svg>`,
+  },
+  {
+    value: "edge",
+    label: "Edge",
+    title: "Docked to edge",
+    icon: `<svg class="dock-mode-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="5" width="14" height="14" rx="2"/><path d="M8 5v14"/></svg>`,
+  },
+  {
+    value: "popup",
+    label: "Popup",
+    title: "Popup window",
+    icon: `<svg class="dock-mode-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="7" y="7" width="10" height="10" rx="2"/><path d="M13 5h6v6"/><path d="M12 12 19 5"/></svg>`,
+  },
+];
+
+function isDockMode(value: string): value is FloatingButtonDockMode {
+  return value === "float" || value === "edge" || value === "popup";
+}
+
 function clamp(v: number, min: number, max: number): number {
   return Math.min(Math.max(v, min), max);
+}
+
+function clampCenterForSize(center: number, size: number, viewportSize: number): number {
+  if (size >= viewportSize) return viewportSize / 2;
+  return clamp(center, size / 2, viewportSize - size / 2);
 }
 
 function tryReadPosition(key: string): { x: number; y: number } | null {
@@ -63,6 +104,26 @@ function tryReadPosition(key: string): { x: number; y: number } | null {
 
 function trySavePosition(key: string, x: number, y: number): void {
   trySaveStorage(key, JSON.stringify({ x, y }));
+}
+
+function tryReadDockMode(key: string): FloatingButtonDockMode | null {
+  return tryReadStorage(key, (raw) => (isDockMode(raw) ? raw : null));
+}
+
+function trySaveDockMode(key: string, dockMode: FloatingButtonDockMode): void {
+  trySaveStorage(key, dockMode);
+}
+
+function tryReadBoolean(key: string): boolean | null {
+  return tryReadStorage(key, (raw) => {
+    if (raw === "true") return true;
+    if (raw === "false") return false;
+    return null;
+  });
+}
+
+function trySaveBoolean(key: string, value: boolean): void {
+  trySaveStorage(key, String(value));
 }
 
 function tryReadHotkey(key: string): string | null {
@@ -99,7 +160,7 @@ const EDITOR_PRESETS = [
   { label: "Cursor", value: "cursor" },
 ];
 
-type TabId = "shortcuts" | "editor" | "magnifier";
+type TabId = "appearance" | "shortcuts" | "editor" | "magnifier";
 type PanelId = "settings" | "accessibility" | "logs" | "network";
 
 const STYLES = `
@@ -130,6 +191,32 @@ const STYLES = `
     flex-direction: row-reverse;
     align-items: center;
   }
+  .fab-wrapper.edge {
+    gap: 0;
+    align-items: stretch;
+  }
+  .fab-wrapper.edge.edge-left,
+  .fab-wrapper.edge.edge-right {
+    height: 100vh;
+    flex-direction: row;
+  }
+  .fab-wrapper.edge.edge-right {
+    flex-direction: row-reverse;
+  }
+  .fab-wrapper.edge.edge-top,
+  .fab-wrapper.edge.edge-bottom {
+    width: 100vw;
+    flex-direction: column;
+  }
+  .fab-wrapper.edge.edge-bottom {
+    flex-direction: column-reverse;
+  }
+  .fab-wrapper.popup {
+    width: 100vw;
+    min-height: 100vh;
+    gap: 0;
+    align-items: stretch;
+  }
 
   /* ── Toolbar (compact bar) ── */
   .toolbar {
@@ -145,6 +232,27 @@ const STYLES = `
     user-select: none;
     touch-action: none;
     position: relative;
+  }
+  .fab-wrapper.edge .toolbar,
+  .fab-wrapper.popup .toolbar {
+    border-radius: 0;
+  }
+  .fab-wrapper.popup .toolbar {
+    cursor: default;
+    touch-action: auto;
+  }
+  .fab-wrapper.edge.edge-left .toolbar,
+  .fab-wrapper.edge.edge-right .toolbar {
+    width: 36px;
+    height: 100vh;
+    justify-content: center;
+  }
+  .fab-wrapper.edge.edge-top .toolbar,
+  .fab-wrapper.edge.edge-bottom .toolbar,
+  .fab-wrapper.popup .toolbar {
+    width: 100vw;
+    height: 36px;
+    align-items: center;
   }
   .toolbar.dragging {
     cursor: grabbing;
@@ -421,6 +529,34 @@ const STYLES = `
   .expand-body.open {
     display: flex;
   }
+  .fab-wrapper.edge .expand-body {
+    border-radius: 0;
+    margin: 0;
+    box-shadow: 0 0 24px rgba(0,0,0,0.4);
+  }
+  .fab-wrapper.edge.edge-left .expand-body,
+  .fab-wrapper.edge.edge-right .expand-body {
+    width: min(900px, calc(100vw - 36px));
+    height: 100vh;
+    max-height: 100vh;
+  }
+  .fab-wrapper.edge.edge-top .expand-body,
+  .fab-wrapper.edge.edge-bottom .expand-body {
+    width: 100vw;
+    height: min(520px, calc(100vh - 36px));
+    max-height: calc(100vh - 36px);
+  }
+  .fab-wrapper.popup .expand-body {
+    display: flex;
+    width: 100vw;
+    height: calc(100vh - 36px);
+    max-height: calc(100vh - 36px);
+    border-radius: 0;
+    border-left: 0;
+    border-right: 0;
+    border-bottom: 0;
+    box-shadow: none;
+  }
   .expand-body::-webkit-scrollbar {
     width: 6px;
   }
@@ -465,6 +601,112 @@ const STYLES = `
   }
   .tab-content.active {
     display: block;
+  }
+
+  /* Appearance controls */
+  .setting-help {
+    color: #888;
+    font-size: 12px;
+    line-height: 1.35;
+    margin: -4px 0 10px;
+  }
+  .dock-mode-group {
+    display: inline-flex;
+    max-width: 100%;
+    gap: 2px;
+    padding: 4px;
+    margin-bottom: 16px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.07);
+    box-sizing: border-box;
+  }
+  .dock-mode-option {
+    min-width: 76px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: #999;
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .dock-mode-option:hover {
+    color: #ddd;
+    background: rgba(255,255,255,0.07);
+  }
+  .dock-mode-option.active {
+    color: var(--grab-color, #4f46e5);
+    background: rgba(0,0,0,0.32);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
+  }
+  .dock-mode-icon {
+    flex: 0 0 auto;
+  }
+  .setting-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    cursor: pointer;
+  }
+  .setting-toggle-copy {
+    min-width: 0;
+  }
+  .setting-toggle-title {
+    color: #e8e8e8;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.35;
+  }
+  .setting-toggle-description {
+    color: #888;
+    font-size: 12px;
+    line-height: 1.35;
+    margin-top: 2px;
+  }
+  .setting-toggle-input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .setting-toggle-switch {
+    position: relative;
+    flex: 0 0 auto;
+    width: 38px;
+    height: 22px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.14);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12);
+    transition: background 0.15s ease, box-shadow 0.15s ease;
+  }
+  .setting-toggle-switch::after {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.35);
+    transition: transform 0.15s ease;
+  }
+  .setting-toggle-input:checked + .setting-toggle-switch {
+    background: #84cc16;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18);
+  }
+  .setting-toggle-input:checked + .setting-toggle-switch::after {
+    transform: translateX(16px);
+  }
+  .setting-toggle-input:focus-visible + .setting-toggle-switch {
+    box-shadow: 0 0 0 2px var(--grab-color, #4f46e5);
   }
 
   /* Slider row */
@@ -625,13 +867,43 @@ const STYLES = `
     margin: 2px 0;
   }
   /* When expanded vertically + vertical toolbar, override to horizontal row */
-  .fab-wrapper.expanded:not(.expand-left):not(.expand-right) .toolbar.vertical .toolbar-row {
+  .fab-wrapper.expanded:not(.edge):not(.expand-left):not(.expand-right) .toolbar.vertical .toolbar-row {
     flex-direction: row;
     width: auto;
     height: 36px;
     padding: 0 4px;
   }
-  .fab-wrapper.expanded:not(.expand-left):not(.expand-right) .toolbar.vertical .toolbar-divider {
+  .fab-wrapper.expanded:not(.edge):not(.expand-left):not(.expand-right) .toolbar.vertical .toolbar-divider {
+    width: 1px;
+    height: 18px;
+    margin: 0 2px;
+  }
+
+  /* Dock toolbar layout */
+  .fab-wrapper.edge.edge-left .toolbar .toolbar-row,
+  .fab-wrapper.edge.edge-right .toolbar .toolbar-row {
+    flex-direction: column;
+    height: auto;
+    width: 36px;
+    padding: 4px 0;
+  }
+  .fab-wrapper.edge.edge-left .toolbar .toolbar-divider,
+  .fab-wrapper.edge.edge-right .toolbar .toolbar-divider {
+    width: 18px;
+    height: 1px;
+    margin: 2px 0;
+  }
+  .fab-wrapper.edge.edge-top .toolbar .toolbar-row,
+  .fab-wrapper.edge.edge-bottom .toolbar .toolbar-row,
+  .fab-wrapper.popup .toolbar .toolbar-row {
+    flex-direction: row;
+    width: auto;
+    height: 36px;
+    padding: 0 4px;
+  }
+  .fab-wrapper.edge.edge-top .toolbar .toolbar-divider,
+  .fab-wrapper.edge.edge-bottom .toolbar .toolbar-divider,
+  .fab-wrapper.popup .toolbar .toolbar-divider {
     width: 1px;
     height: 18px;
     margin: 0 2px;
@@ -1040,6 +1312,7 @@ const STYLES = `
 export class FloatingButton {
   private host: HTMLElement | null = null;
   private shadowRoot: ShadowRoot | null = null;
+  private embeddedParent: HTMLElement | null = null;
   private wrapperEl: HTMLElement | null = null;
   private toolbarEl: HTMLElement | null = null;
   private toolbarRowEl: HTMLElement | null = null;
@@ -1069,14 +1342,20 @@ export class FloatingButton {
   private lastA11yScanTime = 0;
   private pendingRafId: number | null = null;
   private logsRenderRafId: number | null = null;
+  private preservedToolbarRect: ToolbarAnchorRect | null = null;
   private config: FloatingButtonConfig;
 
   // Expand state
   private activePanel: PanelId | null = null;
-  private settingsTab: TabId = "shortcuts";
+  private settingsTab: TabId = "appearance";
   private isGrabActive = false;
   private isMagnifierActive = false;
   private isMeasurerActive = false;
+  private dockMode: FloatingButtonDockMode;
+  private effectiveDockMode: FloatingButtonDockMode;
+  private closeOnOutsideClick: boolean;
+  private popupWindow: Window | null = null;
+  private popupPollId: number | null = null;
 
   // Editor state
   private editorChoice = "";
@@ -1094,6 +1373,7 @@ export class FloatingButton {
   private dragStartY = 0;
   private dragOffsetX = 0;
   private dragOffsetY = 0;
+  private lastAppliedEdge: DockEdge | null = null;
 
   // Hotkey state
   private isRecording = false;
@@ -1121,6 +1401,8 @@ export class FloatingButton {
   private boundPointerUp: ((e: PointerEvent) => void) | null = null;
   private boundDocClick: ((e: MouseEvent) => void) | null = null;
   private boundDocKeyDown: ((e: KeyboardEvent) => void) | null = null;
+  private popupDocClick: ((e: MouseEvent) => void) | null = null;
+  private popupDocKeyDown: ((e: KeyboardEvent) => void) | null = null;
   private boundRecordKeyDown: ((e: KeyboardEvent) => void) | null = null;
 
   constructor(config: FloatingButtonConfig) {
@@ -1139,6 +1421,10 @@ export class FloatingButton {
     this.currentHotkey = tryReadHotkey(config.hotkeyStorageKey) ?? "";
     this.currentMeasurerHotkey = tryReadHotkey(config.measurerHotkeyStorageKey) ?? "";
     this.editorChoice = tryReadEditor(config.editorStorageKey) ?? "";
+    this.dockMode = tryReadDockMode(config.dockModeStorageKey) ?? config.dockMode;
+    this.effectiveDockMode = this.dockMode === "popup" ? "float" : this.dockMode;
+    this.closeOnOutsideClick =
+      tryReadBoolean(config.closeOnOutsideClickStorageKey) ?? config.closeOnOutsideClick;
   }
 
   getCurrentHotkey(): string {
@@ -1165,7 +1451,7 @@ export class FloatingButton {
     this.host = document.createElement("div");
     this.host.id = FAB_HOST_ID;
     this.host.style.cssText = `position:fixed;z-index:2147483646;pointer-events:auto;transform:translate(-50%,-50%);transition:${SNAP_TRANSITION};`;
-    this.applyPosition();
+    this.embeddedParent = document.body;
     document.body.appendChild(this.host);
 
     this.shadowRoot = this.host.attachShadow({ mode: "open" });
@@ -1263,8 +1549,7 @@ export class FloatingButton {
 
     this.shadowRoot.appendChild(this.wrapperEl);
 
-    // Set initial orientation based on position
-    this.applyOrientation(this.getEdgeFromPosition());
+    this.applyDockLayout();
 
     // --- Event wiring ---
 
@@ -1350,6 +1635,7 @@ export class FloatingButton {
     // Document: close on outside click
     this.boundDocClick = (e: MouseEvent) => {
       if (!this.activePanel) return;
+      if (!this.closeOnOutsideClick) return;
       const path = e.composedPath();
       if (!path.includes(this.host!)) {
         this.deactivatePanel();
@@ -1379,12 +1665,14 @@ export class FloatingButton {
   }
 
   destroy(): void {
+    const popup = this.popupWindow;
     if (this.boundDocClick) {
       document.removeEventListener("click", this.boundDocClick, { capture: true });
     }
     if (this.boundDocKeyDown) {
       document.removeEventListener("keydown", this.boundDocKeyDown, { capture: true });
     }
+    this.detachPopupDocumentEvents();
     if (this.boundRecordKeyDown) {
       document.removeEventListener("keydown", this.boundRecordKeyDown, { capture: true });
     }
@@ -1400,6 +1688,10 @@ export class FloatingButton {
       cancelAnimationFrame(this.networkRenderRafId);
       this.networkRenderRafId = null;
     }
+    if (this.popupPollId != null) {
+      window.clearInterval(this.popupPollId);
+      this.popupPollId = null;
+    }
     if (this.searchDebounceId != null) {
       window.clearTimeout(this.searchDebounceId);
       this.searchDebounceId = null;
@@ -1412,6 +1704,8 @@ export class FloatingButton {
       this.host.remove();
       this.host = null;
       this.shadowRoot = null;
+      this.embeddedParent = null;
+      this.popupWindow = null;
       this.wrapperEl = null;
       this.toolbarEl = null;
       this.toolbarRowEl = null;
@@ -1425,6 +1719,8 @@ export class FloatingButton {
       this.networkBadgeEl = null;
       this.measurerBtnEl = null;
     }
+    if (popup && !popup.closed) popup.close();
+    this.popupWindow = null;
   }
 
   setActive(active: boolean): void {
@@ -1523,62 +1819,22 @@ export class FloatingButton {
       this.deactivatePanel();
       return;
     }
+    this.preservedToolbarRect =
+      this.effectiveDockMode === "float" ? (this.toolbarEl?.getBoundingClientRect() ?? null) : null;
     // Stop recording if switching away from settings
     if (this.isRecording) this.stopRecording();
     if (this.isRecordingMeasurer) this.stopMeasurerRecording();
 
+    if (this.dockMode === "popup" && !this.ensurePopupHost()) {
+      this.effectiveDockMode = "float";
+    }
+
     this.activePanel = panel;
     this.wrapperEl!.classList.add("expanded");
 
-    const edge = this.getEdgeFromPosition();
-    const isHorizontal = edge === "left" || edge === "right";
-
-    // Remove all expand direction classes first
-    this.wrapperEl!.classList.remove("expand-up", "expand-left", "expand-right");
-
-    if (isHorizontal) {
-      // Left edge → panel expands right; Right edge → panel expands left
-      this.wrapperEl!.classList.add(edge === "left" ? "expand-right" : "expand-left");
-    } else {
-      const expandUp = this.posY > 50;
-      this.wrapperEl!.classList.toggle("expand-up", expandUp);
-    }
-
     this.expandBodyEl!.classList.add("open");
     this.renderExpandBody();
-
-    // Anchor the host so the toolbar stays in place while the panel expands
-    if (this.host) {
-      this.host.style.transition = "none";
-
-      if (isHorizontal) {
-        const toolbarW = this.toolbarEl?.getBoundingClientRect().width ?? 36;
-        const centerX = (this.posX / 100) * window.innerWidth;
-        const centerY = (this.posY / 100) * window.innerHeight;
-        this.host.style.top = `${centerY}px`;
-        if (edge === "left") {
-          const leftX = centerX - toolbarW / 2;
-          this.host.style.left = `${leftX}px`;
-          this.host.style.transform = "translate(0, -50%)";
-        } else {
-          const rightX = centerX + toolbarW / 2;
-          this.host.style.left = `${rightX}px`;
-          this.host.style.transform = "translate(-100%, -50%)";
-        }
-      } else {
-        const toolbarH = 36;
-        const centerY = (this.posY / 100) * window.innerHeight;
-        if (this.posY > 50) {
-          const bottomY = centerY + toolbarH / 2;
-          this.host.style.top = `${bottomY}px`;
-          this.host.style.transform = "translate(-50%, -100%)";
-        } else {
-          const topY = centerY - toolbarH / 2;
-          this.host.style.top = `${topY}px`;
-          this.host.style.transform = "translate(-50%, 0)";
-        }
-      }
-    }
+    this.applyDockLayout();
 
     // Update icon highlights
     this.gearEl!.classList.toggle("active", panel === "settings");
@@ -1589,18 +1845,13 @@ export class FloatingButton {
 
   private deactivatePanel(): void {
     if (!this.activePanel) return;
-    if (this.isRecording) this.stopRecording();
-    if (this.isRecordingMeasurer) this.stopMeasurerRecording();
+    this.clearPanelState();
 
-    this.activePanel = null;
-    this.wrapperEl!.classList.remove("expanded", "expand-up", "expand-left", "expand-right");
-    this.expandBodyEl!.classList.remove("open");
-    this.gearEl!.classList.remove("active");
-    this.a11yIndicatorEl!.classList.remove("active");
-    this.logsBtnEl!.classList.remove("active");
-    this.networkBtnEl!.classList.remove("active");
+    if (this.effectiveDockMode === "popup") {
+      this.returnFromPopup();
+    }
 
-    if (this.host) {
+    if (this.host && this.effectiveDockMode === "float") {
       this.host.style.transition = "none";
       this.host.style.transform = "translate(-50%, -50%)";
       this.applyPosition();
@@ -1610,8 +1861,13 @@ export class FloatingButton {
       });
     }
 
-    // Re-apply vertical orientation if needed
-    this.applyOrientation(this.getEdgeFromPosition());
+    if (this.effectiveDockMode !== "float") {
+      this.preservedToolbarRect = null;
+      this.applyDockLayout();
+    } else {
+      this.preservedToolbarRect = null;
+      this.applyOrientation(this.getEdgeFromPosition());
+    }
   }
 
   // --- Content rendering ---
@@ -1642,6 +1898,14 @@ export class FloatingButton {
       (p) =>
         `<option value="${p.value}"${p.value === this.editorChoice ? " selected" : ""}>${p.label}</option>`,
     ).join("");
+    const dockModeOptions = DOCK_MODE_OPTIONS.map(
+      (p) =>
+        `<button type="button" class="dock-mode-option${
+          p.value === this.dockMode ? " active" : ""
+        }" data-dock-mode="${p.value}" aria-pressed="${
+          p.value === this.dockMode ? "true" : "false"
+        }" title="${p.title}">${p.icon}<span>${p.label}</span></button>`,
+    ).join("");
 
     const comp = this.lastGrabResult?.componentStack[0];
     const filePathText = comp?.filePath ? toRelativePath(comp.filePath) : "No element grabbed yet";
@@ -1649,9 +1913,27 @@ export class FloatingButton {
 
     return `
       <div class="tab-bar">
+        <button class="tab-btn${this.settingsTab === "appearance" ? " active" : ""}" data-tab="appearance">Appearance</button>
         <button class="tab-btn${this.settingsTab === "shortcuts" ? " active" : ""}" data-tab="shortcuts">Shortcuts</button>
         <button class="tab-btn${this.settingsTab === "editor" ? " active" : ""}" data-tab="editor">Editor</button>
         <button class="tab-btn${this.settingsTab === "magnifier" ? " active" : ""}" data-tab="magnifier">Magnifier</button>
+      </div>
+      <div class="tab-content${this.settingsTab === "appearance" ? " active" : ""}" data-tab-content="appearance">
+        <div class="section-label">Dock Mode</div>
+        <div class="setting-help">How the DevTools panel is displayed</div>
+        <div class="dock-mode-group" role="group" aria-label="Dock mode">
+          ${dockModeOptions}
+        </div>
+        <label class="setting-toggle">
+          <span class="setting-toggle-copy">
+            <span class="setting-toggle-title">Close panel on outside click</span>
+            <span class="setting-toggle-description">Close the DevTools panel when clicking outside of it</span>
+          </span>
+          <input type="checkbox" class="setting-toggle-input outside-click-toggle"${
+            this.closeOnOutsideClick ? " checked" : ""
+          }>
+          <span class="setting-toggle-switch" aria-hidden="true"></span>
+        </label>
       </div>
       <div class="tab-content${this.settingsTab === "shortcuts" ? " active" : ""}" data-tab-content="shortcuts">
         <div class="section-label">Grab Hotkey</div>
@@ -1698,6 +1980,26 @@ export class FloatingButton {
         if (tabId) this.switchSettingsTab(tabId);
       });
     }
+
+    // Appearance: dock mode
+    for (const btn of Array.from(this.expandBodyEl.querySelectorAll(".dock-mode-option"))) {
+      btn.addEventListener("click", (e: Event) => {
+        e.stopPropagation();
+        const dockMode = (btn as HTMLElement).dataset.dockMode;
+        if (!dockMode || !isDockMode(dockMode)) return;
+        this.setDockMode(dockMode, true);
+        this.updateDockModeControls();
+      });
+    }
+
+    // Appearance: outside-click toggle
+    const outsideClickToggle =
+      this.expandBodyEl.querySelector<HTMLInputElement>(".outside-click-toggle");
+    outsideClickToggle?.addEventListener("click", (e: Event) => e.stopPropagation());
+    outsideClickToggle?.addEventListener("change", () => {
+      this.closeOnOutsideClick = outsideClickToggle.checked;
+      trySaveBoolean(this.config.closeOnOutsideClickStorageKey, this.closeOnOutsideClick);
+    });
 
     // Editor: select
     const selectEl = this.expandBodyEl.querySelector<HTMLSelectElement>(".editor-select");
@@ -1761,6 +2063,35 @@ export class FloatingButton {
     for (const content of Array.from(this.expandBodyEl.querySelectorAll(".tab-content"))) {
       content.classList.toggle("active", (content as HTMLElement).dataset.tabContent === tabId);
     }
+  }
+
+  private updateDockModeControls(): void {
+    if (!this.expandBodyEl) return;
+    for (const btn of Array.from(this.expandBodyEl.querySelectorAll(".dock-mode-option"))) {
+      const active = (btn as HTMLElement).dataset.dockMode === this.dockMode;
+      btn.classList.toggle("active", active);
+      btn.setAttribute("aria-pressed", active ? "true" : "false");
+    }
+  }
+
+  private setDockMode(mode: FloatingButtonDockMode, persist: boolean): void {
+    if (mode === this.dockMode && mode === this.effectiveDockMode) return;
+    const previousMode = this.effectiveDockMode;
+    this.dockMode = mode;
+    this.effectiveDockMode = mode;
+    if (persist) trySaveDockMode(this.config.dockModeStorageKey, mode);
+
+    if (previousMode === "popup" && mode !== "popup") {
+      this.returnFromPopup();
+    }
+    if (previousMode === "edge" && mode === "float") {
+      this.restoreFloatPositionFromEdge(this.getEdgeFromPosition());
+    }
+    if (this.activePanel && mode === "popup" && !this.ensurePopupHost()) {
+      this.effectiveDockMode = "float";
+    }
+    this.applyDockLayout();
+    if (this.activePanel) this.renderExpandBody();
   }
 
   private updateEditorTabInPlace(): void {
@@ -2415,10 +2746,282 @@ export class FloatingButton {
     }
   }
 
+  // --- Dock layout ---
+
+  private applyDockLayout(): void {
+    if (!this.host || !this.wrapperEl || !this.toolbarEl) return;
+    const edge = this.getEdgeFromPosition();
+    if (this.effectiveDockMode === "edge" && this.isDragging && this.lastAppliedEdge === edge) {
+      return;
+    }
+    this.host.style.transition = this.isDragging ? "none" : SNAP_TRANSITION;
+    this.resetDockClasses();
+
+    if (this.effectiveDockMode === "popup") {
+      this.preservedToolbarRect = null;
+      this.lastAppliedEdge = null;
+      this.applyPopupLayout();
+    } else if (this.effectiveDockMode === "edge") {
+      this.preservedToolbarRect = null;
+      this.lastAppliedEdge = edge;
+      this.applyEdgeLayout(edge);
+    } else if (this.activePanel) {
+      this.lastAppliedEdge = null;
+      this.applyFloatExpandedLayout(edge, this.preservedToolbarRect);
+      this.preservedToolbarRect = null;
+    } else {
+      this.lastAppliedEdge = null;
+      this.applyFloatClosedLayout(edge);
+    }
+  }
+
+  private resetDockClasses(): void {
+    if (!this.wrapperEl || !this.toolbarEl) return;
+    this.wrapperEl.classList.remove(
+      "edge",
+      "popup",
+      "edge-top",
+      "edge-bottom",
+      "edge-left",
+      "edge-right",
+    );
+    this.toolbarEl.classList.remove("vertical");
+  }
+
+  private resetLayoutStyles(): void {
+    if (!this.host) return;
+    this.host.style.position = "fixed";
+    this.host.style.inset = "";
+    this.host.style.width = "";
+    this.host.style.height = "";
+    this.host.style.left = "";
+    this.host.style.top = "";
+    this.host.style.right = "";
+    this.host.style.bottom = "";
+    this.host.style.transform = "";
+  }
+
+  private applyFloatClosedLayout(edge: DockEdge): void {
+    if (!this.host) return;
+    this.resetLayoutStyles();
+    this.host.style.transform = "translate(-50%, -50%)";
+    this.applyPosition();
+    this.applyOrientation(edge);
+  }
+
+  private applyFloatExpandedLayout(edge: DockEdge, anchorRect: ToolbarAnchorRect | null): void {
+    if (!this.host || !this.wrapperEl) return;
+    const isHorizontal = edge === "left" || edge === "right";
+    const centerX = (this.posX / 100) * window.innerWidth;
+    const centerY = (this.posY / 100) * window.innerHeight;
+    const toolbarW = anchorRect?.width ?? 36;
+    const toolbarH = anchorRect?.height ?? 36;
+    const toolbarLeft = anchorRect?.left ?? centerX - toolbarW / 2;
+    const toolbarRight = anchorRect?.right ?? centerX + toolbarW / 2;
+    const toolbarTop = anchorRect?.top ?? centerY - toolbarH / 2;
+    const toolbarBottom = anchorRect?.bottom ?? centerY + toolbarH / 2;
+    const toolbarCenterX = anchorRect ? toolbarLeft + toolbarW / 2 : centerX;
+    const toolbarCenterY = anchorRect ? toolbarTop + toolbarH / 2 : centerY;
+
+    this.wrapperEl.classList.remove("expand-up", "expand-left", "expand-right");
+    if (isHorizontal) {
+      this.wrapperEl.classList.add(edge === "left" ? "expand-right" : "expand-left");
+    } else {
+      this.wrapperEl.classList.toggle("expand-up", this.posY > 50);
+    }
+
+    this.resetLayoutStyles();
+    this.host.style.transition = "none";
+
+    if (isHorizontal) {
+      this.host.style.top = `${clampCenterForSize(toolbarCenterY, toolbarH, window.innerHeight)}px`;
+      if (edge === "left") {
+        const leftX = Math.max(0, toolbarLeft);
+        this.host.style.left = `${leftX}px`;
+        this.host.style.transform = "translate(0, -50%)";
+      } else {
+        const rightX = Math.min(window.innerWidth, toolbarRight);
+        this.host.style.left = `${rightX}px`;
+        this.host.style.transform = "translate(-100%, -50%)";
+      }
+    } else {
+      if (this.posY > 50) {
+        const bottomY = Math.min(window.innerHeight, toolbarBottom);
+        this.host.style.top = `${bottomY}px`;
+        this.host.style.left = `${clampCenterForSize(toolbarCenterX, toolbarW, window.innerWidth)}px`;
+        this.host.style.transform = "translate(-50%, -100%)";
+      } else {
+        const topY = Math.max(0, toolbarTop);
+        this.host.style.top = `${topY}px`;
+        this.host.style.left = `${clampCenterForSize(toolbarCenterX, toolbarW, window.innerWidth)}px`;
+        this.host.style.transform = "translate(-50%, 0)";
+      }
+    }
+    this.applyOrientation(edge);
+  }
+
+  private applyEdgeLayout(edge: DockEdge): void {
+    if (!this.host || !this.wrapperEl) return;
+    this.wrapperEl.classList.add("edge", `edge-${edge}`);
+    this.wrapperEl.classList.remove("expand-up", "expand-left", "expand-right");
+    this.resetLayoutStyles();
+
+    if (edge === "left" || edge === "right") {
+      this.host.style.top = "0";
+      this.host.style.bottom = "0";
+      this.host.style[edge] = "0";
+      this.host.style.transform = "none";
+    } else {
+      this.host.style.left = "0";
+      this.host.style.right = "0";
+      this.host.style[edge] = "0";
+      this.host.style.transform = "none";
+    }
+    this.applyOrientation(edge);
+  }
+
+  private applyPopupLayout(): void {
+    if (!this.host || !this.wrapperEl) return;
+    this.wrapperEl.classList.add("popup");
+    this.wrapperEl.classList.remove("expand-up", "expand-left", "expand-right");
+    this.resetLayoutStyles();
+    this.host.style.inset = "0";
+    this.host.style.width = "100vw";
+    this.host.style.height = "100vh";
+    this.host.style.transform = "none";
+    this.applyOrientation("top");
+  }
+
+  private ensurePopupHost(): boolean {
+    if (!this.host) return false;
+    if (this.popupWindow && !this.popupWindow.closed) {
+      this.popupWindow.focus();
+      if (
+        this.popupWindow.document.body &&
+        this.host.parentElement !== this.popupWindow.document.body
+      ) {
+        this.popupWindow.document.body.appendChild(this.host);
+      }
+      this.effectiveDockMode = "popup";
+      this.attachPopupDocumentEvents(this.popupWindow);
+      this.startPopupPolling();
+      return true;
+    }
+
+    const popup = window.open("", POPUP_WINDOW_NAME, POPUP_WINDOW_FEATURES);
+    if (!popup || popup.closed || !popup.document?.body) {
+      this.effectiveDockMode = "float";
+      this.returnFromPopup();
+      return false;
+    }
+
+    this.popupWindow = popup;
+    popup.document.title = "Vue Grab";
+    popup.document.body.style.margin = "0";
+    popup.document.body.style.background = "#111";
+    popup.document.body.style.overflow = "hidden";
+    popup.document.body.appendChild(this.host);
+    popup.focus();
+    this.effectiveDockMode = "popup";
+    this.attachPopupDocumentEvents(popup);
+    this.startPopupPolling();
+    return true;
+  }
+
+  private attachPopupDocumentEvents(popup: Window): void {
+    this.detachPopupDocumentEvents();
+    this.popupDocClick = (e: MouseEvent) => this.boundDocClick?.(e);
+    this.popupDocKeyDown = (e: KeyboardEvent) => this.boundDocKeyDown?.(e);
+    popup.document.addEventListener("click", this.popupDocClick, { capture: true });
+    popup.document.addEventListener("keydown", this.popupDocKeyDown, { capture: true });
+  }
+
+  private detachPopupDocumentEvents(): void {
+    const popup = this.popupWindow;
+    if (!popup || popup.closed) {
+      this.popupDocClick = null;
+      this.popupDocKeyDown = null;
+      return;
+    }
+    if (this.popupDocClick) {
+      popup.document.removeEventListener("click", this.popupDocClick, { capture: true });
+    }
+    if (this.popupDocKeyDown) {
+      popup.document.removeEventListener("keydown", this.popupDocKeyDown, { capture: true });
+    }
+    this.popupDocClick = null;
+    this.popupDocKeyDown = null;
+  }
+
+  private startPopupPolling(): void {
+    if (this.popupPollId != null) return;
+    this.popupPollId = window.setInterval(() => {
+      if (this.effectiveDockMode === "popup" && (!this.popupWindow || this.popupWindow.closed)) {
+        this.handlePopupClosed();
+      }
+    }, 500);
+  }
+
+  private handlePopupClosed(): void {
+    const popup = this.popupWindow;
+    this.detachPopupDocumentEvents();
+    this.popupWindow = null;
+    if (this.popupPollId != null) {
+      window.clearInterval(this.popupPollId);
+      this.popupPollId = null;
+    }
+    this.clearPanelState();
+    this.effectiveDockMode = this.dockMode === "popup" ? "float" : this.dockMode;
+    if (popup && !popup.closed) popup.close();
+    this.returnHostToEmbeddedDocument();
+    this.applyDockLayout();
+  }
+
+  private returnFromPopup(): void {
+    if (this.popupPollId != null) {
+      window.clearInterval(this.popupPollId);
+      this.popupPollId = null;
+    }
+    const popup = this.popupWindow;
+    this.detachPopupDocumentEvents();
+    this.popupWindow = null;
+    this.returnHostToEmbeddedDocument();
+    if (popup && !popup.closed) popup.close();
+    if (this.dockMode !== "popup") this.effectiveDockMode = this.dockMode;
+  }
+
+  private clearPanelState(): void {
+    if (this.isRecording) this.stopRecording();
+    if (this.isRecordingMeasurer) this.stopMeasurerRecording();
+
+    this.activePanel = null;
+    this.wrapperEl?.classList.remove("expanded", "expand-up", "expand-left", "expand-right");
+    this.expandBodyEl?.classList.remove("open");
+    this.gearEl?.classList.remove("active");
+    this.a11yIndicatorEl?.classList.remove("active");
+    this.logsBtnEl?.classList.remove("active");
+    this.networkBtnEl?.classList.remove("active");
+  }
+
+  private returnHostToEmbeddedDocument(): void {
+    if (!this.host) return;
+    const parent = this.embeddedParent ?? document.body;
+    if (this.host.parentElement !== parent) parent.appendChild(this.host);
+  }
+
+  private restoreFloatPositionFromEdge(edge: DockEdge): void {
+    const mx = edgeMarginX();
+    if (edge === "left") this.posX = mx;
+    else if (edge === "right") this.posX = 100 - mx;
+    else if (edge === "top") this.posY = EDGE_MARGIN;
+    else this.posY = 100 - EDGE_MARGIN;
+  }
+
   // --- Toolbar Drag ---
 
   private onPointerDown(e: PointerEvent): void {
     if (e.button !== 0) return;
+    if (this.effectiveDockMode === "popup") return;
     // Don't drag from expand body content
     const target = e.composedPath()[0] as HTMLElement;
     if (this.expandBodyEl?.contains(target)) return;
@@ -2446,7 +3049,13 @@ export class FloatingButton {
     }
     this.posX = clamp(((e.clientX - this.dragOffsetX) / window.innerWidth) * 100, 2, 98);
     this.posY = clamp(((e.clientY - this.dragOffsetY) / window.innerHeight) * 100, 2, 98);
-    this.applyPosition();
+    if (this.effectiveDockMode === "edge") {
+      this.snapToEdge();
+    } else if (this.activePanel) {
+      this.applyDockLayout();
+    } else {
+      this.applyPosition();
+    }
   }
 
   private onPointerUp(e: PointerEvent): void {
@@ -2474,12 +3083,12 @@ export class FloatingButton {
     } else {
       this.posX = mx;
     }
-    this.applyPosition();
-    this.applyOrientation(edge);
+    this.applyDockLayout();
   }
 
   private applyPosition(): void {
     if (!this.host) return;
+    this.host.style.inset = "";
     this.host.style.left = `${this.posX}%`;
     this.host.style.top = `${this.posY}%`;
   }
