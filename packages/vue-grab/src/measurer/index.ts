@@ -69,7 +69,7 @@ export class MeasurerOverlay {
   private svg: SVGSVGElement | null = null;
   private config: MeasurerConfig;
 
-  private _isActive = false;
+  private active = false;
   private selectedElement: Element | null = null;
   private hoveredElement: Element | null = null;
   private rafId: number | null = null;
@@ -84,7 +84,7 @@ export class MeasurerOverlay {
   }
 
   get isActive(): boolean {
-    return this._isActive;
+    return this.active;
   }
 
   mount(): void {
@@ -126,8 +126,8 @@ export class MeasurerOverlay {
   }
 
   activate(): void {
-    if (this._isActive || !this.container) return;
-    this._isActive = true;
+    if (this.active || !this.container) return;
+    this.active = true;
     this.container.classList.add("active");
     document.documentElement.style.cursor = "crosshair";
 
@@ -178,8 +178,8 @@ export class MeasurerOverlay {
   }
 
   deactivate(): void {
-    if (!this._isActive) return;
-    this._isActive = false;
+    if (!this.active) return;
+    this.active = false;
     this.container?.classList.remove("active");
     document.documentElement.style.cursor = "";
 
@@ -207,7 +207,7 @@ export class MeasurerOverlay {
   }
 
   toggle(): void {
-    if (this._isActive) {
+    if (this.active) {
       this.deactivate();
     } else {
       this.activate();

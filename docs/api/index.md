@@ -65,7 +65,7 @@ Controls capture of browser console output and runtime errors. Merged via `merge
 
 ## Advanced shared API
 
-Most applications should import from `@sakana-y/vue-grab`. Integrations and tooling can import stable contracts from `@sakana-y/vue-grab-shared` when they need Vue Grab data types, default config, `mergeConfig()`, or protocol constants without depending on the Vue runtime entrypoint.
+Most applications should import from `@sakana-y/vue-grab`. Integrations and tooling can import stable contracts from `@sakana-y/vue-grab-shared` when they need Vue Grab data types, default config, `mergeConfig()`, or protocol constants without depending on the Vue runtime entrypoint. Floating-button appearance uses `FloatingButtonDockMode = "float" | "edge" | "popup"`.
 
 ```ts
 import type { GrabResult, OpenInEditorRequest } from "@sakana-y/vue-grab-shared";

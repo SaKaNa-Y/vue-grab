@@ -28,8 +28,16 @@ function getHost(): HTMLElement | null {
   return document.getElementById(FAB_HOST_ID);
 }
 
+function getHostFrom(doc: Document): HTMLElement | null {
+  return doc.getElementById(FAB_HOST_ID);
+}
+
 function getShadow(): ShadowRoot | null {
   return getHost()?.shadowRoot ?? null;
+}
+
+function getShadowFrom(doc: Document): ShadowRoot | null {
+  return getHostFrom(doc)?.shadowRoot ?? null;
 }
 
 function getToolbar(): HTMLElement | null {
@@ -52,11 +60,70 @@ function getExpandBody(): HTMLElement | null {
   return getShadow()?.querySelector(".expand-body") ?? null;
 }
 
+function getDockModeOption(mode: string, shadow = getShadow()): HTMLElement | null {
+  return shadow?.querySelector<HTMLElement>(`.dock-mode-option[data-dock-mode="${mode}"]`) ?? null;
+}
+
+function mockToolbarRowRect(left = 540, top = 102, width = 120, height = 36): void {
+  vi.spyOn(getToolbarRow()!, "getBoundingClientRect").mockReturnValue({
+    x: left,
+    y: top,
+    left,
+    top,
+    width,
+    height,
+    right: left + width,
+    bottom: top + height,
+    toJSON: () => ({}),
+  });
+}
+
+function dispatchPointer(
+  type: string,
+  target: HTMLElement,
+  clientX: number,
+  clientY: number,
+): void {
+  target.dispatchEvent(
+    new PointerEvent(type, {
+      bubbles: true,
+      composed: true,
+      cancelable: true,
+      button: 0,
+      pointerId: 1,
+      clientX,
+      clientY,
+    }),
+  );
+}
+
+function expectStylePx(value: string, expected: number): void {
+  expect(Math.abs(Number.parseFloat(value) - expected)).toBeLessThanOrEqual(1);
+}
+
+function expectRectStable(
+  actual: Pick<DOMRect, "left" | "top" | "right" | "bottom">,
+  expected: Pick<DOMRect, "left" | "top" | "right" | "bottom">,
+): void {
+  expect(Math.abs(actual.left - expected.left)).toBeLessThanOrEqual(1);
+  expect(Math.abs(actual.top - expected.top)).toBeLessThanOrEqual(1);
+  expect(Math.abs(actual.right - expected.right)).toBeLessThanOrEqual(1);
+  expect(Math.abs(actual.bottom - expected.bottom)).toBeLessThanOrEqual(1);
+}
+
+function clickOutside(): void {
+  document.body.dispatchEvent(new MouseEvent("click", { bubbles: true, composed: true }));
+}
+
 describe("FloatingButton", () => {
   let fab: FloatingButton;
+  let openedPopup: Window | null = null;
 
   afterEach(() => {
     fab?.destroy();
+    openedPopup?.close();
+    openedPopup = null;
+    vi.restoreAllMocks();
     cleanupDOM();
     localStorage.clear();
   });
@@ -128,6 +195,365 @@ describe("FloatingButton", () => {
     });
   });
 
+  describe("dock modes", () => {
+    it("float mode preserves current expansion near the toolbar", () => {
+      fab = createFab({ dockMode: "float", initialPosition: "bottom-right" });
+      fab.mount();
+
+      getGear()!.click();
+
+      const host = getHost()!;
+      expect(getExpandBody()!.classList.contains("open")).toBe(true);
+      expect(getShadow()!.querySelector(".fab-wrapper")!.classList.contains("edge")).toBe(false);
+      expect(getShadow()!.querySelector(".fab-wrapper")!.classList.contains("popup")).toBe(false);
+      expect(host.style.transform).toBe("translate(-100%, -50%)");
+    });
+
+    it("float mode keeps an open panel anchored to the dragged toolbar center", () => {
+      localStorage.setItem("vue-grab-fab-pos", JSON.stringify({ x: 50, y: 20 }));
+      fab = createFab({ dockMode: "float" });
+      fab.mount();
+      getGear()!.click();
+      const centerX = window.innerWidth / 2;
+      mockToolbarRowRect(centerX - 60, 102);
+
+      const toolbar = getToolbar()!;
+      dispatchPointer("pointerdown", toolbar, centerX, 120);
+      dispatchPointer("pointermove", toolbar, centerX, 260);
+
+      expect(getExpandBody()!.classList.contains("open")).toBe(true);
+      expect(getHost()!.style.top).toBe("242px");
+      expect(getHost()!.style.transform).toBe("translate(-50%, 0px)");
+
+      dispatchPointer("pointerup", toolbar, centerX, 260);
+    });
+
+    it("float mode keeps the bar and panel synced when dragging open to the right edge", () => {
+      localStorage.setItem("vue-grab-fab-pos", JSON.stringify({ x: 50, y: 20 }));
+      fab = createFab({ dockMode: "float" });
+      fab.mount();
+      getGear()!.click();
+      const centerX = window.innerWidth / 2;
+      mockToolbarRowRect(centerX - 60, 102);
+
+      const toolbar = getToolbar()!;
+      dispatchPointer("pointerdown", toolbar, centerX, 120);
+      dispatchPointer("pointermove", toolbar, window.innerWidth - 4, 260);
+
+      const wrapper = getShadow()!.querySelector(".fab-wrapper")!;
+      expect(wrapper.classList.contains("expand-left")).toBe(true);
+      expect(getHost()!.style.transform).toBe("translate(-100%, -50%)");
+      expectStylePx(getHost()!.style.left, window.innerWidth);
+      expect(getExpandBody()!.classList.contains("open")).toBe(true);
+
+      dispatchPointer("pointerup", toolbar, window.innerWidth - 4, 260);
+
+      const saved = JSON.parse(localStorage.getItem("vue-grab-fab-pos")!);
+      expect(saved.x).toBeCloseTo(100 - (3 * window.innerHeight) / window.innerWidth);
+      expect(saved.y).toBeCloseTo((260 / window.innerHeight) * 100);
+    });
+
+    it("float mode keeps the bar visible when dragging open to the left edge", () => {
+      localStorage.setItem("vue-grab-fab-pos", JSON.stringify({ x: 50, y: 20 }));
+      fab = createFab({ dockMode: "float" });
+      fab.mount();
+      getGear()!.click();
+      const centerX = window.innerWidth / 2;
+      mockToolbarRowRect(centerX - 60, 102);
+
+      const toolbar = getToolbar()!;
+      dispatchPointer("pointerdown", toolbar, centerX, 120);
+      dispatchPointer("pointermove", toolbar, 4, 260);
+
+      const wrapper = getShadow()!.querySelector(".fab-wrapper")!;
+      expect(wrapper.classList.contains("expand-right")).toBe(true);
+      expect(getHost()!.style.transform).toBe("translate(0px, -50%)");
+      expectStylePx(getHost()!.style.left, 0);
+      expect(getExpandBody()!.classList.contains("open")).toBe(true);
+
+      dispatchPointer("pointerup", toolbar, 4, 260);
+    });
+
+    it("float mode does not shift the right-edge toolbar when opening from a button click", () => {
+      fab = createFab({ dockMode: "float", initialPosition: "bottom-right" });
+      fab.mount();
+      const toolbar = getToolbar()!;
+      const before = {
+        left: window.innerWidth - 36,
+        top: 180,
+        right: window.innerWidth,
+        bottom: 360,
+        width: 36,
+        height: 180,
+      };
+      const rectSpy = vi.spyOn(toolbar, "getBoundingClientRect");
+      rectSpy.mockReturnValueOnce({ ...before, x: before.left, y: before.top, toJSON: () => ({}) });
+
+      getGear()!.click();
+
+      expect(getShadow()!.querySelector(".fab-wrapper")!.classList.contains("expand-left")).toBe(
+        true,
+      );
+      expect(getExpandBody()!.classList.contains("open")).toBe(true);
+      expectRectStable(
+        {
+          left: Number.parseFloat(getHost()!.style.left) - before.width,
+          top: Number.parseFloat(getHost()!.style.top) - before.height / 2,
+          right: Number.parseFloat(getHost()!.style.left),
+          bottom: Number.parseFloat(getHost()!.style.top) + before.height / 2,
+        },
+        before,
+      );
+    });
+
+    it("float mode does not shift the left-edge toolbar when opening from a button click", () => {
+      fab = createFab({ dockMode: "float", initialPosition: "bottom-left" });
+      fab.mount();
+      const toolbar = getToolbar()!;
+      const before = {
+        left: 0,
+        top: 180,
+        right: 36,
+        bottom: 360,
+        width: 36,
+        height: 180,
+      };
+      const rectSpy = vi.spyOn(toolbar, "getBoundingClientRect");
+      rectSpy.mockReturnValueOnce({ ...before, x: before.left, y: before.top, toJSON: () => ({}) });
+
+      getGear()!.click();
+
+      expect(getShadow()!.querySelector(".fab-wrapper")!.classList.contains("expand-right")).toBe(
+        true,
+      );
+      expect(getExpandBody()!.classList.contains("open")).toBe(true);
+      expectRectStable(
+        {
+          left: Number.parseFloat(getHost()!.style.left),
+          top: Number.parseFloat(getHost()!.style.top) - before.height / 2,
+          right: Number.parseFloat(getHost()!.style.left) + before.width,
+          bottom: Number.parseFloat(getHost()!.style.top) + before.height / 2,
+        },
+        before,
+      );
+    });
+
+    it("float mode keeps the toolbar stable when switching between open panels", () => {
+      fab = createFab({ dockMode: "float", initialPosition: "bottom-right" });
+      fab.mount();
+      const toolbar = getToolbar()!;
+      const openingRect = {
+        left: window.innerWidth - 36,
+        top: 180,
+        right: window.innerWidth,
+        bottom: 360,
+        width: 36,
+        height: 180,
+      };
+      const expandedRect = {
+        ...openingRect,
+        x: openingRect.left,
+        y: openingRect.top,
+        toJSON: () => ({}),
+      };
+      const rectSpy = vi.spyOn(toolbar, "getBoundingClientRect");
+      rectSpy.mockReturnValueOnce(expandedRect).mockReturnValueOnce(expandedRect);
+
+      getGear()!.click();
+      getShadow()!.querySelector<HTMLElement>(".logs-btn")!.click();
+
+      expect(getShadow()!.querySelector(".fab-wrapper")!.classList.contains("expand-left")).toBe(
+        true,
+      );
+      expect(getExpandBody()!.classList.contains("open")).toBe(true);
+      expect(getShadow()!.querySelector(".logs-btn")!.classList.contains("active")).toBe(true);
+      expectRectStable(
+        {
+          left: Number.parseFloat(getHost()!.style.left) - openingRect.width,
+          top: Number.parseFloat(getHost()!.style.top) - openingRect.height / 2,
+          right: Number.parseFloat(getHost()!.style.left),
+          bottom: Number.parseFloat(getHost()!.style.top) + openingRect.height / 2,
+        },
+        openingRect,
+      );
+    });
+
+    it("edge mode docks to the nearest left edge with a full-height rail", () => {
+      fab = createFab({ dockMode: "edge", initialPosition: "bottom-left" });
+      fab.mount();
+
+      getGear()!.click();
+
+      const host = getHost()!;
+      const wrapper = getShadow()!.querySelector(".fab-wrapper")!;
+      expect(wrapper.classList.contains("edge")).toBe(true);
+      expect(wrapper.classList.contains("edge-left")).toBe(true);
+      expect(host.style.left).toBe("0px");
+      expect(host.style.top).toBe("0px");
+      expect(host.style.bottom).toBe("0px");
+      expect(host.style.transform).toBe("none");
+      expect(getToolbar()!.classList.contains("vertical")).toBe(true);
+      expectStylePx(getComputedStyle(getToolbar()!).width, 36);
+      expectStylePx(getComputedStyle(getToolbar()!).height, window.innerHeight);
+      expect(getComputedStyle(getToolbarRow()!).flexDirection).toBe("column");
+    });
+
+    it("edge mode docks to the nearest right edge with a full-height rail", () => {
+      localStorage.setItem("vue-grab-fab-pos", JSON.stringify({ x: 92, y: 55 }));
+      fab = createFab({ dockMode: "edge" });
+      fab.mount();
+
+      getGear()!.click();
+
+      const host = getHost()!;
+      const wrapper = getShadow()!.querySelector(".fab-wrapper")!;
+      expect(wrapper.classList.contains("edge-right")).toBe(true);
+      expect(host.style.right).toBe("0px");
+      expect(host.style.top).toBe("0px");
+      expect(host.style.bottom).toBe("0px");
+      expect(host.style.transform).toBe("none");
+      expectStylePx(getComputedStyle(getToolbar()!).width, 36);
+      expectStylePx(getComputedStyle(getToolbar()!).height, window.innerHeight);
+      expect(getComputedStyle(getToolbarRow()!).flexDirection).toBe("column");
+    });
+
+    it("edge mode docks top and bottom edges from configured positions", () => {
+      fab = createFab({ dockMode: "edge", initialPosition: "top-center" });
+      fab.mount();
+      getGear()!.click();
+      expect(getShadow()!.querySelector(".fab-wrapper")!.classList.contains("edge-top")).toBe(true);
+      expectStylePx(getComputedStyle(getToolbar()!).width, window.innerWidth);
+      expectStylePx(getComputedStyle(getToolbar()!).height, 36);
+      fab.destroy();
+      cleanupDOM();
+
+      localStorage.setItem("vue-grab-fab-pos", JSON.stringify({ x: 50, y: 85 }));
+      fab = createFab({ dockMode: "edge" });
+      fab.mount();
+      getGear()!.click();
+      expect(getShadow()!.querySelector(".fab-wrapper")!.classList.contains("edge-bottom")).toBe(
+        true,
+      );
+      expectStylePx(getComputedStyle(getToolbar()!).width, window.innerWidth);
+      expectStylePx(getComputedStyle(getToolbar()!).height, 36);
+    });
+
+    it("edge mode uses the same nearest edge while closed and open", () => {
+      localStorage.setItem("vue-grab-fab-pos", JSON.stringify({ x: 50, y: 85 }));
+      fab = createFab({ dockMode: "edge" });
+      fab.mount();
+
+      const wrapper = getShadow()!.querySelector(".fab-wrapper")!;
+      expect(wrapper.classList.contains("edge-bottom")).toBe(true);
+
+      getGear()!.click();
+
+      expect(wrapper.classList.contains("edge-bottom")).toBe(true);
+      expect(getExpandBody()!.classList.contains("open")).toBe(true);
+    });
+
+    it("edge mode keeps the open bar and panel attached while dragging across side edges", () => {
+      fab = createFab({ dockMode: "edge", initialPosition: "bottom-left" });
+      fab.mount();
+      getGear()!.click();
+      mockToolbarRowRect(0, 242, 36, 220);
+
+      const toolbar = getToolbar()!;
+      dispatchPointer("pointerdown", toolbar, 18, 352);
+      dispatchPointer("pointermove", toolbar, 10, 300);
+
+      const wrapper = getShadow()!.querySelector(".fab-wrapper")!;
+      expect(wrapper.classList.contains("edge-left")).toBe(true);
+      expect(getHost()!.style.left).toBe("0px");
+      expect(getExpandBody()!.classList.contains("open")).toBe(true);
+
+      dispatchPointer("pointermove", toolbar, window.innerWidth - 4, 300);
+
+      expect(wrapper.classList.contains("edge-right")).toBe(true);
+      expect(getHost()!.style.right).toBe("0px");
+      expect(getHost()!.style.top).toBe("0px");
+      expect(getHost()!.style.bottom).toBe("0px");
+      expect(getHost()!.style.transform).toBe("none");
+      expectStylePx(getComputedStyle(getToolbar()!).height, window.innerHeight);
+      expect(getComputedStyle(getToolbarRow()!).flexDirection).toBe("column");
+      expect(getExpandBody()!.classList.contains("open")).toBe(true);
+
+      dispatchPointer("pointerup", toolbar, window.innerWidth - 4, 300);
+    });
+
+    it("switching modes while open re-layouts without losing panel content", () => {
+      fab = createFab({ dockMode: "float" });
+      fab.mount();
+
+      getGear()!.click();
+      expect(getShadow()!.querySelector(".tab-bar")).not.toBeNull();
+
+      getDockModeOption("edge")!.click();
+
+      const wrapper = getShadow()!.querySelector(".fab-wrapper")!;
+      expect(wrapper.classList.contains("edge")).toBe(true);
+      expect(getShadow()!.querySelector(".tab-bar")).not.toBeNull();
+      expect(getExpandBody()!.classList.contains("open")).toBe(true);
+    });
+
+    it("popup mode opens a browser popup and renders the panel there", () => {
+      fab = createFab({ dockMode: "float" });
+      fab.mount();
+      getGear()!.click();
+
+      const popup = window.open("", "vue-grab-test-popup", "width=960,height=640")!;
+      openedPopup = popup;
+      const openSpy = vi.spyOn(window, "open").mockReturnValue(popup);
+
+      getDockModeOption("popup")!.click();
+
+      expect(openSpy).toHaveBeenCalled();
+      expect(getHost()).toBeNull();
+      const popupHost = getHostFrom(popup.document)!;
+      const popupShadow = getShadowFrom(popup.document)!;
+      expect(popupHost.parentElement).toBe(popup.document.body);
+      expect(popupShadow.querySelector(".fab-wrapper")!.classList.contains("popup")).toBe(true);
+      expect(popupShadow.querySelector(".tab-bar")).not.toBeNull();
+    });
+
+    it("closing the popup returns the toolbar shell to the page", async () => {
+      fab = createFab({ dockMode: "float" });
+      fab.mount();
+      getGear()!.click();
+
+      const popup = window.open("", "vue-grab-test-popup-close", "width=960,height=640")!;
+      openedPopup = popup;
+      vi.spyOn(window, "open").mockReturnValue(popup);
+
+      getDockModeOption("popup")!.click();
+      expect(getHost()).toBeNull();
+
+      popup.close();
+      await new Promise((resolve) => setTimeout(resolve, 550));
+
+      expect(getHost()).not.toBeNull();
+      expect(getExpandBody()!.classList.contains("open")).toBe(false);
+      expect(getShadow()!.querySelector(".fab-wrapper")!.classList.contains("expanded")).toBe(
+        false,
+      );
+      expect(getGear()!.classList.contains("active")).toBe(false);
+    });
+
+    it("popup-blocked fallback keeps the panel usable in-page", () => {
+      fab = createFab({ dockMode: "float" });
+      fab.mount();
+      getGear()!.click();
+      vi.spyOn(window, "open").mockReturnValue(null);
+
+      getDockModeOption("popup")!.click();
+
+      expect(localStorage.getItem("vue-grab-dock-mode")).toBe("popup");
+      expect(getHost()).not.toBeNull();
+      expect(getExpandBody()!.classList.contains("open")).toBe(true);
+      expect(getShadow()!.querySelector(".tab-bar")).not.toBeNull();
+    });
+  });
+
   describe("setActive", () => {
     it("adds active CSS class to button when true", () => {
       fab = createFab();
@@ -160,11 +586,91 @@ describe("FloatingButton", () => {
   });
 
   describe("settings panel", () => {
+    function getSettingsTab(label: string): HTMLElement | null {
+      return (
+        Array.from(getShadow()?.querySelectorAll<HTMLElement>(".tab-btn") ?? []).find(
+          (btn) => btn.textContent === label,
+        ) ?? null
+      );
+    }
+
+    function getActiveDockMode(): HTMLElement | null {
+      return getShadow()?.querySelector(".dock-mode-option.active") ?? null;
+    }
+
     it("clicking gear opens settings panel", () => {
       fab = createFab();
       fab.mount();
 
       getGear()!.click();
+      expect(getExpandBody()!.classList.contains("open")).toBe(true);
+    });
+
+    it("opens the Appearance tab with dock mode and outside-click controls", () => {
+      fab = createFab();
+      fab.mount();
+
+      getGear()!.click();
+
+      expect(getSettingsTab("Appearance")!.classList.contains("active")).toBe(true);
+      expect(
+        Array.from(getShadow()!.querySelectorAll(".dock-mode-option")).map((btn) =>
+          btn.textContent?.trim(),
+        ),
+      ).toEqual(["Float", "Edge", "Popup"]);
+      expect(getActiveDockMode()!.textContent?.trim()).toBe("Float");
+      expect(getShadow()!.querySelector<HTMLInputElement>(".outside-click-toggle")!.checked).toBe(
+        true,
+      );
+    });
+
+    it("uses configured dock mode before localStorage is set", () => {
+      fab = createFab({ dockMode: "edge" });
+      fab.mount();
+
+      getGear()!.click();
+
+      expect(getActiveDockMode()!.textContent?.trim()).toBe("Edge");
+    });
+
+    it("persists dock mode changes to localStorage and restores them", () => {
+      fab = createFab();
+      fab.mount();
+      getGear()!.click();
+
+      getDockModeOption("edge")!.click();
+
+      expect(localStorage.getItem("vue-grab-dock-mode")).toBe("edge");
+      expect(getActiveDockMode()!.textContent?.trim()).toBe("Edge");
+
+      fab.destroy();
+      cleanupDOM();
+      fab = createFab({ dockMode: "float" });
+      fab.mount();
+      getGear()!.click();
+
+      expect(getActiveDockMode()!.textContent?.trim()).toBe("Edge");
+    });
+
+    it("closes on outside click by default", () => {
+      fab = createFab();
+      fab.mount();
+
+      getGear()!.click();
+      clickOutside();
+
+      expect(getExpandBody()!.classList.contains("open")).toBe(false);
+    });
+
+    it("keeps the panel open on outside click when the setting is disabled", () => {
+      fab = createFab();
+      fab.mount();
+
+      getGear()!.click();
+      getShadow()!.querySelector<HTMLInputElement>(".outside-click-toggle")!.click();
+      clickOutside();
+
+      expect(localStorage.getItem("vue-grab-close-on-outside-click")).toBe("false");
       expect(getExpandBody()!.classList.contains("open")).toBe(true);
     });
 
@@ -174,9 +680,10 @@ describe("FloatingButton", () => {
 
       // Open settings panel first so the kbd element is rendered
       getGear()!.click();
+      getSettingsTab("Shortcuts")!.click();
       fab.setCurrentHotkey("Alt+Shift+G");
 
-      const kbd = getShadow()!.querySelector("kbd")!;
+      const kbd = getShadow()!.querySelector(".grab-hotkey-kbd")!;
       expect(kbd.textContent).toBe("Alt+Shift+G");
     });
 
@@ -214,9 +721,10 @@ describe("FloatingButton", () => {
 
       // Open panel
       getGear()!.click();
+      getSettingsTab("Shortcuts")!.click();
 
       // Click record
-      const recordBtn = getShadow()!.querySelector(".record-btn") as HTMLElement;
+      const recordBtn = getShadow()!.querySelector(".grab-record-btn") as HTMLElement;
       recordBtn.click();
 
       // Simulate keypress
@@ -231,7 +739,7 @@ describe("FloatingButton", () => {
       );
 
       expect(spy).toHaveBeenCalledWith("Ctrl+Shift+K");
-      expect(getShadow()!.querySelector("kbd")!.textContent).toBe("Ctrl+Shift+K");
+      expect(getShadow()!.querySelector(".grab-hotkey-kbd")!.textContent).toBe("Ctrl+Shift+K");
     });
   });
 
@@ -393,6 +901,24 @@ describe("FloatingButton", () => {
       fab.destroy();
 
       expect(getHost()).toBeNull();
+    });
+
+    it("closes an open popup window", () => {
+      fab = createFab({ dockMode: "float" });
+      fab.mount();
+      getGear()!.click();
+
+      const popup = window.open("", "vue-grab-test-popup-destroy", "width=960,height=640")!;
+      openedPopup = popup;
+      const closeSpy = vi.spyOn(popup, "close");
+      vi.spyOn(window, "open").mockReturnValue(popup);
+
+      getDockModeOption("popup")!.click();
+      expect(getHost()).toBeNull();
+
+      fab.destroy();
+
+      expect(closeSpy).toHaveBeenCalledOnce();
     });
   });
 });

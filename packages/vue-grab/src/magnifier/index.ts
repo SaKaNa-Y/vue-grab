@@ -183,7 +183,7 @@ export class MagnifierOverlay {
   private htmlLabelEl: HTMLElement | null = null;
   private infoLabelEl: HTMLElement | null = null;
 
-  private _isActive = false;
+  private active = false;
   private config: MagnifierConfig;
   private rafId: number | null = null;
   private cloneTimerId: ReturnType<typeof setInterval> | null = null;
@@ -200,7 +200,7 @@ export class MagnifierOverlay {
   }
 
   get isActive(): boolean {
-    return this._isActive;
+    return this.active;
   }
 
   mount(): void {
@@ -277,9 +277,9 @@ export class MagnifierOverlay {
   }
 
   activate(): void {
-    if (this._isActive) return;
+    if (this.active) return;
 
-    this._isActive = true;
+    this.active = true;
     this.notifyState(true);
 
     if (this.container) {
@@ -316,9 +316,9 @@ export class MagnifierOverlay {
   }
 
   deactivate(): void {
-    if (!this._isActive) return;
+    if (!this.active) return;
 
-    this._isActive = false;
+    this.active = false;
     this.notifyState(false);
 
     if (this.rafId !== null) {
@@ -353,7 +353,7 @@ export class MagnifierOverlay {
   }
 
   toggle(): void {
-    if (this._isActive) {
+    if (this.active) {
       this.deactivate();
     } else {
       this.activate();
@@ -385,7 +385,7 @@ export class MagnifierOverlay {
       this.config.zoomLevel = partial.zoomLevel;
     }
     // Re-render immediately if active
-    if (this._isActive && this.cloneEl) {
+    if (this.active && this.cloneEl) {
       this.render();
     }
   }

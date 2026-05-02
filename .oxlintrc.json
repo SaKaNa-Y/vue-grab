@@ -11,6 +11,19 @@
   },
   "rules": {
     "no-unused-vars": "warn",
+    "no-underscore-dangle": [
+      "warn",
+      {
+        "allow": [
+          "__VUE_GRAB_ROOT__",
+          "__name",
+          "__file",
+          "__vueParentComponent",
+          "__vue_app__",
+          "_instance"
+        ]
+      }
+    ],
     "no-console": "off"
   },
   "ignorePatterns": [

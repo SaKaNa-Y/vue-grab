@@ -42,6 +42,21 @@ describe("mergeConfig", () => {
     });
     expect(result.floatingButton.enabled).toBe(true);
     expect(result.floatingButton.storageKey).toBe(DEFAULT_CONFIG.floatingButton.storageKey);
+    expect(result.floatingButton.dockMode).toBe(DEFAULT_CONFIG.floatingButton.dockMode);
+    expect(result.floatingButton.closeOnOutsideClick).toBe(
+      DEFAULT_CONFIG.floatingButton.closeOnOutsideClick,
+    );
+  });
+
+  it("overrides floatingButton appearance settings", () => {
+    const result = mergeConfig(DEFAULT_CONFIG, {
+      floatingButton: {
+        dockMode: "edge",
+        closeOnOutsideClick: false,
+      },
+    });
+    expect(result.floatingButton.dockMode).toBe("edge");
+    expect(result.floatingButton.closeOnOutsideClick).toBe(false);
   });
 
   it("deep-merges consoleCapture", () => {
