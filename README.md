@@ -6,28 +6,38 @@
 
 Grab UI context from Vue apps for AI coding agents.
 
-Point at any element, click, and get its HTML, CSS selector, and Vue component hierarchy — ready to paste into an AI chat.
+Point at any element, click, and capture its HTML, CSS selector, Vue component hierarchy, accessibility context, and recent network activity so you can hand useful UI evidence to Cursor, Claude Code, or any AI chat.
 
 ## Features
 
-- **Interactive element selection** — hover to highlight, click to capture
-- **Vue component stack** — extracts component names and file paths when Vue exposes them
-- **CSS selector generation** — useful selector for the selected element
-- **HTML capture** — outerHTML with configurable max length
-- **Floating action button** — optional draggable FAB with hotkey settings panel
-- **Hotkey support** — default `Alt+Shift+G`, fully customizable and persistable
-- **Accessibility audit** — a11y attribute extraction and 5-rule audit on every grab
-- **Console capture** — captures all console output (log/info/warn/error/debug) plus runtime errors, promise rejections, and Vue errorHandler, with per-level filter pills and message search in the FAB panel
-- **Shadow DOM isolation** — overlay styles never conflict with your app
-- **Works with or without Vue** — use as a Vue plugin or standalone `init()`
+- **Interactive element selection** - hover to highlight, click to capture.
+- **Vue component stack** - extracts component names, file paths, and source lines when Vue or related capture utilities expose them.
+- **CSS selector generation** - creates a useful locator for the selected element.
+- **HTML capture** - records `outerHTML` with configurable truncation.
+- **Accessibility audit** - extracts ARIA/a11y attributes on every grab and provides a page-wide scan from the floating button.
+- **Console capture** - records console output, runtime errors, promise rejections, and Vue errors in a searchable ring buffer.
+- **Network capture** - records `fetch`/XHR metadata, redacts sensitive headers, optionally captures bodies, and attaches recent requests to grab results.
+- **Floating action button** - optional draggable toolbar with Float and Edge dock modes, settings, logs, network, a11y, magnifier, and measurer controls.
+- **Magnifier and measurer** - inspect zoomed HTML context and measure distances between elements while iterating on UI.
+- **Vite editor integration** - open captured file paths in your editor through the companion dev-server plugin.
+- **Shadow DOM isolation** - overlay and toolbar styles stay isolated from your app.
+- **Works with or without Vue** - use as a Vue plugin or standalone `init()`.
 
 ## Quick Start
 
+For a Vite + Vue app, the CLI can install Vue Grab and wire both the runtime plugin and the Vite editor companion:
+
 ```bash
-npm install @sakana-y/vue-grab
+npx @sakana-y/vue-grab-cli init
 ```
 
-### Vue Plugin
+Use `--dry-run` to preview changes, `--yes` to skip prompts, or `--skip-install` if you want to install dependencies yourself.
+
+### Manual Vue Plugin Setup
+
+```bash
+pnpm add -D @sakana-y/vue-grab
+```
 
 ```ts
 // main.ts
@@ -36,7 +46,11 @@ import { createVueGrab } from "@sakana-y/vue-grab";
 import App from "./App.vue";
 
 const app = createApp(App);
-app.use(createVueGrab());
+app.use(
+  createVueGrab({
+    floatingButton: { enabled: true },
+  }),
+);
 app.mount("#app");
 ```
 
@@ -57,7 +71,22 @@ const { isActive, lastResult, toggle } = useGrab();
 </template>
 ```
 
-### Standalone (no Vue plugin)
+### Vite Editor Integration
+
+```ts
+// vite.config.ts
+import { defineConfig } from "vite";
+import vue from "@vitejs/plugin-vue";
+import { vueGrabPlugin } from "@sakana-y/vue-grab/vite";
+
+export default defineConfig({
+  plugins: [vue(), vueGrabPlugin({ editor: "code" })],
+});
+```
+
+The Vite plugin adds a development-only `/__open-in-editor` endpoint for same-origin JSON `POST` requests. It rejects paths outside the project root and unsupported editor commands.
+
+### Standalone Usage
 
 ```ts
 import { init } from "@sakana-y/vue-grab";
@@ -68,9 +97,16 @@ grabber.onGrab((result) => {
   console.log(result.selector);
   console.log(result.html);
   console.log(result.componentStack);
+  console.log(result.a11y);
+  console.log(result.network);
 });
 
+grabber.onLog((entries) => console.table(entries));
+grabber.onNetwork((entries) => console.table(entries));
+
 // later
+grabber.clearLogs();
+grabber.clearNetwork();
 grabber.destroy();
 ```
 
@@ -80,42 +116,81 @@ All options are optional. Pass them to `createVueGrab()` or `init()`:
 
 ```ts
 createVueGrab({
-  highlightColor: "#4f46e5", // highlight border/background color
-  labelTextColor: "#ffffff", // tag label text color
-  showTagHint: true, // show component tag on hover
-  maxHtmlLength: 10000, // 0 = unlimited
+  highlightColor: "#4f46e5",
+  labelTextColor: "#ffffff",
+  showTagHint: true,
+  maxHtmlLength: 10000,
   filter: {
-    ignoreSelectors: [], // CSS selectors to skip
-    ignoreTags: [], // HTML tags to skip
-    skipCommonComponents: false, // skip header, nav, footer, sidebar, etc.
+    ignoreSelectors: [],
+    ignoreTags: [],
+    skipCommonComponents: false,
   },
   floatingButton: {
-    enabled: false, // show draggable FAB
+    enabled: false,
     initialPosition: "top-center",
+    dockMode: "float",
     storageKey: "vue-grab-fab-pos",
+    dockModeStorageKey: "vue-grab-dock-mode",
     hotkeyStorageKey: "vue-grab-hotkey",
     editorStorageKey: "vue-grab-editor",
+    measurerHotkeyStorageKey: "vue-grab-measurer-hotkey",
+    closeOnOutsideClick: true,
+    closeOnOutsideClickStorageKey: "vue-grab-close-on-outside-click",
   },
   consoleCapture: {
-    enabled: true, // capture console output
-    maxEntries: 200, // ring buffer size
-    levels: ["log", "info", "warn", "error", "debug"], // which console.* methods to intercept
-    captureUnhandled: true, // window error + unhandledrejection
-    captureVueErrors: true, // app.config.errorHandler
+    enabled: true,
+    maxEntries: 200,
+    levels: ["log", "info", "warn", "error", "debug"],
+    captureUnhandled: true,
+    captureVueErrors: true,
+  },
+  networkCapture: {
+    enabled: true,
+    maxEntries: 100,
+    captureFetch: true,
+    captureXhr: true,
+    captureBodies: false,
+    bodyMaxBytes: 2048,
+    redactHeaders: ["authorization", "cookie", "set-cookie", "x-api-key"],
+    urlDenyList: ["/__open-in-editor"],
+    grabSnapshot: {
+      enabled: true,
+      maxEntries: 20,
+      windowMs: 10000,
+    },
+  },
+  magnifier: {
+    enabled: true,
+    loupeSize: 400,
+    zoomLevel: 3,
+    showHtmlOverlay: true,
+    maxOverlayHtmlLength: 200,
+  },
+  measurer: {
+    enabled: true,
+    lineColor: "#06b6d4",
+    guideColor: "#a855f7",
+    lineWidth: 1,
+    showAlignmentGuides: true,
+    alignmentTolerance: 3,
   },
 });
 ```
 
+Nested options are deep-merged with `DEFAULT_CONFIG` by `mergeConfig()` from `@sakana-y/vue-grab-shared`. Array fields such as `consoleCapture.levels`, `networkCapture.redactHeaders`, and `networkCapture.urlDenyList` are replaced wholesale.
+
 ## `useGrab()` API
 
-| Property       | Type                                    | Description                 |
-| -------------- | --------------------------------------- | --------------------------- |
-| `config`       | `GrabConfig`                            | Resolved configuration      |
-| `isActive`     | `Readonly<Ref<boolean>>`                | Whether grab mode is active |
-| `lastResult`   | `DeepReadonly<Ref<GrabResult \| null>>` | Last captured result        |
-| `activate()`   | `() => void`                            | Enter grab mode             |
-| `deactivate()` | `() => void`                            | Exit grab mode              |
-| `toggle()`     | `() => void`                            | Toggle grab mode            |
+| Property             | Type                                    | Description                       |
+| -------------------- | --------------------------------------- | --------------------------------- |
+| `config`             | `GrabConfig`                            | Resolved configuration            |
+| `isActive`           | `Readonly<Ref<boolean>>`                | Whether grab mode is active       |
+| `lastResult`         | `DeepReadonly<Ref<GrabResult \| null>>` | Last captured result              |
+| `isMeasurerActive`   | `Readonly<Ref<boolean>>`                | Whether measurer mode is active   |
+| `activate()`         | `() => void`                            | Enter grab mode                   |
+| `deactivate()`       | `() => void`                            | Exit grab mode                    |
+| `toggle()`           | `() => void`                            | Toggle grab mode                  |
+| `toggleMeasurer()`   | `() => void`                            | Toggle the element measurer       |
 
 ### `GrabResult`
 
@@ -126,6 +201,7 @@ interface GrabResult {
   componentStack: ComponentInfo[];
   selector: string;
   a11y: A11yInfo;
+  network?: CapturedRequest[];
 }
 
 interface ComponentInfo {
@@ -143,137 +219,23 @@ interface A11yInfo {
 
 ## Packages
 
-| Package                                          | Description                               |
-| ------------------------------------------------ | ----------------------------------------- |
-| [`@sakana-y/vue-grab`](./packages/vue-grab)      | Core library — plugin, composable, engine |
-| [`@sakana-y/vue-grab-shared`](./packages/shared) | Shared types and constants                |
-| [`@sakana-y/vue-grab-cli`](./packages/cli)       | CLI tool (`vue-grab init`)                |
+| Package                                          | Description                                      |
+| ------------------------------------------------ | ------------------------------------------------ |
+| [`@sakana-y/vue-grab`](./packages/vue-grab)      | Core library, Vue plugin, composable, and engine |
+| [`@sakana-y/vue-grab-shared`](./packages/shared) | Shared types, defaults, merge helpers, protocol  |
+| [`@sakana-y/vue-grab-cli`](./packages/cli)       | CLI tool (`vue-grab init`)                       |
 
 ## Development
 
 ```bash
 pnpm install
-pnpm dev:playground   # run demo app
-pnpm test             # run all tests
-pnpm build            # build all packages
+pnpm dev:playground
+pnpm docs:dev
+pnpm test
+pnpm build
 pnpm lint && pnpm format:check
 ```
 
 ## License
-
-[MIT](./LICENSE)
-
----
-
-<p align="center"><a href="#vue-grab-中文">中文文档</a></p>
-
----
-
-<h1 id="vue-grab-中文">Vue Grab</h1>
-
-从 Vue 应用中抓取 UI 上下文，为 AI 编程助手提供信息。
-
-指向任意元素，点击即可获取其 HTML、CSS 选择器和 Vue 组件层级 —— 可直接粘贴到 AI 对话中。
-
-## 功能特性
-
-- **交互式元素选择** — 悬停高亮，点击捕获
-- **Vue 组件栈** — 提取组件名、文件路径和行号
-- **CSS 选择器生成** — 为选中元素生成唯一选择器
-- **HTML 捕获** — outerHTML，可配置最大长度
-- **悬浮操作按钮** — 可选的可拖拽 FAB，带快捷键设置面板
-- **快捷键支持** — 默认 `Alt+Shift+G`，完全可自定义且可持久化
-- **无障碍审计** — 提取 a11y 属性并在每次抓取时执行 5 条审计规则
-- **CSS 检查器** — 匹配的 CSS 规则，支持实时编辑并写回 SFC 源文件
-- **控制台捕获** — 捕获全部 console 输出（log/info/warn/error/debug）以及运行时错误、Promise 拒绝和 Vue errorHandler 错误，FAB 面板提供分级筛选与消息搜索
-- **Shadow DOM 隔离** — 覆盖层样式不会影响你的应用
-- **支持非 Vue 环境** — 既可作为 Vue 插件使用，也可独立调用 `init()`
-
-## 快速开始
-
-```bash
-npm install @sakana-y/vue-grab
-```
-
-### Vue 插件方式
-
-```ts
-// main.ts
-import { createApp } from "vue";
-import { createVueGrab } from "@sakana-y/vue-grab";
-import App from "./App.vue";
-
-const app = createApp(App);
-app.use(createVueGrab());
-app.mount("#app");
-```
-
-在任意组件中使用 composable：
-
-```vue
-<script setup lang="ts">
-import { useGrab } from "@sakana-y/vue-grab";
-
-const { isActive, lastResult, toggle } = useGrab();
-</script>
-
-<template>
-  <button @click="toggle">
-    {{ isActive ? "抓取中..." : "抓取" }}
-  </button>
-  <pre v-if="lastResult">{{ lastResult.selector }}</pre>
-</template>
-```
-
-### 独立使用（无需 Vue 插件）
-
-```ts
-import { init } from "@sakana-y/vue-grab";
-
-const grabber = init({ floatingButton: { enabled: true } });
-
-grabber.onGrab((result) => {
-  console.log(result.selector);
-  console.log(result.html);
-  console.log(result.componentStack);
-});
-
-// 销毁
-grabber.destroy();
-```
-
-## 配置项
-
-所有选项均为可选，传入 `createVueGrab()` 或 `init()`：
-
-```ts
-createVueGrab({
-  highlightColor: "#4f46e5", // 高亮边框/背景色
-  labelTextColor: "#ffffff", // 标签文字颜色
-  showTagHint: true, // 悬停时显示组件标签
-  maxHtmlLength: 10000, // 0 = 不限制
-  filter: {
-    ignoreSelectors: [], // 需跳过的 CSS 选择器
-    ignoreTags: [], // 需跳过的 HTML 标签
-    skipCommonComponents: false, // 跳过 header、nav、footer、sidebar 等
-  },
-  floatingButton: {
-    enabled: false, // 显示可拖拽悬浮按钮
-    initialPosition: "top-center",
-    storageKey: "vue-grab-fab-pos",
-    hotkeyStorageKey: "vue-grab-hotkey",
-    editorStorageKey: "vue-grab-editor",
-  },
-  consoleCapture: {
-    enabled: true, // 启用控制台捕获
-    maxEntries: 200, // 环形缓冲区大小
-    levels: ["log", "info", "warn", "error", "debug"], // 要拦截的 console.* 方法
-    captureUnhandled: true, // window error + unhandledrejection
-    captureVueErrors: true, // app.config.errorHandler
-  },
-});
-```
-
-## 许可证
 
 [MIT](./LICENSE)

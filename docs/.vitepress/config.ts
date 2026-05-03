@@ -51,7 +51,7 @@ export default defineConfig({
     },
     footer: {
       message: "Released under the MIT License.",
-      copyright: "Copyright © 2025-present SaKaNa-Y",
+      copyright: "Copyright (c) 2025-present SaKaNa-Y",
     },
     search: {
       provider: "local",

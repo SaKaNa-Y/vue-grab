@@ -1,6 +1,6 @@
 # Vite Integration
 
-`@sakana-y/vue-grab/vite` is the companion Vite dev-server plugin. It turns a captured source file path into an "open this in my editor" action.
+`@sakana-y/vue-grab/vite` is the companion Vite dev-server plugin. It turns captured source file paths into "open this in my editor" actions.
 
 ## Install
 
@@ -17,11 +17,23 @@ export default defineConfig({
 });
 ```
 
-## What it adds
+Pass a default editor command when you want to avoid launch-editor autodetection:
 
-### `/__open-in-editor`
+```ts
+vueGrabPlugin({ editor: "code" });
+```
 
-A dev-server endpoint that accepts a same-origin `POST` with JSON `{ file, line, editor }` and hands off to [`launch-editor`](https://github.com/yyx990803/launch-editor). Files are resolved inside the Vite project root; paths outside the root are rejected.
+## `/__open-in-editor`
+
+The plugin adds a dev-server-only endpoint at `/__open-in-editor`. `openInEditor()` sends a same-origin JSON `POST` with this shape:
+
+```ts
+interface OpenInEditorRequest {
+  file: string;
+  line?: number;
+  editor?: string;
+}
+```
 
 ```ts
 import { openInEditor } from "@sakana-y/vue-grab";
@@ -29,16 +41,32 @@ import { openInEditor } from "@sakana-y/vue-grab";
 openInEditor("src/components/StatCard.vue", 12);
 ```
 
+## Security checks
+
+The endpoint is intentionally narrow:
+
+- Accepts only `POST`.
+- Requires `content-type` containing `application/json`.
+- Rejects cross-origin requests.
+- Rejects request bodies larger than 8192 bytes.
+- Requires a non-empty `file`.
+- Resolves files inside the Vite project root and rejects paths outside it.
+- Rejects unsupported editor commands.
+
+Allowed editor commands are exactly: `atom`, `code`, `cursor`, `emacs`, `idea`, `nvim`, `phpstorm`, `sublime`, `vim`, `visualstudio`, `webstorm`.
+
+## Editor precedence
+
 The editor is picked in this order:
 
-1. User preference stored in `localStorage` (`vue-grab-editor`, set via the FAB settings panel)
-2. The default editor passed to `vueGrabPlugin({ editor })`
-3. `launch-editor`'s own autodetection (VS Code, WebStorm, Sublime, etc.)
+1. User preference stored in localStorage (`vue-grab-editor`, set from the floating button settings panel).
+2. The default editor passed to `vueGrabPlugin({ editor })`.
+3. `launch-editor` autodetection.
 
 ## Production
 
-The plugin only attaches during `serve`; nothing ships to your production bundle. The `openInEditor` call is a no-op if `/__open-in-editor` is not reachable, so leaving it in shipped code is safe.
+The plugin only attaches during Vite `serve`; nothing ships to your production bundle. `openInEditor()` is safe to leave in application code because it becomes a no-op when `/__open-in-editor` is unreachable.
 
 ## Without the Vite plugin
 
-You can still use Vue Grab without the companion plugin. You just will not get clickable file paths. `componentStack` entries can still carry `filePath` from Vue's dev build, and `line` is used when a source line is available from related capture utilities.
+You can still use Vue Grab without the companion plugin. You just will not get editor-opening actions. `componentStack` entries can still carry `filePath` from Vue's dev build, and related capture utilities may still provide source lines.

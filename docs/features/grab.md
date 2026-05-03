@@ -7,7 +7,7 @@ The core feature: point at an element, click, and get its context.
 Three ways to enter grab mode:
 
 - **Hotkey** - default `Alt+Shift+G`, toggles on/off. Registered at the capture phase so it wins against app-level handlers.
-- **Floating button** - click the "Grab" button in the FAB (opt in with `floatingButton.enabled`).
+- **Floating button** - click the "Grab" button in the floating button (opt in with `floatingButton.enabled`).
 - **Programmatic** - `useGrab().toggle()` inside a component, or `init().activate()` outside Vue.
 
 ```ts
@@ -18,7 +18,7 @@ const { isActive, toggle, activate, deactivate, lastResult } = useGrab();
 
 ## What a grab captures
 
-A `GrabResult` carries the element context used by the FAB and agent prompts:
+A `GrabResult` carries the element context used by the floating button and agent prompts:
 
 ```ts
 interface GrabResult {

@@ -1,31 +1,32 @@
 # Introduction
 
-**Vue Grab** is a developer tool that lets you _grab_ UI elements from a running Vue app and feed their context — component stack, CSS selector, HTML, accessibility info — straight into an AI coding agent.
+**Vue Grab** is a developer tool that lets you grab UI elements from a running Vue app and feed their context directly into an AI coding agent.
 
-It ships as a Vue 3 plugin, but also works with any page via a standalone `init()` entry point.
+It ships as a Vue 3 plugin, a standalone `init()` entry point, a Vite companion plugin for editor handoff, and a CLI that can wire the common Vite + Vue setup for you.
 
 ## Why
 
-When you're iterating on UI with an AI agent, the agent needs context that usually lives only in your head: _which_ component rendered this button, where its file lives, what ARIA attributes it has. Copy-pasting that by hand is slow and lossy. Vue Grab collects it all with a click.
+When you are iterating on UI with an AI agent, the agent needs context that usually lives only in your head: which component rendered this button, where its file lives, which ARIA attributes it has, and what console or network failures happened nearby. Vue Grab collects that with a click.
 
 ## What you get on every grab
 
-- **CSS selector** — useful locator for the element
-- **outerHTML** — truncated at `maxHtmlLength` (default 10,000 chars)
-- **Component stack** — walked via `__vueParentComponent`, with file paths when Vue exposes them
-- **Accessibility info** — ARIA attributes and audit findings
+- **CSS selector** - useful locator for the element.
+- **outerHTML** - truncated at `maxHtmlLength` by default.
+- **Component stack** - walked via Vue internals, with file paths when Vue exposes them.
+- **Accessibility info** - ARIA attributes and audit findings for the grabbed element.
+- **Recent network snapshot** - optional `result.network` entries from the configured fetch/XHR capture window.
 
 ## How activation works
 
-- **Hotkey**: `Alt+Shift+G` (configurable and persisted to localStorage) toggles grab mode
-- **Measurer**: `Alt+Shift+M` toggles the spacing inspector
-- **Floating button** (opt-in): a draggable FAB with logs, a11y, and settings panels
-- **Programmatic**: `useGrab()` composable inside any component, or the `init()` API outside Vue
+- **Hotkey**: `Alt+Shift+G` toggles grab mode.
+- **Measurer**: `Alt+Shift+M` toggles the spacing inspector when enabled.
+- **Floating button**: opt-in toolbar with Float and Edge dock modes, logs, network, a11y, magnifier, measurer, and settings panels.
+- **Programmatic**: `useGrab()` inside Vue components, or `init()` outside Vue.
 
 ## Requirements
 
-- Vue **3.5+** for the plugin entry point (`@sakana-y/vue-grab`)
-- Any framework or none for the standalone `init()` entry point
-- Vite (any version supported by `@sakana-y/vue-grab/vite`) for the "open in editor" feature
+- Vue **3.5+** for the plugin entry point.
+- Any framework or none for the standalone `init()` entry point.
+- Vite for the optional "open in editor" feature.
 
-Next: **[Installation →](./installation)**
+Next: **[Installation](./installation)**
