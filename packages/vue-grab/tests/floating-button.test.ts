@@ -28,16 +28,8 @@ function getHost(): HTMLElement | null {
   return document.getElementById(FAB_HOST_ID);
 }
 
-function getHostFrom(doc: Document): HTMLElement | null {
-  return doc.getElementById(FAB_HOST_ID);
-}
-
 function getShadow(): ShadowRoot | null {
   return getHost()?.shadowRoot ?? null;
-}
-
-function getShadowFrom(doc: Document): ShadowRoot | null {
-  return getHostFrom(doc)?.shadowRoot ?? null;
 }
 
 function getToolbar(): HTMLElement | null {
@@ -117,12 +109,9 @@ function clickOutside(): void {
 
 describe("FloatingButton", () => {
   let fab: FloatingButton;
-  let openedPopup: Window | null = null;
 
   afterEach(() => {
     fab?.destroy();
-    openedPopup?.close();
-    openedPopup = null;
     vi.restoreAllMocks();
     cleanupDOM();
     localStorage.clear();
@@ -205,7 +194,6 @@ describe("FloatingButton", () => {
       const host = getHost()!;
       expect(getExpandBody()!.classList.contains("open")).toBe(true);
       expect(getShadow()!.querySelector(".fab-wrapper")!.classList.contains("edge")).toBe(false);
-      expect(getShadow()!.querySelector(".fab-wrapper")!.classList.contains("popup")).toBe(false);
       expect(host.style.transform).toBe("translate(-100%, -50%)");
     });
 
@@ -495,63 +483,6 @@ describe("FloatingButton", () => {
       expect(getShadow()!.querySelector(".tab-bar")).not.toBeNull();
       expect(getExpandBody()!.classList.contains("open")).toBe(true);
     });
-
-    it("popup mode opens a browser popup and renders the panel there", () => {
-      fab = createFab({ dockMode: "float" });
-      fab.mount();
-      getGear()!.click();
-
-      const popup = window.open("", "vue-grab-test-popup", "width=960,height=640")!;
-      openedPopup = popup;
-      const openSpy = vi.spyOn(window, "open").mockReturnValue(popup);
-
-      getDockModeOption("popup")!.click();
-
-      expect(openSpy).toHaveBeenCalled();
-      expect(getHost()).toBeNull();
-      const popupHost = getHostFrom(popup.document)!;
-      const popupShadow = getShadowFrom(popup.document)!;
-      expect(popupHost.parentElement).toBe(popup.document.body);
-      expect(popupShadow.querySelector(".fab-wrapper")!.classList.contains("popup")).toBe(true);
-      expect(popupShadow.querySelector(".tab-bar")).not.toBeNull();
-    });
-
-    it("closing the popup returns the toolbar shell to the page", async () => {
-      fab = createFab({ dockMode: "float" });
-      fab.mount();
-      getGear()!.click();
-
-      const popup = window.open("", "vue-grab-test-popup-close", "width=960,height=640")!;
-      openedPopup = popup;
-      vi.spyOn(window, "open").mockReturnValue(popup);
-
-      getDockModeOption("popup")!.click();
-      expect(getHost()).toBeNull();
-
-      popup.close();
-      await new Promise((resolve) => setTimeout(resolve, 550));
-
-      expect(getHost()).not.toBeNull();
-      expect(getExpandBody()!.classList.contains("open")).toBe(false);
-      expect(getShadow()!.querySelector(".fab-wrapper")!.classList.contains("expanded")).toBe(
-        false,
-      );
-      expect(getGear()!.classList.contains("active")).toBe(false);
-    });
-
-    it("popup-blocked fallback keeps the panel usable in-page", () => {
-      fab = createFab({ dockMode: "float" });
-      fab.mount();
-      getGear()!.click();
-      vi.spyOn(window, "open").mockReturnValue(null);
-
-      getDockModeOption("popup")!.click();
-
-      expect(localStorage.getItem("vue-grab-dock-mode")).toBe("popup");
-      expect(getHost()).not.toBeNull();
-      expect(getExpandBody()!.classList.contains("open")).toBe(true);
-      expect(getShadow()!.querySelector(".tab-bar")).not.toBeNull();
-    });
   });
 
   describe("setActive", () => {
@@ -617,8 +548,9 @@ describe("FloatingButton", () => {
         Array.from(getShadow()!.querySelectorAll(".dock-mode-option")).map((btn) =>
           btn.textContent?.trim(),
         ),
-      ).toEqual(["Float", "Edge", "Popup"]);
+      ).toEqual(["Float", "Edge"]);
       expect(getActiveDockMode()!.textContent?.trim()).toBe("Float");
+      expect(getDockModeOption("popup")).toBeNull();
       expect(getShadow()!.querySelector<HTMLInputElement>(".outside-click-toggle")!.checked).toBe(
         true,
       );
@@ -631,6 +563,18 @@ describe("FloatingButton", () => {
       getGear()!.click();
 
       expect(getActiveDockMode()!.textContent?.trim()).toBe("Edge");
+    });
+
+    it("ignores stale popup dock mode values from storage", () => {
+      localStorage.setItem("vue-grab-dock-mode", "popup");
+      fab = createFab({ dockMode: "edge" });
+      fab.mount();
+
+      getGear()!.click();
+
+      expect(getDockModeOption("popup")).toBeNull();
+      expect(getActiveDockMode()!.textContent?.trim()).toBe("Float");
+      expect(getShadow()!.querySelector(".fab-wrapper")!.classList.contains("edge")).toBe(false);
     });
 
     it("persists dock mode changes to localStorage and restores them", () => {
@@ -901,24 +845,6 @@ describe("FloatingButton", () => {
       fab.destroy();
 
       expect(getHost()).toBeNull();
-    });
-
-    it("closes an open popup window", () => {
-      fab = createFab({ dockMode: "float" });
-      fab.mount();
-      getGear()!.click();
-
-      const popup = window.open("", "vue-grab-test-popup-destroy", "width=960,height=640")!;
-      openedPopup = popup;
-      const closeSpy = vi.spyOn(popup, "close");
-      vi.spyOn(window, "open").mockReturnValue(popup);
-
-      getDockModeOption("popup")!.click();
-      expect(getHost()).toBeNull();
-
-      fab.destroy();
-
-      expect(closeSpy).toHaveBeenCalledOnce();
     });
   });
 });
