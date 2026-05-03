@@ -4,18 +4,18 @@ Vue Grab captures browser console output and runtime errors into a ring buffer s
 
 ## What gets captured
 
-| Source               | How it's captured                                | Emitted as                               |
+| Source               | How it is captured                               | Emitted as                               |
 | -------------------- | ------------------------------------------------ | ---------------------------------------- |
 | `console.*`          | Patching `log`, `info`, `warn`, `error`, `debug` | `level: <matching>`, `source: "console"` |
 | `window.error`       | Global error listener                            | `level: "error"`, `source: "runtime"`    |
 | `unhandledrejection` | Global rejection listener                        | `level: "error"`, `source: "promise"`    |
 | Vue `errorHandler`   | `app.config.errorHandler` shim                   | `level: "error"`, `source: "vue"`        |
 
-Each entry carries both axes (`level` and `source`), so the FAB panel can filter by level while still showing _where_ the entry came from.
+Each entry carries both axes (`level` and `source`), so the floating button panel can filter by level while still showing where the entry came from.
 
 ## Ring buffer
 
-Default capacity is **200** entries. When full, the oldest entry is evicted. Tune it:
+Default capacity is 200 entries. When full, the oldest entry is evicted.
 
 ```ts
 createVueGrab({
@@ -25,11 +25,11 @@ createVueGrab({
 
 ## Deduplication
 
-Consecutive entries with the same fingerprint — `${source}::${level}::${message}` — collapse into one with a `count`. Handy when a logger spams the same warning in a loop.
+Consecutive entries with the same `${source}::${level}::${message}` fingerprint collapse into one with an incremented `count`.
 
 ## Safe stringification
 
-Arguments are stringified with a safe serializer that handles **circular references** and swaps unserializable values (functions, DOM nodes, `Symbol`s) for placeholder strings. The original `console.*` output is still printed to the real console untouched.
+Arguments are stringified with a safe serializer that handles circular references and swaps unserializable values such as functions, DOM nodes, and symbols for placeholder strings. The original `console.*` output is still printed to the real console.
 
 ## Filtering capture
 
@@ -37,25 +37,16 @@ Arguments are stringified with a safe serializer that handles **circular referen
 createVueGrab({
   consoleCapture: {
     enabled: true,
-    levels: ["warn", "error"], // only warn + error from console.*
-    captureUnhandled: true, // still capture runtime errors + rejections
-    captureVueErrors: true, // and Vue errorHandler errors
+    levels: ["warn", "error"],
+    captureUnhandled: true,
+    captureVueErrors: true,
   },
 });
 ```
 
-`levels` is **replaced wholesale** by `mergeConfig()` rather than element-merged — `["warn", "error"]` means exactly those two, not "defaults + these".
+`levels` is replaced wholesale by `mergeConfig()`. `["warn", "error"]` means exactly those two console methods, not "defaults plus these".
 
 ## Reading the buffer
-
-From a component:
-
-```ts
-import { useGrab } from "@sakana-y/vue-grab";
-
-const { config } = useGrab();
-// FAB panel reads through the engine; programmatic access is via init()
-```
 
 From the standalone entry:
 
@@ -67,12 +58,10 @@ grab.onLog((entries) => console.table(entries));
 grab.clearLogs();
 ```
 
-## FAB integration
+## Floating Button integration
 
-When `floatingButton.enabled` is true, the **Logs panel** shows:
+When `floatingButton.enabled` is true, the Logs panel shows five level filter pills, a message search input, expandable entries, copy-to-prompt actions, Claude Code handoff, and editor opening when a source file can be resolved.
 
-- Five color-coded level pills (`log` / `info` / `warn` / `error` / `debug`) — click to filter
-- A message search input
-- The FAB badge counts only `warn` + `error` entries, not the noisy levels
+The floating button badge counts only `warn` and `error` entries from the log buffer.
 
-See [Floating Button →](./floating-button).
+See [Floating Button](./floating-button).

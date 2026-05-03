@@ -1,6 +1,6 @@
 # Configuration
 
-All configuration is optional. Pass a nested partial `GrabConfig` to `createVueGrab()` or `init()` - it is deep-merged with `DEFAULT_CONFIG` via `mergeConfig()` from `@sakana-y/vue-grab-shared`.
+All configuration is optional. Pass a nested partial `GrabConfig` to `createVueGrab()` or `init()`; it is deep-merged with `DEFAULT_CONFIG` via `mergeConfig()` from `@sakana-y/vue-grab-shared`.
 
 ```ts
 import { createVueGrab } from "@sakana-y/vue-grab";
@@ -10,6 +10,7 @@ createVueGrab({
   maxHtmlLength: 5000,
   floatingButton: { enabled: true },
   consoleCapture: { maxEntries: 500 },
+  networkCapture: { captureBodies: false },
   filter: { ignoreTags: ["script", "style"] },
 });
 ```
@@ -20,10 +21,10 @@ createVueGrab({
 | ---------------- | ---------------------- | ----------- | ---------------------------------------------- |
 | `highlightColor` | `string`               | `"#4f46e5"` | Overlay border and label background.           |
 | `labelTextColor` | `string`               | `"#ffffff"` | Label text color.                              |
-| `showTagHint`    | `boolean`              | `true`      | Show `<tagname>` pill in the overlay label.    |
-| `maxHtmlLength`  | `number`               | `10_000`    | Truncate outerHTML at this length.             |
-| `filter`         | `GrabFilterConfig`     | see below   | What the engine skips when hovering.           |
-| `floatingButton` | `FloatingButtonConfig` | disabled    | Optional FAB with settings/logs/a11y panels.   |
+| `showTagHint`    | `boolean`              | `true`      | Show the tag-name pill in the overlay label.   |
+| `maxHtmlLength`  | `number`               | `10_000`    | Truncate captured outerHTML at this length.    |
+| `filter`         | `GrabFilterConfig`     | see below   | What the engine skips while hovering.          |
+| `floatingButton` | `FloatingButtonConfig` | disabled    | Optional toolbar with panels and settings.     |
 | `consoleCapture` | `ConsoleCaptureConfig` | enabled     | Ring-buffered console + runtime error capture. |
 | `networkCapture` | `NetworkCaptureConfig` | enabled     | Ring-buffered fetch/XHR metadata capture.      |
 | `magnifier`      | `MagnifierConfig`      | enabled     | Loupe overlay that appears while grabbing.     |
@@ -31,61 +32,60 @@ createVueGrab({
 
 ## `filter`
 
-| Field                  | Type       | Default | Description                                                      |
-| ---------------------- | ---------- | ------- | ---------------------------------------------------------------- |
-| `ignoreSelectors`      | `string[]` | `[]`    | CSS selectors the engine will refuse to highlight.               |
-| `ignoreTags`           | `string[]` | `[]`    | Tag names the engine will refuse to highlight.                   |
-| `skipCommonComponents` | `boolean`  | `false` | Skip generic wrapper components (e.g. `Fragment`, `Transition`). |
+| Field                  | Type       | Default | Description                                        |
+| ---------------------- | ---------- | ------- | -------------------------------------------------- |
+| `ignoreSelectors`      | `string[]` | `[]`    | CSS selectors the engine will refuse to highlight. |
+| `ignoreTags`           | `string[]` | `[]`    | Tag names the engine will refuse to highlight.     |
+| `skipCommonComponents` | `boolean`  | `false` | Skip common layout tags such as header/nav/footer. |
 
 ## `floatingButton`
 
-| Field                           | Type                               | Default                             | Description                                                          |
-| ------------------------------- | ---------------------------------- | ----------------------------------- | -------------------------------------------------------------------- |
-| `enabled`                       | `boolean`                          | `false`                             | Render the FAB. Off by default so you can opt in.                    |
-| `initialPosition`               | `"top-center" \| "top-right" \| …` | `"top-center"`                      | Starting position before the user drags it.                          |
-| `dockMode`                      | `"float" \| "edge"`                | `"float"`                           | Display mode for FAB panels: draggable float or full-edge dock rail. |
-| `storageKey`                    | `string`                           | `"vue-grab-fab-pos"`                | localStorage key for persisted position.                             |
-| `dockModeStorageKey`            | `string`                           | `"vue-grab-dock-mode"`              | localStorage key for the dock mode preference.                       |
-| `hotkeyStorageKey`              | `string`                           | `"vue-grab-hotkey"`                 | localStorage key for the user-customized grab hotkey.                |
-| `editorStorageKey`              | `string`                           | `"vue-grab-editor"`                 | localStorage key for the user-preferred editor command.              |
-| `measurerHotkeyStorageKey`      | `string`                           | `"vue-grab-measurer-hotkey"`        | localStorage key for the measurer hotkey.                            |
-| `closeOnOutsideClick`           | `boolean`                          | `true`                              | Close the active FAB panel when clicking outside it.                 |
-| `closeOnOutsideClickStorageKey` | `string`                           | `"vue-grab-close-on-outside-click"` | localStorage key for outside-click close behavior.                   |
+| Field                           | Type                                                                           | Default                             | Description                                                          |
+| ------------------------------- | ------------------------------------------------------------------------------ | ----------------------------------- | -------------------------------------------------------------------- |
+| `enabled`                       | `boolean`                                                                      | `false`                             | Render the floating button. Off by default so you can opt in.        |
+| `initialPosition`               | `"bottom-right" \| "bottom-left" \| "top-right" \| "top-left" \| "top-center"` | `"top-center"`                      | Starting position before any persisted position is restored.         |
+| `dockMode`                      | `"float" \| "edge"`                                                            | `"float"`                           | Display mode for panels: draggable floating panel or full-edge rail. |
+| `storageKey`                    | `string`                                                                       | `"vue-grab-fab-pos"`                | localStorage key for persisted position. Set `""` to disable.        |
+| `dockModeStorageKey`            | `string`                                                                       | `"vue-grab-dock-mode"`              | localStorage key for the dock mode preference. Set `""` to disable.  |
+| `hotkeyStorageKey`              | `string`                                                                       | `"vue-grab-hotkey"`                 | localStorage key for the user-customized grab hotkey.                |
+| `editorStorageKey`              | `string`                                                                       | `"vue-grab-editor"`                 | localStorage key for the user-preferred editor command.              |
+| `measurerHotkeyStorageKey`      | `string`                                                                       | `"vue-grab-measurer-hotkey"`        | localStorage key for the measurer hotkey.                            |
+| `closeOnOutsideClick`           | `boolean`                                                                      | `true`                              | Close the active floating button panel when clicking outside it.     |
+| `closeOnOutsideClickStorageKey` | `string`                                                                       | `"vue-grab-close-on-outside-click"` | localStorage key for outside-click close behavior.                   |
 
 ## `consoleCapture`
 
-See [Console Capture →](../features/console-capture) for the full behavior. Defaults:
+| Field              | Type         | Default                                 | Description                                      |
+| ------------------ | ------------ | --------------------------------------- | ------------------------------------------------ |
+| `enabled`          | `boolean`    | `true`                                  | Enable the capture subsystem.                    |
+| `maxEntries`       | `number`     | `200`                                   | Ring buffer capacity.                            |
+| `levels`           | `LogLevel[]` | `["log","info","warn","error","debug"]` | Which `console.*` methods to intercept.          |
+| `captureUnhandled` | `boolean`    | `true`                                  | Capture `window.error` and `unhandledrejection`. |
+| `captureVueErrors` | `boolean`    | `true`                                  | Capture Vue `app.config.errorHandler` errors.    |
 
-```ts
-{
-  enabled: true,
-  maxEntries: 200,
-  levels: ["log", "info", "warn", "error", "debug"],
-  captureUnhandled: true,
-  captureVueErrors: true,
-}
-```
+See [Console Capture](../features/console-capture) for behavior details.
 
 ## `networkCapture`
 
-See [Network Capture](../features/network-capture) for the full behavior. Defaults:
+| Field           | Type                        | Default                                              | Description                                            |
+| --------------- | --------------------------- | ---------------------------------------------------- | ------------------------------------------------------ |
+| `enabled`       | `boolean`                   | `true`                                               | Enable fetch/XHR capture.                              |
+| `maxEntries`    | `number`                    | `100`                                                | Ring buffer capacity.                                  |
+| `captureFetch`  | `boolean`                   | `true`                                               | Intercept `window.fetch`.                              |
+| `captureXhr`    | `boolean`                   | `true`                                               | Intercept `XMLHttpRequest`.                            |
+| `captureBodies` | `boolean`                   | `false`                                              | Capture request/response bodies when safe and textual. |
+| `bodyMaxBytes`  | `number`                    | `2048`                                               | Max bytes retained per captured body.                  |
+| `redactHeaders` | `readonly string[]`         | auth/cookie/set-cookie/x-api-key                     | Lowercase header names to redact before buffering.     |
+| `urlDenyList`   | `readonly string[]`         | `["/__open-in-editor"]`                              | URL substrings skipped entirely.                       |
+| `grabSnapshot`  | `NetworkGrabSnapshotConfig` | `{ enabled: true, maxEntries: 20, windowMs: 10000 }` | Recent network entries attached to each `GrabResult`.  |
 
-```ts
-{
-  enabled: true,
-  maxEntries: 100,
-  captureFetch: true,
-  captureXhr: true,
-  captureBodies: false,
-  bodyMaxBytes: 2048,
-}
-```
+See [Network Capture](../features/network-capture) for body capture, redaction, and snapshot behavior.
 
 ## `magnifier`
 
 | Field                  | Type      | Default | Description                                      |
 | ---------------------- | --------- | ------- | ------------------------------------------------ |
-| `enabled`              | `boolean` | `true`  | Show the loupe while grabbing.                   |
+| `enabled`              | `boolean` | `true`  | Enable the loupe while grabbing.                 |
 | `loupeSize`            | `number`  | `400`   | Loupe diameter in pixels.                        |
 | `zoomLevel`            | `number`  | `3`     | Zoom factor.                                     |
 | `showHtmlOverlay`      | `boolean` | `true`  | Overlay the element's HTML snippet on the loupe. |
@@ -104,12 +104,16 @@ See [Network Capture](../features/network-capture) for the full behavior. Defaul
 
 ## Merge semantics
 
-`mergeConfig()` deep-merges nested objects but **replaces `consoleCapture.levels` wholesale** rather than element-merging. That keeps `levels: ["error"]` from accidentally being a superset of the default.
+`mergeConfig()` deep-merges nested objects but replaces array fields wholesale. That keeps a partial override like `levels: ["error"]` from accidentally becoming a superset of defaults.
 
 ```ts
 import { DEFAULT_CONFIG, mergeConfig } from "@sakana-y/vue-grab-shared";
 
 const config = mergeConfig(DEFAULT_CONFIG, {
-  consoleCapture: { levels: ["warn", "error"] }, // only these two
+  consoleCapture: { levels: ["warn", "error"] },
+  networkCapture: {
+    redactHeaders: ["authorization", "x-internal-token"],
+    urlDenyList: ["/__open-in-editor", "/metrics"],
+  },
 });
 ```
