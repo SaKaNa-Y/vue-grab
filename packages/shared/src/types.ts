@@ -1,4 +1,4 @@
-export type FloatingButtonDockMode = "float" | "edge" | "popup";
+export type FloatingButtonDockMode = "float" | "edge";
 
 export interface FloatingButtonConfig {
   /** Show the floating button. Default: false (opt-in). */

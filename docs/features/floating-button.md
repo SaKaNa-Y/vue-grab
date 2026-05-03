@@ -23,7 +23,7 @@ createVueGrab({
 - Rendered inside its own **Shadow DOM host** (`FAB_HOST_ID`), so the page cannot style it and it cannot style the page.
 - **Draggable** — grab the handle to move it anywhere on screen.
 - **Snap to edge** — release near a viewport edge and it snaps to the closest corner/edge.
-- **Dock modes** — choose Float, Edge, or Popup in settings. Float keeps the draggable panel, Edge docks the toolbar as a full-edge rail with the panel attached to the nearest viewport edge, and Popup moves the panel into a browser popup window with an in-page fallback if the popup is blocked.
+- **Dock modes** — choose Float or Edge in settings. Float keeps the draggable panel, and Edge docks the toolbar as a full-edge rail with the panel attached to the nearest viewport edge.
 - **Outside-click close** — enabled by default and can be disabled from Appearance settings. Escape still closes an open panel.
 - **Badge** — a red dot counts `warn + error` entries in the capture buffer (ignores the noisier levels).
 

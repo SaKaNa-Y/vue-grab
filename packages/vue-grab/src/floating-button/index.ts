@@ -37,8 +37,6 @@ const DRAG_THRESHOLD = 3;
 const SNAP_TRANSITION = "left 0.3s ease, top 0.3s ease";
 const EDGE_MARGIN = 3; // reference margin as % of viewport height
 const INITIAL_SNAP_ZONE = 5; // positions within this % of edge get adjusted to responsive margin
-const POPUP_WINDOW_NAME = "vue-grab-devtools";
-const POPUP_WINDOW_FEATURES = "popup,width=960,height=640,noopener=false,noreferrer=false";
 
 type DockEdge = "top" | "bottom" | "left" | "right";
 type ToolbarAnchorRect = Pick<DOMRect, "left" | "top" | "right" | "bottom" | "width" | "height">;
@@ -74,16 +72,10 @@ const DOCK_MODE_OPTIONS: readonly {
     title: "Docked to edge",
     icon: `<svg class="dock-mode-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="5" width="14" height="14" rx="2"/><path d="M8 5v14"/></svg>`,
   },
-  {
-    value: "popup",
-    label: "Popup",
-    title: "Popup window",
-    icon: `<svg class="dock-mode-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="7" y="7" width="10" height="10" rx="2"/><path d="M13 5h6v6"/><path d="M12 12 19 5"/></svg>`,
-  },
 ];
 
 function isDockMode(value: string): value is FloatingButtonDockMode {
-  return value === "float" || value === "edge" || value === "popup";
+  return value === "float" || value === "edge";
 }
 
 function clamp(v: number, min: number, max: number): number {
@@ -107,7 +99,7 @@ function trySavePosition(key: string, x: number, y: number): void {
 }
 
 function tryReadDockMode(key: string): FloatingButtonDockMode | null {
-  return tryReadStorage(key, (raw) => (isDockMode(raw) ? raw : null));
+  return tryReadStorage(key, (raw) => (isDockMode(raw) ? raw : "float"));
 }
 
 function trySaveDockMode(key: string, dockMode: FloatingButtonDockMode): void {
@@ -211,13 +203,6 @@ const STYLES = `
   .fab-wrapper.edge.edge-bottom {
     flex-direction: column-reverse;
   }
-  .fab-wrapper.popup {
-    width: 100vw;
-    min-height: 100vh;
-    gap: 0;
-    align-items: stretch;
-  }
-
   /* ── Toolbar (compact bar) ── */
   .toolbar {
     display: inline-flex;
@@ -233,13 +218,8 @@ const STYLES = `
     touch-action: none;
     position: relative;
   }
-  .fab-wrapper.edge .toolbar,
-  .fab-wrapper.popup .toolbar {
+  .fab-wrapper.edge .toolbar {
     border-radius: 0;
-  }
-  .fab-wrapper.popup .toolbar {
-    cursor: default;
-    touch-action: auto;
   }
   .fab-wrapper.edge.edge-left .toolbar,
   .fab-wrapper.edge.edge-right .toolbar {
@@ -248,8 +228,7 @@ const STYLES = `
     justify-content: center;
   }
   .fab-wrapper.edge.edge-top .toolbar,
-  .fab-wrapper.edge.edge-bottom .toolbar,
-  .fab-wrapper.popup .toolbar {
+  .fab-wrapper.edge.edge-bottom .toolbar {
     width: 100vw;
     height: 36px;
     align-items: center;
@@ -545,17 +524,6 @@ const STYLES = `
     width: 100vw;
     height: min(520px, calc(100vh - 36px));
     max-height: calc(100vh - 36px);
-  }
-  .fab-wrapper.popup .expand-body {
-    display: flex;
-    width: 100vw;
-    height: calc(100vh - 36px);
-    max-height: calc(100vh - 36px);
-    border-radius: 0;
-    border-left: 0;
-    border-right: 0;
-    border-bottom: 0;
-    box-shadow: none;
   }
   .expand-body::-webkit-scrollbar {
     width: 6px;
@@ -894,16 +862,14 @@ const STYLES = `
     margin: 2px 0;
   }
   .fab-wrapper.edge.edge-top .toolbar .toolbar-row,
-  .fab-wrapper.edge.edge-bottom .toolbar .toolbar-row,
-  .fab-wrapper.popup .toolbar .toolbar-row {
+  .fab-wrapper.edge.edge-bottom .toolbar .toolbar-row {
     flex-direction: row;
     width: auto;
     height: 36px;
     padding: 0 4px;
   }
   .fab-wrapper.edge.edge-top .toolbar .toolbar-divider,
-  .fab-wrapper.edge.edge-bottom .toolbar .toolbar-divider,
-  .fab-wrapper.popup .toolbar .toolbar-divider {
+  .fab-wrapper.edge.edge-bottom .toolbar .toolbar-divider {
     width: 1px;
     height: 18px;
     margin: 0 2px;
@@ -1312,7 +1278,6 @@ const STYLES = `
 export class FloatingButton {
   private host: HTMLElement | null = null;
   private shadowRoot: ShadowRoot | null = null;
-  private embeddedParent: HTMLElement | null = null;
   private wrapperEl: HTMLElement | null = null;
   private toolbarEl: HTMLElement | null = null;
   private toolbarRowEl: HTMLElement | null = null;
@@ -1352,10 +1317,7 @@ export class FloatingButton {
   private isMagnifierActive = false;
   private isMeasurerActive = false;
   private dockMode: FloatingButtonDockMode;
-  private effectiveDockMode: FloatingButtonDockMode;
   private closeOnOutsideClick: boolean;
-  private popupWindow: Window | null = null;
-  private popupPollId: number | null = null;
 
   // Editor state
   private editorChoice = "";
@@ -1401,8 +1363,6 @@ export class FloatingButton {
   private boundPointerUp: ((e: PointerEvent) => void) | null = null;
   private boundDocClick: ((e: MouseEvent) => void) | null = null;
   private boundDocKeyDown: ((e: KeyboardEvent) => void) | null = null;
-  private popupDocClick: ((e: MouseEvent) => void) | null = null;
-  private popupDocKeyDown: ((e: KeyboardEvent) => void) | null = null;
   private boundRecordKeyDown: ((e: KeyboardEvent) => void) | null = null;
 
   constructor(config: FloatingButtonConfig) {
@@ -1421,8 +1381,8 @@ export class FloatingButton {
     this.currentHotkey = tryReadHotkey(config.hotkeyStorageKey) ?? "";
     this.currentMeasurerHotkey = tryReadHotkey(config.measurerHotkeyStorageKey) ?? "";
     this.editorChoice = tryReadEditor(config.editorStorageKey) ?? "";
-    this.dockMode = tryReadDockMode(config.dockModeStorageKey) ?? config.dockMode;
-    this.effectiveDockMode = this.dockMode === "popup" ? "float" : this.dockMode;
+    const configuredDockMode = isDockMode(config.dockMode) ? config.dockMode : "float";
+    this.dockMode = tryReadDockMode(config.dockModeStorageKey) ?? configuredDockMode;
     this.closeOnOutsideClick =
       tryReadBoolean(config.closeOnOutsideClickStorageKey) ?? config.closeOnOutsideClick;
   }
@@ -1451,7 +1411,6 @@ export class FloatingButton {
     this.host = document.createElement("div");
     this.host.id = FAB_HOST_ID;
     this.host.style.cssText = `position:fixed;z-index:2147483646;pointer-events:auto;transform:translate(-50%,-50%);transition:${SNAP_TRANSITION};`;
-    this.embeddedParent = document.body;
     document.body.appendChild(this.host);
 
     this.shadowRoot = this.host.attachShadow({ mode: "open" });
@@ -1665,14 +1624,12 @@ export class FloatingButton {
   }
 
   destroy(): void {
-    const popup = this.popupWindow;
     if (this.boundDocClick) {
       document.removeEventListener("click", this.boundDocClick, { capture: true });
     }
     if (this.boundDocKeyDown) {
       document.removeEventListener("keydown", this.boundDocKeyDown, { capture: true });
     }
-    this.detachPopupDocumentEvents();
     if (this.boundRecordKeyDown) {
       document.removeEventListener("keydown", this.boundRecordKeyDown, { capture: true });
     }
@@ -1688,10 +1645,6 @@ export class FloatingButton {
       cancelAnimationFrame(this.networkRenderRafId);
       this.networkRenderRafId = null;
     }
-    if (this.popupPollId != null) {
-      window.clearInterval(this.popupPollId);
-      this.popupPollId = null;
-    }
     if (this.searchDebounceId != null) {
       window.clearTimeout(this.searchDebounceId);
       this.searchDebounceId = null;
@@ -1704,8 +1657,6 @@ export class FloatingButton {
       this.host.remove();
       this.host = null;
       this.shadowRoot = null;
-      this.embeddedParent = null;
-      this.popupWindow = null;
       this.wrapperEl = null;
       this.toolbarEl = null;
       this.toolbarRowEl = null;
@@ -1719,8 +1670,6 @@ export class FloatingButton {
       this.networkBadgeEl = null;
       this.measurerBtnEl = null;
     }
-    if (popup && !popup.closed) popup.close();
-    this.popupWindow = null;
   }
 
   setActive(active: boolean): void {
@@ -1820,14 +1769,10 @@ export class FloatingButton {
       return;
     }
     this.preservedToolbarRect =
-      this.effectiveDockMode === "float" ? (this.toolbarEl?.getBoundingClientRect() ?? null) : null;
+      this.dockMode === "float" ? (this.toolbarEl?.getBoundingClientRect() ?? null) : null;
     // Stop recording if switching away from settings
     if (this.isRecording) this.stopRecording();
     if (this.isRecordingMeasurer) this.stopMeasurerRecording();
-
-    if (this.dockMode === "popup" && !this.ensurePopupHost()) {
-      this.effectiveDockMode = "float";
-    }
 
     this.activePanel = panel;
     this.wrapperEl!.classList.add("expanded");
@@ -1847,11 +1792,7 @@ export class FloatingButton {
     if (!this.activePanel) return;
     this.clearPanelState();
 
-    if (this.effectiveDockMode === "popup") {
-      this.returnFromPopup();
-    }
-
-    if (this.host && this.effectiveDockMode === "float") {
+    if (this.host && this.dockMode === "float") {
       this.host.style.transition = "none";
       this.host.style.transform = "translate(-50%, -50%)";
       this.applyPosition();
@@ -1861,7 +1802,7 @@ export class FloatingButton {
       });
     }
 
-    if (this.effectiveDockMode !== "float") {
+    if (this.dockMode !== "float") {
       this.preservedToolbarRect = null;
       this.applyDockLayout();
     } else {
@@ -2075,20 +2016,13 @@ export class FloatingButton {
   }
 
   private setDockMode(mode: FloatingButtonDockMode, persist: boolean): void {
-    if (mode === this.dockMode && mode === this.effectiveDockMode) return;
-    const previousMode = this.effectiveDockMode;
+    if (mode === this.dockMode) return;
+    const previousMode = this.dockMode;
     this.dockMode = mode;
-    this.effectiveDockMode = mode;
     if (persist) trySaveDockMode(this.config.dockModeStorageKey, mode);
 
-    if (previousMode === "popup" && mode !== "popup") {
-      this.returnFromPopup();
-    }
     if (previousMode === "edge" && mode === "float") {
       this.restoreFloatPositionFromEdge(this.getEdgeFromPosition());
-    }
-    if (this.activePanel && mode === "popup" && !this.ensurePopupHost()) {
-      this.effectiveDockMode = "float";
     }
     this.applyDockLayout();
     if (this.activePanel) this.renderExpandBody();
@@ -2751,17 +2685,13 @@ export class FloatingButton {
   private applyDockLayout(): void {
     if (!this.host || !this.wrapperEl || !this.toolbarEl) return;
     const edge = this.getEdgeFromPosition();
-    if (this.effectiveDockMode === "edge" && this.isDragging && this.lastAppliedEdge === edge) {
+    if (this.dockMode === "edge" && this.isDragging && this.lastAppliedEdge === edge) {
       return;
     }
     this.host.style.transition = this.isDragging ? "none" : SNAP_TRANSITION;
     this.resetDockClasses();
 
-    if (this.effectiveDockMode === "popup") {
-      this.preservedToolbarRect = null;
-      this.lastAppliedEdge = null;
-      this.applyPopupLayout();
-    } else if (this.effectiveDockMode === "edge") {
+    if (this.dockMode === "edge") {
       this.preservedToolbarRect = null;
       this.lastAppliedEdge = edge;
       this.applyEdgeLayout(edge);
@@ -2777,14 +2707,7 @@ export class FloatingButton {
 
   private resetDockClasses(): void {
     if (!this.wrapperEl || !this.toolbarEl) return;
-    this.wrapperEl.classList.remove(
-      "edge",
-      "popup",
-      "edge-top",
-      "edge-bottom",
-      "edge-left",
-      "edge-right",
-    );
+    this.wrapperEl.classList.remove("edge", "edge-top", "edge-bottom", "edge-left", "edge-right");
     this.toolbarEl.classList.remove("vertical");
   }
 
@@ -2880,116 +2803,6 @@ export class FloatingButton {
     this.applyOrientation(edge);
   }
 
-  private applyPopupLayout(): void {
-    if (!this.host || !this.wrapperEl) return;
-    this.wrapperEl.classList.add("popup");
-    this.wrapperEl.classList.remove("expand-up", "expand-left", "expand-right");
-    this.resetLayoutStyles();
-    this.host.style.inset = "0";
-    this.host.style.width = "100vw";
-    this.host.style.height = "100vh";
-    this.host.style.transform = "none";
-    this.applyOrientation("top");
-  }
-
-  private ensurePopupHost(): boolean {
-    if (!this.host) return false;
-    if (this.popupWindow && !this.popupWindow.closed) {
-      this.popupWindow.focus();
-      if (
-        this.popupWindow.document.body &&
-        this.host.parentElement !== this.popupWindow.document.body
-      ) {
-        this.popupWindow.document.body.appendChild(this.host);
-      }
-      this.effectiveDockMode = "popup";
-      this.attachPopupDocumentEvents(this.popupWindow);
-      this.startPopupPolling();
-      return true;
-    }
-
-    const popup = window.open("", POPUP_WINDOW_NAME, POPUP_WINDOW_FEATURES);
-    if (!popup || popup.closed || !popup.document?.body) {
-      this.effectiveDockMode = "float";
-      this.returnFromPopup();
-      return false;
-    }
-
-    this.popupWindow = popup;
-    popup.document.title = "Vue Grab";
-    popup.document.body.style.margin = "0";
-    popup.document.body.style.background = "#111";
-    popup.document.body.style.overflow = "hidden";
-    popup.document.body.appendChild(this.host);
-    popup.focus();
-    this.effectiveDockMode = "popup";
-    this.attachPopupDocumentEvents(popup);
-    this.startPopupPolling();
-    return true;
-  }
-
-  private attachPopupDocumentEvents(popup: Window): void {
-    this.detachPopupDocumentEvents();
-    this.popupDocClick = (e: MouseEvent) => this.boundDocClick?.(e);
-    this.popupDocKeyDown = (e: KeyboardEvent) => this.boundDocKeyDown?.(e);
-    popup.document.addEventListener("click", this.popupDocClick, { capture: true });
-    popup.document.addEventListener("keydown", this.popupDocKeyDown, { capture: true });
-  }
-
-  private detachPopupDocumentEvents(): void {
-    const popup = this.popupWindow;
-    if (!popup || popup.closed) {
-      this.popupDocClick = null;
-      this.popupDocKeyDown = null;
-      return;
-    }
-    if (this.popupDocClick) {
-      popup.document.removeEventListener("click", this.popupDocClick, { capture: true });
-    }
-    if (this.popupDocKeyDown) {
-      popup.document.removeEventListener("keydown", this.popupDocKeyDown, { capture: true });
-    }
-    this.popupDocClick = null;
-    this.popupDocKeyDown = null;
-  }
-
-  private startPopupPolling(): void {
-    if (this.popupPollId != null) return;
-    this.popupPollId = window.setInterval(() => {
-      if (this.effectiveDockMode === "popup" && (!this.popupWindow || this.popupWindow.closed)) {
-        this.handlePopupClosed();
-      }
-    }, 500);
-  }
-
-  private handlePopupClosed(): void {
-    const popup = this.popupWindow;
-    this.detachPopupDocumentEvents();
-    this.popupWindow = null;
-    if (this.popupPollId != null) {
-      window.clearInterval(this.popupPollId);
-      this.popupPollId = null;
-    }
-    this.clearPanelState();
-    this.effectiveDockMode = this.dockMode === "popup" ? "float" : this.dockMode;
-    if (popup && !popup.closed) popup.close();
-    this.returnHostToEmbeddedDocument();
-    this.applyDockLayout();
-  }
-
-  private returnFromPopup(): void {
-    if (this.popupPollId != null) {
-      window.clearInterval(this.popupPollId);
-      this.popupPollId = null;
-    }
-    const popup = this.popupWindow;
-    this.detachPopupDocumentEvents();
-    this.popupWindow = null;
-    this.returnHostToEmbeddedDocument();
-    if (popup && !popup.closed) popup.close();
-    if (this.dockMode !== "popup") this.effectiveDockMode = this.dockMode;
-  }
-
   private clearPanelState(): void {
     if (this.isRecording) this.stopRecording();
     if (this.isRecordingMeasurer) this.stopMeasurerRecording();
@@ -3001,12 +2814,6 @@ export class FloatingButton {
     this.a11yIndicatorEl?.classList.remove("active");
     this.logsBtnEl?.classList.remove("active");
     this.networkBtnEl?.classList.remove("active");
-  }
-
-  private returnHostToEmbeddedDocument(): void {
-    if (!this.host) return;
-    const parent = this.embeddedParent ?? document.body;
-    if (this.host.parentElement !== parent) parent.appendChild(this.host);
   }
 
   private restoreFloatPositionFromEdge(edge: DockEdge): void {
@@ -3021,7 +2828,6 @@ export class FloatingButton {
 
   private onPointerDown(e: PointerEvent): void {
     if (e.button !== 0) return;
-    if (this.effectiveDockMode === "popup") return;
     // Don't drag from expand body content
     const target = e.composedPath()[0] as HTMLElement;
     if (this.expandBodyEl?.contains(target)) return;
@@ -3049,7 +2855,7 @@ export class FloatingButton {
     }
     this.posX = clamp(((e.clientX - this.dragOffsetX) / window.innerWidth) * 100, 2, 98);
     this.posY = clamp(((e.clientY - this.dragOffsetY) / window.innerHeight) * 100, 2, 98);
-    if (this.effectiveDockMode === "edge") {
+    if (this.dockMode === "edge") {
       this.snapToEdge();
     } else if (this.activePanel) {
       this.applyDockLayout();
