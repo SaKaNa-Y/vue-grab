@@ -1,5 +1,20 @@
 # @sakana-y/vue-grab
 
+## 0.1.1
+
+### Patch Changes
+
+- [#35](https://github.com/SaKaNa-Y/vue-grab/pull/35) [`56d9d44`](https://github.com/SaKaNa-Y/vue-grab/commit/56d9d448c62ce2f11607fe7bf5b570ce4ecad40a) Thanks [@SaKaNa-Y](https://github.com/SaKaNa-Y)! - Add floating-button toolbar entry visibility and ordering preferences with a locked Settings entry, grouped shortcut settings, and drag reordering within Dock feature groups.
+
+- [#31](https://github.com/SaKaNa-Y/vue-grab/pull/31) [`151ffdb`](https://github.com/SaKaNa-Y/vue-grab/commit/151ffdbd6b8b56ecff1437debd3a38cfbc57b618) Thanks [@SaKaNa-Y](https://github.com/SaKaNa-Y)! - Expose shared protocol constants and request types for advanced integrations.
+
+- [#32](https://github.com/SaKaNa-Y/vue-grab/pull/32) [`14163a0`](https://github.com/SaKaNa-Y/vue-grab/commit/14163a075eeb8783a490b7997e8b8ce1b048b9c7) Thanks [@SaKaNa-Y](https://github.com/SaKaNa-Y)! - Add floating-button dock modes with persisted Float and Edge panel behavior plus outside-click panel closing.
+
+- [#28](https://github.com/SaKaNa-Y/vue-grab/pull/28) [`4ad57b5`](https://github.com/SaKaNa-Y/vue-grab/commit/4ad57b57e86a4c3c3f37d1d951ab69b8c5151a97) Thanks [@SaKaNa-Y](https://github.com/SaKaNa-Y)! - Harden the Vite open-in-editor endpoint and make network body capture opt-in by default.
+
+- Updated dependencies [[`56d9d44`](https://github.com/SaKaNa-Y/vue-grab/commit/56d9d448c62ce2f11607fe7bf5b570ce4ecad40a), [`151ffdb`](https://github.com/SaKaNa-Y/vue-grab/commit/151ffdbd6b8b56ecff1437debd3a38cfbc57b618), [`14163a0`](https://github.com/SaKaNa-Y/vue-grab/commit/14163a075eeb8783a490b7997e8b8ce1b048b9c7), [`4ad57b5`](https://github.com/SaKaNa-Y/vue-grab/commit/4ad57b57e86a4c3c3f37d1d951ab69b8c5151a97)]:
+  - @sakana-y/vue-grab-shared@0.1.1
+
 ## 0.1.0
 
 ### Minor Changes
