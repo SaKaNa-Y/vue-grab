@@ -1,5 +1,11 @@
 # @sakana-y/vue-grab-cli
 
+## 0.1.1
+
+### Patch Changes
+
+- [#30](https://github.com/SaKaNa-Y/vue-grab/pull/30) [`33772ce`](https://github.com/SaKaNa-Y/vue-grab/commit/33772ce81dc425d3f9a93d43faf1f809ff45c2a4) Thanks [@SaKaNa-Y](https://github.com/SaKaNa-Y)! - Implement `vue-grab init` for Vite + Vue projects with safe setup edits, dependency installation, dry-run support, and Vite plugin wiring.
+
 ## 0.1.0
 
 ### Minor Changes
