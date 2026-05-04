@@ -1,6 +1,7 @@
 import type {
   ConsoleCaptureConfig,
   FloatingButtonConfig,
+  FloatingButtonDockEntryId,
   GrabConfig,
   GrabUserConfig,
   LogLevel,
@@ -15,12 +16,27 @@ export const DEFAULT_HIGHLIGHT_COLOR = "#4f46e5";
 export const DEFAULT_LABEL_TEXT_COLOR = "#ffffff";
 export const DEFAULT_HOTKEY = "Alt+Shift+G";
 
+export const DEFAULT_FLOATING_BUTTON_DOCK_ENTRY_ORDER: readonly FloatingButtonDockEntryId[] = [
+  "grab",
+  "settings",
+  "magnifier",
+  "measurer",
+  "accessibility",
+  "logs",
+  "network",
+];
+
 export const DEFAULT_FLOATING_BUTTON: FloatingButtonConfig = {
   enabled: false,
   initialPosition: "top-center",
   dockMode: "float",
+  dockEntries: {
+    order: [...DEFAULT_FLOATING_BUTTON_DOCK_ENTRY_ORDER],
+    hidden: [],
+  },
   storageKey: "vue-grab-fab-pos",
   dockModeStorageKey: "vue-grab-dock-mode",
+  dockEntriesStorageKey: "vue-grab-dock-entries",
   hotkeyStorageKey: "vue-grab-hotkey",
   editorStorageKey: "vue-grab-editor",
   measurerHotkeyStorageKey: "vue-grab-measurer-hotkey",
@@ -126,6 +142,16 @@ export function mergeConfig(defaults: GrabConfig, options: GrabUserConfig): Grab
     floatingButton: {
       ...defaults.floatingButton,
       ...floatingButton,
+      dockEntries: {
+        ...defaults.floatingButton.dockEntries,
+        ...floatingButton?.dockEntries,
+        order: [
+          ...(floatingButton?.dockEntries?.order ?? defaults.floatingButton.dockEntries.order),
+        ],
+        hidden: [
+          ...(floatingButton?.dockEntries?.hidden ?? defaults.floatingButton.dockEntries.hidden),
+        ],
+      },
     },
     consoleCapture: {
       ...defaults.consoleCapture,

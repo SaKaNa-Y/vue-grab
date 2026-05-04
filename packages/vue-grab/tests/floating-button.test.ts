@@ -56,6 +56,24 @@ function getDockModeOption(mode: string, shadow = getShadow()): HTMLElement | nu
   return shadow?.querySelector<HTMLElement>(`.dock-mode-option[data-dock-mode="${mode}"]`) ?? null;
 }
 
+function getDockEntryButtonIds(): string[] {
+  return Array.from(getToolbarRow()?.querySelectorAll<HTMLElement>(".toolbar-btn") ?? []).map(
+    (btn) => btn.dataset.dockEntry ?? "",
+  );
+}
+
+function getDockEntryRow(id: string): HTMLElement | null {
+  return getShadow()?.querySelector<HTMLElement>(`[data-dock-entry-row="${id}"]`) ?? null;
+}
+
+function getDockEntryToggle(id: string): HTMLButtonElement | null {
+  return getShadow()?.querySelector<HTMLButtonElement>(`[data-dock-entry-toggle="${id}"]`) ?? null;
+}
+
+function getDockEntryDragHandle(id: string): HTMLElement | null {
+  return getShadow()?.querySelector<HTMLElement>(`[data-dock-entry-drag="${id}"]`) ?? null;
+}
+
 function mockToolbarRowRect(left = 540, top = 102, width = 120, height = 36): void {
   vi.spyOn(getToolbarRow()!, "getBoundingClientRect").mockReturnValue({
     x: left,
@@ -87,6 +105,45 @@ function dispatchPointer(
       clientY,
     }),
   );
+}
+
+function mockDockEntryRowRect(id: string, top: number, left = 100, width = 260, height = 52): void {
+  vi.spyOn(getDockEntryRow(id)!, "getBoundingClientRect").mockReturnValue({
+    x: left,
+    y: top,
+    left,
+    top,
+    width,
+    height,
+    right: left + width,
+    bottom: top + height,
+    toJSON: () => ({}),
+  });
+}
+
+function dispatchDrag(
+  type: string,
+  target: HTMLElement,
+  options: { clientY?: number; relatedTarget?: EventTarget | null } = {},
+): void {
+  const event = new DragEvent(type, {
+    bubbles: true,
+    composed: true,
+    cancelable: true,
+    clientY: options.clientY ?? 0,
+  });
+  if ("relatedTarget" in options) {
+    Object.defineProperty(event, "relatedTarget", { value: options.relatedTarget });
+  }
+  Object.defineProperty(event, "dataTransfer", {
+    value: {
+      effectAllowed: "move",
+      dropEffect: "move",
+      setData: vi.fn<(format: string, data: string) => void>(),
+      getData: vi.fn<(format: string) => string>(() => ""),
+    },
+  });
+  target.dispatchEvent(event);
 }
 
 function expectStylePx(value: string, expected: number): void {
@@ -166,6 +223,21 @@ describe("FloatingButton", () => {
   });
 
   describe("toolbar layout", () => {
+    it("uses the default dock entry order", () => {
+      fab = createFab();
+      fab.mount();
+
+      expect(getDockEntryButtonIds()).toEqual([
+        "grab",
+        "settings",
+        "magnifier",
+        "measurer",
+        "accessibility",
+        "logs",
+        "network",
+      ]);
+    });
+
     it("gear button is always visible in toolbar", () => {
       fab = createFab();
       fab.mount();
@@ -537,13 +609,16 @@ describe("FloatingButton", () => {
       expect(getExpandBody()!.classList.contains("open")).toBe(true);
     });
 
-    it("opens the Appearance tab with dock mode and outside-click controls", () => {
+    it("opens the Dock tab with dock mode and outside-click controls", () => {
       fab = createFab();
       fab.mount();
 
       getGear()!.click();
 
-      expect(getSettingsTab("Appearance")!.classList.contains("active")).toBe(true);
+      expect(getSettingsTab("Dock")!.classList.contains("active")).toBe(true);
+      expect(
+        Array.from(getShadow()!.querySelectorAll(".tab-btn")).map((btn) => btn.textContent?.trim()),
+      ).toEqual(["Dock", "Shortcuts", "Editor", "Magnifier"]);
       expect(
         Array.from(getShadow()!.querySelectorAll(".dock-mode-option")).map((btn) =>
           btn.textContent?.trim(),
@@ -554,6 +629,179 @@ describe("FloatingButton", () => {
       expect(getShadow()!.querySelector<HTMLInputElement>(".outside-click-toggle")!.checked).toBe(
         true,
       );
+    });
+
+    it("renders grouped dock entries and keeps settings locked visible", () => {
+      fab = createFab();
+      fab.mount();
+
+      getGear()!.click();
+
+      expect(
+        Array.from(getShadow()!.querySelectorAll(".dock-entry-group-title")).map((el) =>
+          el.textContent?.trim(),
+        ),
+      ).toEqual(["Capture", "Inspection", "Diagnostics", "System"]);
+      const settingsToggle = getDockEntryToggle("settings")!;
+      expect(settingsToggle.disabled).toBe(true);
+      expect(settingsToggle.getAttribute("aria-pressed")).toBe("true");
+      settingsToggle.click();
+      expect(getGear()).not.toBeNull();
+      expect(getDockEntryButtonIds()).toContain("settings");
+    });
+
+    it("ignores config attempts to hide settings", () => {
+      fab = createFab({
+        dockEntries: {
+          order: ["grab", "settings", "logs"],
+          hidden: ["settings", "logs"],
+        },
+      });
+      fab.mount();
+
+      expect(getDockEntryButtonIds()).toContain("settings");
+      expect(getDockEntryButtonIds()).not.toContain("logs");
+    });
+
+    it("ignores localStorage attempts to hide settings and unknown ids", () => {
+      localStorage.setItem(
+        "vue-grab-dock-entries",
+        JSON.stringify({
+          order: ["logs", "missing", "settings"],
+          hidden: ["settings", "network", "missing"],
+        }),
+      );
+      fab = createFab();
+      fab.mount();
+
+      expect(getDockEntryButtonIds()[0]).toBe("logs");
+      expect(getDockEntryButtonIds()).toContain("settings");
+      expect(getDockEntryButtonIds()).not.toContain("network");
+      expect(getDockEntryButtonIds()).toEqual([
+        "logs",
+        "settings",
+        "grab",
+        "magnifier",
+        "measurer",
+        "accessibility",
+      ]);
+    });
+
+    it("hides toolbar entries and persists hidden ids", () => {
+      fab = createFab();
+      fab.mount();
+      getGear()!.click();
+
+      getDockEntryToggle("logs")!.click();
+
+      expect(getShadow()!.querySelector(".logs-btn")).toBeNull();
+      expect(getDockEntryButtonIds()).not.toContain("logs");
+      expect(JSON.parse(localStorage.getItem("vue-grab-dock-entries")!)).toMatchObject({
+        hidden: ["logs"],
+      });
+    });
+
+    it("group toggles hide and restore hideable entries", () => {
+      fab = createFab();
+      fab.mount();
+      getGear()!.click();
+
+      getShadow()!
+        .querySelector<HTMLButtonElement>('[data-dock-group-toggle="diagnostics"]')!
+        .click();
+
+      expect(getDockEntryButtonIds()).not.toContain("logs");
+      expect(getDockEntryButtonIds()).not.toContain("network");
+
+      getShadow()!
+        .querySelector<HTMLButtonElement>('[data-dock-group-toggle="diagnostics"]')!
+        .click();
+
+      expect(getDockEntryButtonIds()).toContain("logs");
+      expect(getDockEntryButtonIds()).toContain("network");
+    });
+
+    it("reorders entries within a feature group and persists order", () => {
+      fab = createFab();
+      fab.mount();
+      getGear()!.click();
+
+      getDockEntryRow("network")!
+        .querySelector<HTMLButtonElement>('[data-direction="up"]')!
+        .click();
+
+      expect(getDockEntryButtonIds()).toEqual([
+        "grab",
+        "settings",
+        "magnifier",
+        "measurer",
+        "accessibility",
+        "network",
+        "logs",
+      ]);
+      expect(JSON.parse(localStorage.getItem("vue-grab-dock-entries")!).order).toEqual([
+        "grab",
+        "settings",
+        "magnifier",
+        "measurer",
+        "accessibility",
+        "network",
+        "logs",
+      ]);
+    });
+
+    it("drag-reorders entries within a feature group and persists order", () => {
+      fab = createFab();
+      fab.mount();
+      getGear()!.click();
+
+      mockDockEntryRowRect("logs", 100);
+      mockDockEntryRowRect("network", 152);
+      dispatchDrag("dragstart", getDockEntryDragHandle("network")!);
+      dispatchDrag("dragover", getDockEntryRow("logs")!, { clientY: 104 });
+      dispatchDrag("drop", getDockEntryRow("logs")!, { clientY: 104 });
+
+      expect(getDockEntryButtonIds()).toEqual([
+        "grab",
+        "settings",
+        "magnifier",
+        "measurer",
+        "accessibility",
+        "network",
+        "logs",
+      ]);
+      expect(JSON.parse(localStorage.getItem("vue-grab-dock-entries")!).order).toEqual([
+        "grab",
+        "settings",
+        "magnifier",
+        "measurer",
+        "accessibility",
+        "network",
+        "logs",
+      ]);
+    });
+
+    it("ignores drag drops across feature groups", () => {
+      fab = createFab();
+      fab.mount();
+      getGear()!.click();
+
+      mockDockEntryRowRect("magnifier", 100);
+      mockDockEntryRowRect("network", 152);
+      dispatchDrag("dragstart", getDockEntryDragHandle("network")!);
+      dispatchDrag("dragover", getDockEntryRow("magnifier")!, { clientY: 104 });
+      dispatchDrag("drop", getDockEntryRow("magnifier")!, { clientY: 104 });
+
+      expect(getDockEntryButtonIds()).toEqual([
+        "grab",
+        "settings",
+        "magnifier",
+        "measurer",
+        "accessibility",
+        "logs",
+        "network",
+      ]);
+      expect(localStorage.getItem("vue-grab-dock-entries")).toBeNull();
     });
 
     it("uses configured dock mode before localStorage is set", () => {
@@ -618,17 +866,17 @@ describe("FloatingButton", () => {
       expect(getExpandBody()!.classList.contains("open")).toBe(true);
     });
 
-    it("panel displays current hotkey", () => {
+    it("Shortcuts tab displays current grab and measurer hotkeys", () => {
       fab = createFab();
       fab.mount();
 
-      // Open settings panel first so the kbd element is rendered
       getGear()!.click();
       getSettingsTab("Shortcuts")!.click();
       fab.setCurrentHotkey("Alt+Shift+G");
+      fab.setCurrentMeasurerHotkey("Alt+Shift+M");
 
-      const kbd = getShadow()!.querySelector(".grab-hotkey-kbd")!;
-      expect(kbd.textContent).toBe("Alt+Shift+G");
+      expect(getShadow()!.querySelector(".grab-hotkey-kbd")!.textContent).toBe("Alt+Shift+G");
+      expect(getShadow()!.querySelector(".measurer-hotkey-kbd")!.textContent).toBe("Alt+Shift+M");
     });
 
     it("Escape closes the panel", () => {
@@ -684,6 +932,32 @@ describe("FloatingButton", () => {
 
       expect(spy).toHaveBeenCalledWith("Ctrl+Shift+K");
       expect(getShadow()!.querySelector(".grab-hotkey-kbd")!.textContent).toBe("Ctrl+Shift+K");
+    });
+
+    it("measurer hotkey recording captures modifier+key combo from Shortcuts", () => {
+      fab = createFab();
+      const spy = vi.fn<() => void>();
+      fab.onMeasurerHotkeyChange(spy);
+      fab.mount();
+
+      getGear()!.click();
+      getSettingsTab("Shortcuts")!.click();
+
+      const recordBtn = getShadow()!.querySelector(".measurer-record-btn") as HTMLElement;
+      recordBtn.click();
+
+      document.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "M",
+          altKey: true,
+          shiftKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+
+      expect(spy).toHaveBeenCalledWith("Alt+Shift+M");
+      expect(getShadow()!.querySelector(".measurer-hotkey-kbd")!.textContent).toBe("Alt+Shift+M");
     });
   });
 

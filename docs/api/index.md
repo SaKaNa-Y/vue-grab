@@ -36,16 +36,16 @@ const {
 } = useGrab();
 ```
 
-| Property             | Type                                    | Description                     |
-| -------------------- | --------------------------------------- | ------------------------------- |
-| `config`             | `GrabConfig`                            | Resolved configuration          |
-| `isActive`           | `Readonly<Ref<boolean>>`                | Whether grab mode is active     |
-| `lastResult`         | `DeepReadonly<Ref<GrabResult \| null>>` | Last captured result            |
-| `isMeasurerActive`   | `Readonly<Ref<boolean>>`                | Whether measurer mode is active |
-| `activate()`         | `() => void`                            | Enter grab mode                 |
-| `deactivate()`       | `() => void`                            | Exit grab mode                  |
-| `toggle()`           | `() => void`                            | Toggle grab mode                |
-| `toggleMeasurer()`   | `() => void`                            | Toggle the element measurer     |
+| Property           | Type                                    | Description                     |
+| ------------------ | --------------------------------------- | ------------------------------- |
+| `config`           | `GrabConfig`                            | Resolved configuration          |
+| `isActive`         | `Readonly<Ref<boolean>>`                | Whether grab mode is active     |
+| `lastResult`       | `DeepReadonly<Ref<GrabResult \| null>>` | Last captured result            |
+| `isMeasurerActive` | `Readonly<Ref<boolean>>`                | Whether measurer mode is active |
+| `activate()`       | `() => void`                            | Enter grab mode                 |
+| `deactivate()`     | `() => void`                            | Exit grab mode                  |
+| `toggle()`         | `() => void`                            | Toggle grab mode                |
+| `toggleMeasurer()` | `() => void`                            | Toggle the element measurer     |
 
 ## `init(options?)`
 
@@ -63,15 +63,15 @@ grab.onNetwork((entries) => console.table(entries));
 
 The returned object exposes:
 
-| Method           | Description                                                                             |
-| ---------------- | --------------------------------------------------------------------------------------- |
-| `activate()`     | Enter grab mode                                                                         |
-| `deactivate()`   | Exit grab mode                                                                          |
-| `onGrab(cb)`     | Subscribe to grab results. Returns an unsubscribe function                              |
-| `onLog(cb)`      | Subscribe to captured console entries. Returns an unsubscribe function                  |
-| `clearLogs()`    | Clear the captured log buffer                                                           |
-| `onNetwork(cb)`  | Subscribe to captured network entries. Returns an unsubscribe function                  |
-| `clearNetwork()` | Clear the captured network buffer                                                       |
+| Method           | Description                                                                         |
+| ---------------- | ----------------------------------------------------------------------------------- |
+| `activate()`     | Enter grab mode                                                                     |
+| `deactivate()`   | Exit grab mode                                                                      |
+| `onGrab(cb)`     | Subscribe to grab results. Returns an unsubscribe function                          |
+| `onLog(cb)`      | Subscribe to captured console entries. Returns an unsubscribe function              |
+| `clearLogs()`    | Clear the captured log buffer                                                       |
+| `onNetwork(cb)`  | Subscribe to captured network entries. Returns an unsubscribe function              |
+| `clearNetwork()` | Clear the captured network buffer                                                   |
 | `destroy()`      | Tear down the session, hotkeys, overlays, floating button, and capture interceptors |
 
 ## `GrabResult`

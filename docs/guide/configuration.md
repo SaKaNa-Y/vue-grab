@@ -45,13 +45,31 @@ createVueGrab({
 | `enabled`                       | `boolean`                                                                      | `false`                             | Render the floating button. Off by default so you can opt in.        |
 | `initialPosition`               | `"bottom-right" \| "bottom-left" \| "top-right" \| "top-left" \| "top-center"` | `"top-center"`                      | Starting position before any persisted position is restored.         |
 | `dockMode`                      | `"float" \| "edge"`                                                            | `"float"`                           | Display mode for panels: draggable floating panel or full-edge rail. |
+| `dockEntries`                   | `FloatingButtonDockEntriesConfig`                                              | all entries visible                 | Toolbar entry order and hidden entries. Settings is always visible.  |
 | `storageKey`                    | `string`                                                                       | `"vue-grab-fab-pos"`                | localStorage key for persisted position. Set `""` to disable.        |
 | `dockModeStorageKey`            | `string`                                                                       | `"vue-grab-dock-mode"`              | localStorage key for the dock mode preference. Set `""` to disable.  |
+| `dockEntriesStorageKey`         | `string`                                                                       | `"vue-grab-dock-entries"`           | localStorage key for toolbar entry visibility/order.                 |
 | `hotkeyStorageKey`              | `string`                                                                       | `"vue-grab-hotkey"`                 | localStorage key for the user-customized grab hotkey.                |
 | `editorStorageKey`              | `string`                                                                       | `"vue-grab-editor"`                 | localStorage key for the user-preferred editor command.              |
 | `measurerHotkeyStorageKey`      | `string`                                                                       | `"vue-grab-measurer-hotkey"`        | localStorage key for the measurer hotkey.                            |
 | `closeOnOutsideClick`           | `boolean`                                                                      | `true`                              | Close the active floating button panel when clicking outside it.     |
 | `closeOnOutsideClickStorageKey` | `string`                                                                       | `"vue-grab-close-on-outside-click"` | localStorage key for outside-click close behavior.                   |
+
+### `floatingButton.dockEntries`
+
+`order` accepts toolbar entry ids: `"grab"`, `"settings"`, `"magnifier"`, `"measurer"`, `"accessibility"`, `"logs"`, and `"network"`. Unknown ids are ignored and missing ids are appended in the default order. `hidden` removes entries from the toolbar only; `"settings"` is always forced visible. Users can reorder entries within each Dock feature group from Settings.
+
+```ts
+createVueGrab({
+  floatingButton: {
+    enabled: true,
+    dockEntries: {
+      order: ["grab", "settings", "logs", "network", "magnifier", "measurer", "accessibility"],
+      hidden: ["network"],
+    },
+  },
+});
+```
 
 ## `consoleCapture`
 

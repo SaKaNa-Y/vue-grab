@@ -2,6 +2,8 @@ import type {
   CapturedLog,
   CapturedRequest,
   FloatingButtonConfig,
+  FloatingButtonDockEntriesConfig,
+  FloatingButtonDockEntryId,
   FloatingButtonDockMode,
   GrabResult,
   LogLevel,
@@ -10,6 +12,7 @@ import type {
 import {
   ALL_LOG_LEVELS,
   ALL_NETWORK_STATUS_CLASSES,
+  DEFAULT_FLOATING_BUTTON_DOCK_ENTRY_ORDER,
   NETWORK_ERROR_CLASSES,
   NETWORK_WARN_CLASSES,
 } from "@sakana-y/vue-grab-shared";
@@ -152,8 +155,140 @@ const EDITOR_PRESETS = [
   { label: "Cursor", value: "cursor" },
 ];
 
-type TabId = "appearance" | "shortcuts" | "editor" | "magnifier";
+type TabId = "dock" | "shortcuts" | "editor" | "magnifier";
 type PanelId = "settings" | "accessibility" | "logs" | "network";
+type DockEntryGroupId = "capture" | "inspection" | "diagnostics" | "system";
+type DockEntryDropPlacement = "before" | "after";
+
+interface DockEntryDefinition {
+  id: FloatingButtonDockEntryId;
+  label: string;
+  title: string;
+  group: DockEntryGroupId;
+  buttonClass: string;
+  icon: string;
+  locked?: boolean;
+}
+
+interface DockEntryGroupDefinition {
+  id: DockEntryGroupId;
+  label: string;
+}
+
+const DOCK_ENTRY_GROUPS: readonly DockEntryGroupDefinition[] = [
+  { id: "capture", label: "Capture" },
+  { id: "inspection", label: "Inspection" },
+  { id: "diagnostics", label: "Diagnostics" },
+  { id: "system", label: "System" },
+];
+
+const DOCK_ENTRY_DEFINITIONS: readonly DockEntryDefinition[] = [
+  {
+    id: "grab",
+    label: "Grab",
+    title: "Grab element",
+    group: "capture",
+    buttonClass: "grab-btn",
+    icon: CROSSHAIR_SVG,
+  },
+  {
+    id: "settings",
+    label: "Settings",
+    title: "Settings",
+    group: "system",
+    buttonClass: "gear-btn",
+    icon: GEAR_SVG,
+    locked: true,
+  },
+  {
+    id: "magnifier",
+    label: "Magnifier",
+    title: "Magnifier loupe",
+    group: "inspection",
+    buttonClass: "magnifier-btn",
+    icon: MAGNIFIER_SVG,
+  },
+  {
+    id: "measurer",
+    label: "Measurer",
+    title: "Measure spacing",
+    group: "inspection",
+    buttonClass: "measurer-btn",
+    icon: MEASURER_SVG,
+  },
+  {
+    id: "accessibility",
+    label: "Accessibility",
+    title: "Accessibility audit",
+    group: "inspection",
+    buttonClass: "a11y-btn",
+    icon: A11Y_ICON_SVG,
+  },
+  {
+    id: "logs",
+    label: "Logs",
+    title: "Console logs",
+    group: "diagnostics",
+    buttonClass: "logs-btn",
+    icon: LOGS_SVG,
+  },
+  {
+    id: "network",
+    label: "Network",
+    title: "Network requests",
+    group: "diagnostics",
+    buttonClass: "network-btn",
+    icon: NETWORK_SVG,
+  },
+];
+
+const DEFAULT_DOCK_ENTRIES_STORAGE_KEY = "vue-grab-dock-entries";
+const DOCK_ENTRY_IDS = new Set<FloatingButtonDockEntryId>(DEFAULT_FLOATING_BUTTON_DOCK_ENTRY_ORDER);
+const DOCK_ENTRY_DEFINITION_BY_ID = new Map(
+  DOCK_ENTRY_DEFINITIONS.map((entry) => [entry.id, entry]),
+);
+
+function isDockEntryId(value: unknown): value is FloatingButtonDockEntryId {
+  return typeof value === "string" && DOCK_ENTRY_IDS.has(value as FloatingButtonDockEntryId);
+}
+
+function normalizeDockEntries(
+  config: Partial<FloatingButtonDockEntriesConfig> | null | undefined,
+): FloatingButtonDockEntriesConfig {
+  const order: FloatingButtonDockEntryId[] = [];
+  const seen = new Set<FloatingButtonDockEntryId>();
+  const sourceOrder = Array.isArray(config?.order)
+    ? config.order
+    : DEFAULT_FLOATING_BUTTON_DOCK_ENTRY_ORDER;
+  for (const id of sourceOrder) {
+    if (!isDockEntryId(id) || seen.has(id)) continue;
+    seen.add(id);
+    order.push(id);
+  }
+  for (const id of DEFAULT_FLOATING_BUTTON_DOCK_ENTRY_ORDER) {
+    if (seen.has(id)) continue;
+    order.push(id);
+  }
+
+  const hidden: FloatingButtonDockEntryId[] = [];
+  const hiddenSeen = new Set<FloatingButtonDockEntryId>();
+  const sourceHidden = Array.isArray(config?.hidden) ? config.hidden : [];
+  for (const id of sourceHidden) {
+    if (!isDockEntryId(id) || id === "settings" || hiddenSeen.has(id)) continue;
+    hiddenSeen.add(id);
+    hidden.push(id);
+  }
+
+  return { order, hidden };
+}
+
+function tryReadDockEntries(key: string): FloatingButtonDockEntriesConfig | null {
+  return tryReadStorage(key, (raw) => normalizeDockEntries(JSON.parse(raw)));
+}
+
+function trySaveDockEntries(key: string, entries: FloatingButtonDockEntriesConfig): void {
+  trySaveStorage(key, JSON.stringify(entries));
+}
 
 const STYLES = `
   :host {
@@ -543,6 +678,7 @@ const STYLES = `
     border-bottom: 1px solid rgba(255,255,255,0.08);
     gap: 0;
     flex-shrink: 0;
+    overflow-x: auto;
   }
   .tab-btn {
     background: none;
@@ -571,7 +707,7 @@ const STYLES = `
     display: block;
   }
 
-  /* Appearance controls */
+  /* Dock controls */
   .setting-help {
     color: #888;
     font-size: 12px;
@@ -675,6 +811,174 @@ const STYLES = `
   }
   .setting-toggle-input:focus-visible + .setting-toggle-switch {
     box-shadow: 0 0 0 2px var(--grab-color, #4f46e5);
+  }
+  .dock-entry-manager {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 14px;
+  }
+  .dock-entry-group {
+    overflow: hidden;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(10,10,10,0.22);
+  }
+  .dock-entry-group-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.04);
+  }
+  .dock-entry-group-title {
+    color: #e8e8e8;
+    font-size: 13px;
+    font-weight: 650;
+  }
+  .dock-entry-group-count {
+    color: #888;
+    font-size: 12px;
+  }
+  .dock-entry-group-toggle {
+    width: 22px;
+    height: 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 6px;
+    color: #8fbf28;
+    background: rgba(132,204,22,0.18);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 15px;
+    line-height: 1;
+  }
+  .dock-entry-group-toggle.is-partial {
+    color: #bbb;
+    background: rgba(255,255,255,0.09);
+  }
+  .dock-entry-group-toggle:disabled {
+    color: #777;
+    background: rgba(255,255,255,0.06);
+    cursor: not-allowed;
+  }
+  .dock-entry-row {
+    display: grid;
+    grid-template-columns: 22px 22px 28px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    min-height: 52px;
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    position: relative;
+  }
+  .dock-entry-row:last-child {
+    border-bottom: 0;
+  }
+  .dock-entry-row.is-dragging {
+    opacity: 0.45;
+  }
+  .dock-entry-row.is-drop-before::before,
+  .dock-entry-row.is-drop-after::after {
+    content: "";
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    height: 2px;
+    border-radius: 999px;
+    background: #8fbf28;
+    box-shadow: 0 0 8px rgba(143,191,40,0.45);
+  }
+  .dock-entry-row.is-drop-before::before {
+    top: 0;
+  }
+  .dock-entry-row.is-drop-after::after {
+    bottom: 0;
+  }
+  .dock-entry-drag {
+    color: #555;
+    font-size: 18px;
+    line-height: 1;
+    cursor: grab;
+    user-select: none;
+  }
+  .dock-entry-drag:active {
+    cursor: grabbing;
+  }
+  .dock-entry-check {
+    width: 22px;
+    height: 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 6px;
+    color: #8fbf28;
+    background: rgba(132,204,22,0.2);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 15px;
+    line-height: 1;
+  }
+  .dock-entry-check.is-hidden {
+    color: #777;
+    background: rgba(255,255,255,0.08);
+  }
+  .dock-entry-check:disabled {
+    color: #777;
+    background: rgba(255,255,255,0.08);
+    cursor: not-allowed;
+  }
+  .dock-entry-icon {
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #d6d6d6;
+  }
+  .dock-entry-label {
+    min-width: 0;
+    color: #e8e8e8;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .dock-entry-actions {
+    display: inline-flex;
+    gap: 4px;
+  }
+  .dock-entry-move {
+    width: 24px;
+    height: 24px;
+    border: 0;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.07);
+    color: #aaa;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 14px;
+    line-height: 1;
+  }
+  .dock-entry-move:hover {
+    background: rgba(255,255,255,0.13);
+    color: #fff;
+  }
+  .dock-entry-move:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+  .dock-entry-lock {
+    color: #888;
+    font-size: 11px;
+    padding: 3px 7px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.07);
   }
 
   /* Slider row */
@@ -1303,6 +1607,10 @@ export class FloatingButton {
   private networkSearchDebounceId: number | null = null;
   private networkRenderRafId: number | null = null;
   private lastNetworkBadge: { count: number; hasError: boolean } | null = null;
+  private dockEntries: FloatingButtonDockEntriesConfig;
+  private dockEntriesStorageKey: string;
+  private dockEntryDragId: FloatingButtonDockEntryId | null = null;
+  private dockEntryDropTargetEl: HTMLElement | null = null;
   private cachedA11yResults: ReturnType<typeof scanPageA11y> | null = null;
   private lastA11yScanTime = 0;
   private pendingRafId: number | null = null;
@@ -1312,7 +1620,7 @@ export class FloatingButton {
 
   // Expand state
   private activePanel: PanelId | null = null;
-  private settingsTab: TabId = "appearance";
+  private settingsTab: TabId = "dock";
   private isGrabActive = false;
   private isMagnifierActive = false;
   private isMeasurerActive = false;
@@ -1383,6 +1691,9 @@ export class FloatingButton {
     this.editorChoice = tryReadEditor(config.editorStorageKey) ?? "";
     const configuredDockMode = isDockMode(config.dockMode) ? config.dockMode : "float";
     this.dockMode = tryReadDockMode(config.dockModeStorageKey) ?? configuredDockMode;
+    this.dockEntriesStorageKey = config.dockEntriesStorageKey ?? DEFAULT_DOCK_ENTRIES_STORAGE_KEY;
+    this.dockEntries =
+      tryReadDockEntries(this.dockEntriesStorageKey) ?? normalizeDockEntries(config.dockEntries);
     this.closeOnOutsideClick =
       tryReadBoolean(config.closeOnOutsideClickStorageKey) ?? config.closeOnOutsideClick;
   }
@@ -1402,6 +1713,52 @@ export class FloatingButton {
       this.updateEditorTabInPlace();
     } else if (this.activePanel === "accessibility") {
       this.renderExpandBody();
+    }
+  }
+
+  private createDockEntryButton(id: FloatingButtonDockEntryId): HTMLElement {
+    const def = DOCK_ENTRY_DEFINITION_BY_ID.get(id)!;
+    const el = document.createElement("div");
+    el.className = `toolbar-btn ${def.buttonClass}`;
+    el.dataset.dockEntry = id;
+    el.innerHTML = def.icon;
+    el.title = def.title;
+    return el;
+  }
+
+  private getDockEntryElement(id: FloatingButtonDockEntryId): HTMLElement | null {
+    if (id === "grab") return this.btnEl;
+    if (id === "settings") return this.gearEl;
+    if (id === "magnifier") return this.magnifierBtnEl;
+    if (id === "measurer") return this.measurerBtnEl;
+    if (id === "accessibility") return this.a11yIndicatorEl;
+    if (id === "logs") return this.logsBtnEl;
+    if (id === "network") return this.networkBtnEl;
+    return null;
+  }
+
+  private visibleDockEntryIds(): FloatingButtonDockEntryId[] {
+    const hidden = new Set(this.dockEntries.hidden);
+    hidden.delete("settings");
+    return this.dockEntries.order.filter((id) => id === "settings" || !hidden.has(id));
+  }
+
+  private renderToolbarEntries(): void {
+    if (!this.toolbarRowEl) return;
+    this.toolbarRowEl.replaceChildren();
+
+    let previousGroup: DockEntryGroupId | null = null;
+    for (const id of this.visibleDockEntryIds()) {
+      const def = DOCK_ENTRY_DEFINITION_BY_ID.get(id);
+      const el = this.getDockEntryElement(id);
+      if (!def || !el) continue;
+      if (previousGroup && previousGroup !== def.group) {
+        const divider = document.createElement("div");
+        divider.className = "toolbar-divider";
+        this.toolbarRowEl.appendChild(divider);
+      }
+      this.toolbarRowEl.appendChild(el);
+      previousGroup = def.group;
     }
   }
 
@@ -1427,72 +1784,25 @@ export class FloatingButton {
     this.toolbarRowEl = document.createElement("div");
     this.toolbarRowEl.className = "toolbar-row";
 
-    // Main grab button
-    this.btnEl = document.createElement("div");
-    this.btnEl.className = "toolbar-btn grab-btn";
-    this.btnEl.innerHTML = CROSSHAIR_SVG;
-    this.toolbarRowEl.appendChild(this.btnEl);
+    this.btnEl = this.createDockEntryButton("grab");
+    this.gearEl = this.createDockEntryButton("settings");
+    this.magnifierBtnEl = this.createDockEntryButton("magnifier");
+    this.measurerBtnEl = this.createDockEntryButton("measurer");
+    this.a11yIndicatorEl = this.createDockEntryButton("accessibility");
 
-    // Divider
-    const divider1 = document.createElement("div");
-    divider1.className = "toolbar-divider";
-    this.toolbarRowEl.appendChild(divider1);
-
-    // Gear button (settings)
-    this.gearEl = document.createElement("div");
-    this.gearEl.className = "toolbar-btn gear-btn";
-    this.gearEl.innerHTML = GEAR_SVG;
-    this.toolbarRowEl.appendChild(this.gearEl);
-
-    // Magnifier button
-    this.magnifierBtnEl = document.createElement("div");
-    this.magnifierBtnEl.className = "toolbar-btn magnifier-btn";
-    this.magnifierBtnEl.innerHTML = MAGNIFIER_SVG;
-    this.magnifierBtnEl.title = "Magnifier loupe";
-    this.toolbarRowEl.appendChild(this.magnifierBtnEl);
-
-    // Measurer button
-    this.measurerBtnEl = document.createElement("div");
-    this.measurerBtnEl.className = "toolbar-btn measurer-btn";
-    this.measurerBtnEl.innerHTML = MEASURER_SVG;
-    this.measurerBtnEl.title = "Measure spacing";
-    this.toolbarRowEl.appendChild(this.measurerBtnEl);
-
-    // Divider before a11y
-    const divider2 = document.createElement("div");
-    divider2.className = "toolbar-divider";
-    this.toolbarRowEl.appendChild(divider2);
-
-    // A11y button
-    this.a11yIndicatorEl = document.createElement("div");
-    this.a11yIndicatorEl.className = "toolbar-btn a11y-btn";
-    this.a11yIndicatorEl.innerHTML = A11Y_ICON_SVG;
-    this.toolbarRowEl.appendChild(this.a11yIndicatorEl);
-
-    // Divider before errors
-    const divider3 = document.createElement("div");
-    divider3.className = "toolbar-divider";
-    this.toolbarRowEl.appendChild(divider3);
-
-    this.logsBtnEl = document.createElement("div");
-    this.logsBtnEl.className = "toolbar-btn logs-btn";
-    this.logsBtnEl.innerHTML = LOGS_SVG;
-    this.logsBtnEl.title = "Console logs";
+    this.logsBtnEl = this.createDockEntryButton("logs");
     this.logsBadgeEl = document.createElement("span");
     this.logsBadgeEl.className = "logs-badge";
     this.logsBadgeEl.style.display = "none";
     this.logsBtnEl.appendChild(this.logsBadgeEl);
-    this.toolbarRowEl.appendChild(this.logsBtnEl);
 
-    this.networkBtnEl = document.createElement("div");
-    this.networkBtnEl.className = "toolbar-btn network-btn";
-    this.networkBtnEl.innerHTML = NETWORK_SVG;
-    this.networkBtnEl.title = "Network requests";
+    this.networkBtnEl = this.createDockEntryButton("network");
     this.networkBadgeEl = document.createElement("span");
     this.networkBadgeEl.className = "network-badge";
     this.networkBadgeEl.style.display = "none";
     this.networkBtnEl.appendChild(this.networkBadgeEl);
-    this.toolbarRowEl.appendChild(this.networkBtnEl);
+
+    this.renderToolbarEntries();
 
     this.toolbarEl.appendChild(this.toolbarRowEl);
 
@@ -1780,12 +2090,7 @@ export class FloatingButton {
     this.expandBodyEl!.classList.add("open");
     this.renderExpandBody();
     this.applyDockLayout();
-
-    // Update icon highlights
-    this.gearEl!.classList.toggle("active", panel === "settings");
-    this.a11yIndicatorEl!.classList.toggle("active", panel === "accessibility");
-    this.logsBtnEl!.classList.toggle("active", panel === "logs");
-    this.networkBtnEl!.classList.toggle("active", panel === "network");
+    this.updatePanelButtonStates();
   }
 
   private deactivatePanel(): void {
@@ -1809,6 +2114,13 @@ export class FloatingButton {
       this.preservedToolbarRect = null;
       this.applyOrientation(this.getEdgeFromPosition());
     }
+  }
+
+  private updatePanelButtonStates(): void {
+    this.gearEl?.classList.toggle("active", this.activePanel === "settings");
+    this.a11yIndicatorEl?.classList.toggle("active", this.activePanel === "accessibility");
+    this.logsBtnEl?.classList.toggle("active", this.activePanel === "logs");
+    this.networkBtnEl?.classList.toggle("active", this.activePanel === "network");
   }
 
   // --- Content rendering ---
@@ -1854,12 +2166,12 @@ export class FloatingButton {
 
     return `
       <div class="tab-bar">
-        <button class="tab-btn${this.settingsTab === "appearance" ? " active" : ""}" data-tab="appearance">Appearance</button>
+        <button class="tab-btn${this.settingsTab === "dock" ? " active" : ""}" data-tab="dock">Dock</button>
         <button class="tab-btn${this.settingsTab === "shortcuts" ? " active" : ""}" data-tab="shortcuts">Shortcuts</button>
         <button class="tab-btn${this.settingsTab === "editor" ? " active" : ""}" data-tab="editor">Editor</button>
         <button class="tab-btn${this.settingsTab === "magnifier" ? " active" : ""}" data-tab="magnifier">Magnifier</button>
       </div>
-      <div class="tab-content${this.settingsTab === "appearance" ? " active" : ""}" data-tab-content="appearance">
+      <div class="tab-content${this.settingsTab === "dock" ? " active" : ""}" data-tab-content="dock">
         <div class="section-label">Dock Mode</div>
         <div class="setting-help">How the DevTools panel is displayed</div>
         <div class="dock-mode-group" role="group" aria-label="Dock mode">
@@ -1875,6 +2187,9 @@ export class FloatingButton {
           }>
           <span class="setting-toggle-switch" aria-hidden="true"></span>
         </label>
+        <div class="section-label">Toolbar Entries</div>
+        <div class="setting-help">Manage visibility and order of toolbar entries. Hidden entries will not appear in the toolbar.</div>
+        ${this.renderDockEntryManager()}
       </div>
       <div class="tab-content${this.settingsTab === "shortcuts" ? " active" : ""}" data-tab-content="shortcuts">
         <div class="section-label">Grab Hotkey</div>
@@ -1910,6 +2225,65 @@ export class FloatingButton {
     `;
   }
 
+  private renderDockEntryManager(): string {
+    const hidden = new Set(this.dockEntries.hidden);
+    let html = '<div class="dock-entry-manager">';
+
+    for (const group of DOCK_ENTRY_GROUPS) {
+      const entries = this.dockEntries.order
+        .map((id) => DOCK_ENTRY_DEFINITION_BY_ID.get(id))
+        .filter((entry): entry is DockEntryDefinition => entry?.group === group.id);
+      if (entries.length === 0) continue;
+
+      const hideable = entries.filter((entry) => !entry.locked);
+      const visibleCount = entries.filter((entry) => entry.locked || !hidden.has(entry.id)).length;
+      const hideableVisibleCount = hideable.filter((entry) => !hidden.has(entry.id)).length;
+      const groupAllVisible = hideable.length === 0 || hideableVisibleCount === hideable.length;
+      const groupPartial = hideableVisibleCount > 0 && hideableVisibleCount < hideable.length;
+
+      html += `<div class="dock-entry-group" data-dock-group="${group.id}">`;
+      html += '<div class="dock-entry-group-header">';
+      html += `<button class="dock-entry-group-toggle${groupPartial ? " is-partial" : ""}" type="button" data-dock-group-toggle="${group.id}"${
+        hideable.length === 0 ? " disabled" : ""
+      } aria-pressed="${groupAllVisible ? "true" : "false"}">${groupAllVisible ? "\u2713" : groupPartial ? "\u2013" : ""}</button>`;
+      html += `<span class="dock-entry-group-title">${esc(group.label)}</span>`;
+      html += `<span class="dock-entry-group-count">(${visibleCount})</span>`;
+      html += "</div>";
+
+      for (let index = 0; index < entries.length; index++) {
+        const entry = entries[index];
+        const visible = entry.locked || !hidden.has(entry.id);
+        const disableUp = index === 0;
+        const disableDown = index === entries.length - 1;
+
+        html += `<div class="dock-entry-row" data-dock-entry-row="${entry.id}" data-dock-group="${group.id}">`;
+        html += `<span class="dock-entry-drag" draggable="true" data-dock-entry-drag="${entry.id}" aria-label="Drag ${esc(entry.label)}" title="Drag to reorder">::</span>`;
+        html += `<button class="dock-entry-check${visible ? "" : " is-hidden"}" type="button" data-dock-entry-toggle="${entry.id}" aria-pressed="${visible ? "true" : "false"}"${
+          entry.locked ? " disabled" : ""
+        }>${visible ? "\u2713" : ""}</button>`;
+        html += `<span class="dock-entry-icon">${entry.icon}</span>`;
+        html += `<span class="dock-entry-label">${esc(entry.label)}</span>`;
+        html += '<span class="dock-entry-actions">';
+        if (entry.locked) {
+          html += '<span class="dock-entry-lock">Locked</span>';
+        }
+        html += `<button class="dock-entry-move" type="button" data-dock-entry-move="${entry.id}" data-direction="up"${
+          disableUp ? " disabled" : ""
+        } aria-label="Move ${esc(entry.label)} up">\u2191</button>`;
+        html += `<button class="dock-entry-move" type="button" data-dock-entry-move="${entry.id}" data-direction="down"${
+          disableDown ? " disabled" : ""
+        } aria-label="Move ${esc(entry.label)} down">\u2193</button>`;
+        html += "</span>";
+        html += "</div>";
+      }
+
+      html += "</div>";
+    }
+
+    html += "</div>";
+    return html;
+  }
+
   private wireSettingsEvents(): void {
     if (!this.expandBodyEl) return;
 
@@ -1922,7 +2296,7 @@ export class FloatingButton {
       });
     }
 
-    // Appearance: dock mode
+    // Dock: dock mode
     for (const btn of Array.from(this.expandBodyEl.querySelectorAll(".dock-mode-option"))) {
       btn.addEventListener("click", (e: Event) => {
         e.stopPropagation();
@@ -1933,7 +2307,7 @@ export class FloatingButton {
       });
     }
 
-    // Appearance: outside-click toggle
+    // Dock: outside-click toggle
     const outsideClickToggle =
       this.expandBodyEl.querySelector<HTMLInputElement>(".outside-click-toggle");
     outsideClickToggle?.addEventListener("click", (e: Event) => e.stopPropagation());
@@ -1941,6 +2315,8 @@ export class FloatingButton {
       this.closeOnOutsideClick = outsideClickToggle.checked;
       trySaveBoolean(this.config.closeOnOutsideClickStorageKey, this.closeOnOutsideClick);
     });
+
+    this.wireDockEntryManagerEvents();
 
     // Editor: select
     const selectEl = this.expandBodyEl.querySelector<HTMLSelectElement>(".editor-select");
@@ -1993,6 +2369,219 @@ export class FloatingButton {
       if (label) label.textContent = `${val}x`;
       this.magnifierConfigChangeCb?.({ zoomLevel: val });
     });
+  }
+
+  private wireDockEntryManagerEvents(): void {
+    if (!this.expandBodyEl) return;
+
+    for (const btn of this.expandBodyEl.querySelectorAll<HTMLElement>("[data-dock-entry-toggle]")) {
+      btn.addEventListener("click", (e: Event) => {
+        e.stopPropagation();
+        const id = btn.dataset.dockEntryToggle;
+        if (!isDockEntryId(id) || id === "settings") return;
+        this.toggleDockEntryVisibility(id);
+      });
+    }
+
+    for (const btn of this.expandBodyEl.querySelectorAll<HTMLElement>("[data-dock-group-toggle]")) {
+      btn.addEventListener("click", (e: Event) => {
+        e.stopPropagation();
+        const groupId = btn.dataset.dockGroupToggle as DockEntryGroupId | undefined;
+        if (!groupId) return;
+        this.toggleDockEntryGroupVisibility(groupId);
+      });
+    }
+
+    for (const btn of this.expandBodyEl.querySelectorAll<HTMLElement>("[data-dock-entry-move]")) {
+      btn.addEventListener("click", (e: Event) => {
+        e.stopPropagation();
+        const id = btn.dataset.dockEntryMove;
+        const direction = btn.dataset.direction;
+        if (!isDockEntryId(id) || (direction !== "up" && direction !== "down")) return;
+        this.moveDockEntryWithinGroup(id, direction);
+      });
+    }
+
+    for (const handle of this.expandBodyEl.querySelectorAll<HTMLElement>(
+      "[data-dock-entry-drag]",
+    )) {
+      handle.addEventListener("dragstart", (e: DragEvent) => {
+        e.stopPropagation();
+        const id = handle.dataset.dockEntryDrag;
+        if (!isDockEntryId(id)) return;
+        this.dockEntryDragId = id;
+        e.dataTransfer?.setData("text/plain", id);
+        if (e.dataTransfer) e.dataTransfer.effectAllowed = "move";
+        handle.closest<HTMLElement>("[data-dock-entry-row]")?.classList.add("is-dragging");
+      });
+
+      handle.addEventListener("dragend", (e: DragEvent) => {
+        e.stopPropagation();
+        this.dockEntryDragId = null;
+        this.clearDockEntryDragState();
+      });
+    }
+
+    for (const row of this.expandBodyEl.querySelectorAll<HTMLElement>("[data-dock-entry-row]")) {
+      row.addEventListener("dragover", (e: DragEvent) => {
+        const dragId = this.dockEntryDragId;
+        const targetId = row.dataset.dockEntryRow;
+        if (!isDockEntryId(dragId) || !isDockEntryId(targetId)) return;
+        if (!this.canDropDockEntryOn(dragId, targetId)) {
+          this.clearDockEntryDropTargets();
+          return;
+        }
+
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+        this.setDockEntryDropTarget(row, this.getDockEntryDropPlacement(row, e));
+      });
+
+      row.addEventListener("dragleave", (e: DragEvent) => {
+        const relatedTarget = e.relatedTarget;
+        if (relatedTarget instanceof Node && row.contains(relatedTarget)) return;
+        row.classList.remove("is-drop-before", "is-drop-after");
+      });
+
+      row.addEventListener("drop", (e: DragEvent) => {
+        const dragId = this.dockEntryDragId;
+        const targetId = row.dataset.dockEntryRow;
+        if (!isDockEntryId(dragId) || !isDockEntryId(targetId)) return;
+        if (!this.canDropDockEntryOn(dragId, targetId)) {
+          this.clearDockEntryDragState();
+          this.dockEntryDragId = null;
+          return;
+        }
+
+        e.preventDefault();
+        e.stopPropagation();
+        const placement = this.getDockEntryDropPlacement(row, e);
+        this.clearDockEntryDragState();
+        this.dockEntryDragId = null;
+        this.reorderDockEntryWithinGroup(dragId, targetId, placement);
+      });
+    }
+  }
+
+  private persistDockEntries(): void {
+    trySaveDockEntries(this.dockEntriesStorageKey, this.dockEntries);
+  }
+
+  private commitDockEntries(patch: Partial<FloatingButtonDockEntriesConfig>): void {
+    this.dockEntries = normalizeDockEntries({ ...this.dockEntries, ...patch });
+    this.persistDockEntries();
+    this.refreshDockEntryUi();
+  }
+
+  private refreshDockEntryUi(): void {
+    this.renderToolbarEntries();
+    this.updateLogsBadge();
+    this.updateNetworkBadge();
+    this.updatePanelButtonStates();
+    this.applyDockLayout();
+    if (this.activePanel === "settings") this.renderExpandBody();
+  }
+
+  private toggleDockEntryVisibility(id: FloatingButtonDockEntryId): void {
+    if (id === "settings") return;
+    const hidden = new Set(this.dockEntries.hidden);
+    if (hidden.has(id)) hidden.delete(id);
+    else hidden.add(id);
+    hidden.delete("settings");
+    this.commitDockEntries({ hidden: [...hidden] });
+  }
+
+  private toggleDockEntryGroupVisibility(groupId: DockEntryGroupId): void {
+    const groupEntries = this.dockEntries.order.filter((id) => {
+      const def = DOCK_ENTRY_DEFINITION_BY_ID.get(id);
+      return def?.group === groupId && !def.locked;
+    });
+    if (groupEntries.length === 0) return;
+    const hidden = new Set(this.dockEntries.hidden);
+    const allVisible = groupEntries.every((id) => !hidden.has(id));
+    for (const id of groupEntries) {
+      if (allVisible) hidden.add(id);
+      else hidden.delete(id);
+    }
+    hidden.delete("settings");
+    this.commitDockEntries({ hidden: [...hidden] });
+  }
+
+  private moveDockEntryWithinGroup(id: FloatingButtonDockEntryId, direction: "up" | "down"): void {
+    const def = DOCK_ENTRY_DEFINITION_BY_ID.get(id);
+    if (!def) return;
+
+    const groupIds = this.dockEntries.order.filter(
+      (entryId) => DOCK_ENTRY_DEFINITION_BY_ID.get(entryId)?.group === def.group,
+    );
+    const groupIndex = groupIds.indexOf(id);
+    const swapGroupIndex = direction === "up" ? groupIndex - 1 : groupIndex + 1;
+    const swapId = groupIds[swapGroupIndex];
+    if (!swapId) return;
+
+    const order = [...this.dockEntries.order];
+    const index = order.indexOf(id);
+    const swapIndex = order.indexOf(swapId);
+    if (index < 0 || swapIndex < 0) return;
+    [order[index], order[swapIndex]] = [order[swapIndex], order[index]];
+
+    this.commitDockEntries({ order });
+  }
+
+  private reorderDockEntryWithinGroup(
+    dragId: FloatingButtonDockEntryId,
+    targetId: FloatingButtonDockEntryId,
+    placement: DockEntryDropPlacement,
+  ): void {
+    if (!this.canDropDockEntryOn(dragId, targetId)) return;
+
+    const orderWithoutDrag = this.dockEntries.order.filter((id) => id !== dragId);
+    const targetIndex = orderWithoutDrag.indexOf(targetId);
+    if (targetIndex < 0) return;
+
+    const insertIndex = placement === "before" ? targetIndex : targetIndex + 1;
+    const order = [...orderWithoutDrag];
+    order.splice(insertIndex, 0, dragId);
+
+    this.commitDockEntries({ order });
+  }
+
+  private canDropDockEntryOn(
+    dragId: FloatingButtonDockEntryId,
+    targetId: FloatingButtonDockEntryId,
+  ): boolean {
+    if (dragId === targetId) return false;
+    const dragDef = DOCK_ENTRY_DEFINITION_BY_ID.get(dragId);
+    const targetDef = DOCK_ENTRY_DEFINITION_BY_ID.get(targetId);
+    return Boolean(dragDef && targetDef && dragDef.group === targetDef.group);
+  }
+
+  private getDockEntryDropPlacement(row: HTMLElement, e: DragEvent): DockEntryDropPlacement {
+    const rect = row.getBoundingClientRect();
+    return e.clientY < rect.top + rect.height / 2 ? "before" : "after";
+  }
+
+  private setDockEntryDropTarget(row: HTMLElement, placement: DockEntryDropPlacement): void {
+    if (this.dockEntryDropTargetEl && this.dockEntryDropTargetEl !== row) {
+      this.dockEntryDropTargetEl.classList.remove("is-drop-before", "is-drop-after");
+    }
+    row.classList.add(placement === "before" ? "is-drop-before" : "is-drop-after");
+    row.classList.remove(placement === "before" ? "is-drop-after" : "is-drop-before");
+    this.dockEntryDropTargetEl = row;
+  }
+
+  private clearDockEntryDropTargets(): void {
+    this.dockEntryDropTargetEl?.classList.remove("is-drop-before", "is-drop-after");
+    this.dockEntryDropTargetEl = null;
+  }
+
+  private clearDockEntryDragState(): void {
+    if (!this.expandBodyEl) return;
+    for (const row of this.expandBodyEl.querySelectorAll<HTMLElement>("[data-dock-entry-row]")) {
+      row.classList.remove("is-dragging", "is-drop-before", "is-drop-after");
+    }
+    this.dockEntryDropTargetEl = null;
   }
 
   private switchSettingsTab(tabId: TabId): void {
@@ -2810,10 +3399,7 @@ export class FloatingButton {
     this.activePanel = null;
     this.wrapperEl?.classList.remove("expanded", "expand-up", "expand-left", "expand-right");
     this.expandBodyEl?.classList.remove("open");
-    this.gearEl?.classList.remove("active");
-    this.a11yIndicatorEl?.classList.remove("active");
-    this.logsBtnEl?.classList.remove("active");
-    this.networkBtnEl?.classList.remove("active");
+    this.updatePanelButtonStates();
   }
 
   private restoreFloatPositionFromEdge(edge: DockEdge): void {
