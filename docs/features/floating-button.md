@@ -18,11 +18,11 @@ createVueGrab({
 - **Logs panel** - reads the console capture buffer with level filters and message search.
 - **Network panel** - reads the network capture buffer with status filters, URL search, expandable headers/bodies, and copy/editor actions.
 - **A11y panel** - runs `scanPageA11y()` and groups findings by component.
-- **Settings panel** - controls appearance, dock mode, outside-click closing, hotkeys, editor choice, and magnifier settings.
+- **Settings panel** - controls dock layout, toolbar entries, shortcuts, editor choice, and magnifier settings.
 
 ## Float and Edge modes
 
-The Appearance tab lets users choose between two panel modes:
+The Dock tab lets users choose between two panel modes:
 
 | Mode    | Behavior                                                                 |
 | ------- | ------------------------------------------------------------------------ |
@@ -33,7 +33,7 @@ Dragging the toolbar snaps it to the nearest edge. Switching back from Edge mode
 
 ## Outside-click close
 
-`closeOnOutsideClick` defaults to `true`, so clicking outside the active FAB panel closes it. Users can disable this from Appearance settings. `Escape` still closes an open panel.
+`closeOnOutsideClick` defaults to `true`, so clicking outside the active FAB panel closes it. Users can disable this from Dock settings. `Escape` still closes an open panel.
 
 ```ts
 createVueGrab({
@@ -44,6 +44,26 @@ createVueGrab({
 });
 ```
 
+## Toolbar entries
+
+The Dock tab also lets users hide and reorder toolbar entries by feature group. Hiding an entry removes it from the toolbar only; the underlying feature can still be used through hotkeys or programmatic APIs. The Settings entry is always visible and cannot be hidden. Entries can be reordered within their feature group with the drag handle or arrow controls.
+
+```ts
+createVueGrab({
+  floatingButton: {
+    enabled: true,
+    dockEntries: {
+      order: ["grab", "settings", "logs", "network", "magnifier", "measurer", "accessibility"],
+      hidden: ["network"],
+    },
+  },
+});
+```
+
+## Shortcuts
+
+The Shortcuts tab groups the grab and measurer hotkey controls together. Each shortcut keeps its own storage key and callback behavior.
+
 ## Persistence
 
 State survives reloads via localStorage. Default keys:
@@ -52,6 +72,7 @@ State survives reloads via localStorage. Default keys:
 | ------------------- | --------------------------------- |
 | FAB position        | `vue-grab-fab-pos`                |
 | Dock mode           | `vue-grab-dock-mode`              |
+| Toolbar entries     | `vue-grab-dock-entries`           |
 | Outside-click close | `vue-grab-close-on-outside-click` |
 | Grab hotkey         | `vue-grab-hotkey`                 |
 | Measurer hotkey     | `vue-grab-measurer-hotkey`        |

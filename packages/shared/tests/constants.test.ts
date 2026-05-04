@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { DEFAULT_CONFIG, DEFAULT_HIGHLIGHT_COLOR, mergeConfig } from "../src";
+import {
+  DEFAULT_CONFIG,
+  DEFAULT_FLOATING_BUTTON_DOCK_ENTRY_ORDER,
+  DEFAULT_HIGHLIGHT_COLOR,
+  mergeConfig,
+} from "../src";
 
 describe("constants", () => {
   it("should have default config values", () => {
@@ -7,6 +12,10 @@ describe("constants", () => {
     expect(DEFAULT_CONFIG.showTagHint).toBe(true);
     expect(DEFAULT_CONFIG.filter.ignoreSelectors).toEqual([]);
     expect(DEFAULT_CONFIG.networkCapture.captureBodies).toBe(false);
+    expect(DEFAULT_CONFIG.floatingButton.dockEntries.order).toEqual(
+      DEFAULT_FLOATING_BUTTON_DOCK_ENTRY_ORDER,
+    );
+    expect(DEFAULT_CONFIG.floatingButton.dockEntries.hidden).toEqual([]);
   });
 });
 
@@ -43,8 +52,36 @@ describe("mergeConfig", () => {
     expect(result.floatingButton.enabled).toBe(true);
     expect(result.floatingButton.storageKey).toBe(DEFAULT_CONFIG.floatingButton.storageKey);
     expect(result.floatingButton.dockMode).toBe(DEFAULT_CONFIG.floatingButton.dockMode);
+    expect(result.floatingButton.dockEntries).toEqual(DEFAULT_CONFIG.floatingButton.dockEntries);
     expect(result.floatingButton.closeOnOutsideClick).toBe(
       DEFAULT_CONFIG.floatingButton.closeOnOutsideClick,
+    );
+  });
+
+  it("deep-merges floatingButton dock entries with array replacement", () => {
+    const result = mergeConfig(DEFAULT_CONFIG, {
+      floatingButton: {
+        dockEntries: {
+          hidden: ["logs", "network"],
+        },
+      },
+    });
+    expect(result.floatingButton.dockEntries.order).toEqual(
+      DEFAULT_CONFIG.floatingButton.dockEntries.order,
+    );
+    expect(result.floatingButton.dockEntries.hidden).toEqual(["logs", "network"]);
+  });
+
+  it("defensively clones floatingButton dock entry arrays", () => {
+    const result = mergeConfig(DEFAULT_CONFIG, {});
+    expect(result.floatingButton.dockEntries.order).toEqual(
+      DEFAULT_CONFIG.floatingButton.dockEntries.order,
+    );
+    expect(result.floatingButton.dockEntries.order).not.toBe(
+      DEFAULT_CONFIG.floatingButton.dockEntries.order,
+    );
+    expect(result.floatingButton.dockEntries.hidden).not.toBe(
+      DEFAULT_CONFIG.floatingButton.dockEntries.hidden,
     );
   });
 

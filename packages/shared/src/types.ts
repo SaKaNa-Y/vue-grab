@@ -1,5 +1,21 @@
 export type FloatingButtonDockMode = "float" | "edge";
 
+export type FloatingButtonDockEntryId =
+  | "grab"
+  | "settings"
+  | "magnifier"
+  | "measurer"
+  | "accessibility"
+  | "logs"
+  | "network";
+
+export interface FloatingButtonDockEntriesConfig {
+  /** Preferred toolbar entry order. Unknown or missing ids are normalized at runtime. */
+  order: FloatingButtonDockEntryId[];
+  /** Toolbar entries to hide. Settings is always forced visible. */
+  hidden: FloatingButtonDockEntryId[];
+}
+
 export interface FloatingButtonConfig {
   /** Show the floating button. Default: false (opt-in). */
   enabled: boolean;
@@ -7,10 +23,14 @@ export interface FloatingButtonConfig {
   initialPosition: "bottom-right" | "bottom-left" | "top-right" | "top-left" | "top-center";
   /** Preferred panel display mode. Default: "float". */
   dockMode: FloatingButtonDockMode;
+  /** Visibility and order preferences for toolbar entries. */
+  dockEntries: FloatingButtonDockEntriesConfig;
   /** localStorage key for persisting position. Set to "" to disable persistence. */
   storageKey: string;
   /** localStorage key for persisting dock mode. Set to "" to disable persistence. */
   dockModeStorageKey: string;
+  /** localStorage key for persisting toolbar entry visibility/order. Set to "" to disable. */
+  dockEntriesStorageKey: string;
   /** localStorage key for persisting hotkey. Set to "" to disable persistence. */
   hotkeyStorageKey: string;
   /** localStorage key for persisting editor choice. Set to "" to disable persistence. */
