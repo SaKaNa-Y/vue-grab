@@ -16,6 +16,11 @@ describe("constants", () => {
       DEFAULT_FLOATING_BUTTON_DOCK_ENTRY_ORDER,
     );
     expect(DEFAULT_CONFIG.floatingButton.dockEntries.hidden).toEqual([]);
+    expect(DEFAULT_CONFIG.floatingButton.shortcutsStorageKey).toBe("vue-grab-shortcuts");
+    expect(DEFAULT_CONFIG.floatingButton.shortcuts).toEqual({
+      grab: ["Alt+Shift+G"],
+      measurer: ["Alt+Shift+M"],
+    });
   });
 });
 
@@ -53,6 +58,7 @@ describe("mergeConfig", () => {
     expect(result.floatingButton.storageKey).toBe(DEFAULT_CONFIG.floatingButton.storageKey);
     expect(result.floatingButton.dockMode).toBe(DEFAULT_CONFIG.floatingButton.dockMode);
     expect(result.floatingButton.dockEntries).toEqual(DEFAULT_CONFIG.floatingButton.dockEntries);
+    expect(result.floatingButton.shortcuts).toEqual(DEFAULT_CONFIG.floatingButton.shortcuts);
     expect(result.floatingButton.closeOnOutsideClick).toBe(
       DEFAULT_CONFIG.floatingButton.closeOnOutsideClick,
     );
@@ -82,6 +88,35 @@ describe("mergeConfig", () => {
     );
     expect(result.floatingButton.dockEntries.hidden).not.toBe(
       DEFAULT_CONFIG.floatingButton.dockEntries.hidden,
+    );
+  });
+
+  it("deep-merges floatingButton shortcuts with array replacement", () => {
+    const result = mergeConfig(DEFAULT_CONFIG, {
+      floatingButton: {
+        shortcuts: {
+          logs: ["Ctrl+Shift+L"],
+          grab: ["Ctrl+Shift+G"],
+        },
+      },
+    });
+    expect(result.floatingButton.shortcuts).toEqual({
+      ...DEFAULT_CONFIG.floatingButton.shortcuts,
+      logs: ["Ctrl+Shift+L"],
+      grab: ["Ctrl+Shift+G"],
+    });
+  });
+
+  it("defensively clones floatingButton shortcut arrays", () => {
+    const result = mergeConfig(DEFAULT_CONFIG, {});
+    expect(result.floatingButton.shortcuts.grab).toEqual(
+      DEFAULT_CONFIG.floatingButton.shortcuts.grab,
+    );
+    expect(result.floatingButton.shortcuts.grab).not.toBe(
+      DEFAULT_CONFIG.floatingButton.shortcuts.grab,
+    );
+    expect(result.floatingButton.shortcuts.measurer).not.toBe(
+      DEFAULT_CONFIG.floatingButton.shortcuts.measurer,
     );
   });
 

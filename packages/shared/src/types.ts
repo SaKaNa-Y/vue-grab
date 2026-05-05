@@ -16,6 +16,12 @@ export interface FloatingButtonDockEntriesConfig {
   hidden: FloatingButtonDockEntryId[];
 }
 
+export type FloatingButtonShortcutCommandId = FloatingButtonDockEntryId;
+
+export type FloatingButtonShortcutsConfig = Partial<
+  Record<FloatingButtonShortcutCommandId, string[]>
+>;
+
 export interface FloatingButtonConfig {
   /** Show the floating button. Default: false (opt-in). */
   enabled: boolean;
@@ -25,12 +31,16 @@ export interface FloatingButtonConfig {
   dockMode: FloatingButtonDockMode;
   /** Visibility and order preferences for toolbar entries. */
   dockEntries: FloatingButtonDockEntriesConfig;
+  /** Keyboard shortcuts for floating bar feature commands. */
+  shortcuts: FloatingButtonShortcutsConfig;
   /** localStorage key for persisting position. Set to "" to disable persistence. */
   storageKey: string;
   /** localStorage key for persisting dock mode. Set to "" to disable persistence. */
   dockModeStorageKey: string;
   /** localStorage key for persisting toolbar entry visibility/order. Set to "" to disable. */
   dockEntriesStorageKey: string;
+  /** localStorage key for persisting feature shortcuts. Set to "" to disable. */
+  shortcutsStorageKey: string;
   /** localStorage key for persisting hotkey. Set to "" to disable persistence. */
   hotkeyStorageKey: string;
   /** localStorage key for persisting editor choice. Set to "" to disable persistence. */

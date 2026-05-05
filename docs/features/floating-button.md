@@ -18,7 +18,7 @@ createVueGrab({
 - **Logs panel** - reads the console capture buffer with level filters and message search.
 - **Network panel** - reads the network capture buffer with status filters, URL search, expandable headers/bodies, and copy/editor actions.
 - **A11y panel** - runs `scanPageA11y()` and groups findings by component.
-- **Settings panel** - controls dock layout, toolbar entries, shortcuts, editor choice, and magnifier settings.
+- **Settings panel** - controls dock layout, toolbar entries, shortcuts, and tool preferences.
 
 ## Float and Edge modes
 
@@ -62,7 +62,11 @@ createVueGrab({
 
 ## Shortcuts
 
-The Shortcuts tab groups the grab and measurer hotkey controls together. Each shortcut keeps its own storage key and callback behavior.
+The Shortcuts tab lists every floating-bar feature: Grab, Settings, Magnifier, Measurer, Accessibility, Logs, and Network. Each row can hold multiple user-defined shortcuts. Defaults are intentionally limited to Grab (`Alt+Shift+G`) and Measurer (`Alt+Shift+M`) so Vue Grab does not claim common app or browser shortcuts.
+
+## Tools
+
+The Tools tab groups utility preferences that do not belong to keybindings. It includes the editor selector and "Open in Editor" action for the last grabbed source file, plus magnifier loupe size and zoom controls.
 
 ## Persistence
 
@@ -74,6 +78,7 @@ State survives reloads via localStorage. Default keys:
 | Dock mode           | `vue-grab-dock-mode`              |
 | Toolbar entries     | `vue-grab-dock-entries`           |
 | Outside-click close | `vue-grab-close-on-outside-click` |
+| Feature shortcuts   | `vue-grab-shortcuts`              |
 | Grab hotkey         | `vue-grab-hotkey`                 |
 | Measurer hotkey     | `vue-grab-measurer-hotkey`        |
 | Editor preference   | `vue-grab-editor`                 |

@@ -1,4 +1,4 @@
-import type { GrabConfig } from "@sakana-y/vue-grab-shared";
+import type { FloatingButtonShortcutCommandId, GrabConfig } from "@sakana-y/vue-grab-shared";
 import { DEFAULT_HOTKEY } from "@sakana-y/vue-grab-shared";
 import { GrabEngine } from "./core";
 import { HotkeyManager } from "./hotkeys";
@@ -32,6 +32,19 @@ export function createGrabSession(config: GrabConfig): GrabSession {
   let consoleCapture: ConsoleCapture | null = null;
   let networkCapture: NetworkCapture | null = null;
 
+  const registerFabShortcuts = (targetFab: FloatingButton): void => {
+    hotkeys.destroy();
+    const shortcuts = targetFab.getShortcuts();
+    for (const [id, combos] of Object.entries(shortcuts) as [
+      FloatingButtonShortcutCommandId,
+      string[],
+    ][]) {
+      for (const combo of combos) {
+        hotkeys.register(combo, () => targetFab.triggerShortcut(id));
+      }
+    }
+  };
+
   if (config.consoleCapture.enabled) {
     consoleCapture = new ConsoleCapture(config.consoleCapture);
     consoleCapture.start();
@@ -52,18 +65,10 @@ export function createGrabSession(config: GrabConfig): GrabSession {
     const localFab = new FloatingButton(config.floatingButton);
     fab = localFab;
     const initialHotkey = localFab.getCurrentHotkey() || DEFAULT_HOTKEY;
-    hotkeys.register(initialHotkey, () => engine.toggle());
     localFab.setHighlightColor(config.highlightColor);
     localFab.setCurrentHotkey(initialHotkey);
     localFab.onToggle(() => engine.toggle());
-    localFab.onHotkeyChange((combo) => {
-      hotkeys.destroy();
-      hotkeys.register(combo, () => engine.toggle());
-      // Re-register measurer hotkey since destroy() clears all
-      const mhk = localFab.getCurrentMeasurerHotkey();
-      if (mhk && measurer) hotkeys.register(mhk, () => measurer!.toggle());
-      localFab.setCurrentHotkey(combo);
-    });
+    localFab.onShortcutsChange(() => registerFabShortcuts(localFab));
     engine.onStateChange((active) => {
       localFab.setActive(active);
       // Mutual exclusion: deactivate magnifier and measurer when grab activates
@@ -74,6 +79,7 @@ export function createGrabSession(config: GrabConfig): GrabSession {
     });
     engine.onGrab((result) => localFab.setLastResult(result));
     localFab.mount();
+    registerFabShortcuts(localFab);
   } else {
     hotkeys.register(DEFAULT_HOTKEY, () => engine.toggle());
   }
@@ -125,21 +131,6 @@ export function createGrabSession(config: GrabConfig): GrabSession {
           engine.deactivate();
           if (magnifier?.isActive) magnifier.deactivate();
         }
-      });
-
-      // Measurer hotkey
-      const initialMeasurerHotkey = fab.getCurrentMeasurerHotkey() || "Alt+Shift+M";
-      hotkeys.register(initialMeasurerHotkey, () => localMeasurer.toggle());
-      fab.setCurrentMeasurerHotkey(initialMeasurerHotkey);
-
-      fab.onMeasurerHotkeyChange((combo) => {
-        hotkeys.destroy();
-        // Re-register grab hotkey
-        const grabHotkey = fab.getCurrentHotkey() || DEFAULT_HOTKEY;
-        hotkeys.register(grabHotkey, () => engine.toggle());
-        // Register new measurer hotkey
-        hotkeys.register(combo, () => localMeasurer.toggle());
-        fab!.setCurrentMeasurerHotkey(combo);
       });
     }
   }

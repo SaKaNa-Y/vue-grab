@@ -5,6 +5,8 @@ import type {
   FloatingButtonDockEntriesConfig,
   FloatingButtonDockEntryId,
   FloatingButtonDockMode,
+  FloatingButtonShortcutCommandId,
+  FloatingButtonShortcutsConfig,
   GrabResult,
   LogLevel,
   NetworkStatusClass,
@@ -12,6 +14,7 @@ import type {
 import {
   ALL_LOG_LEVELS,
   ALL_NETWORK_STATUS_CLASSES,
+  DEFAULT_FLOATING_BUTTON,
   DEFAULT_FLOATING_BUTTON_DOCK_ENTRY_ORDER,
   NETWORK_ERROR_CLASSES,
   NETWORK_WARN_CLASSES,
@@ -125,10 +128,6 @@ function tryReadHotkey(key: string): string | null {
   return tryReadStorage(key, (raw) => (typeof raw === "string" ? raw : null));
 }
 
-function trySaveHotkey(key: string, combo: string): void {
-  trySaveStorage(key, combo);
-}
-
 function tryReadEditor(key: string): string | null {
   return tryReadStorage(key, (raw) => (typeof raw === "string" ? raw : null));
 }
@@ -155,7 +154,7 @@ const EDITOR_PRESETS = [
   { label: "Cursor", value: "cursor" },
 ];
 
-type TabId = "dock" | "shortcuts" | "editor" | "magnifier";
+type TabId = "dock" | "shortcuts" | "tools";
 type PanelId = "settings" | "accessibility" | "logs" | "network";
 type DockEntryGroupId = "capture" | "inspection" | "diagnostics" | "system";
 type DockEntryDropPlacement = "before" | "after";
@@ -173,6 +172,15 @@ interface DockEntryDefinition {
 interface DockEntryGroupDefinition {
   id: DockEntryGroupId;
   label: string;
+}
+
+interface ShortcutCommandDefinition {
+  id: FloatingButtonShortcutCommandId;
+  label: string;
+  description: string;
+  icon: string;
+  legacyKbdClass?: string;
+  legacyRecordClass?: string;
 }
 
 const DOCK_ENTRY_GROUPS: readonly DockEntryGroupDefinition[] = [
@@ -242,7 +250,57 @@ const DOCK_ENTRY_DEFINITIONS: readonly DockEntryDefinition[] = [
   },
 ];
 
+const SHORTCUT_COMMAND_DEFINITIONS: readonly ShortcutCommandDefinition[] = [
+  {
+    id: "grab",
+    label: "Grab element",
+    description: "Capture the component under the cursor.",
+    icon: CROSSHAIR_SVG,
+    legacyKbdClass: "grab-hotkey-kbd",
+    legacyRecordClass: "grab-record-btn",
+  },
+  {
+    id: "settings",
+    label: "Open settings",
+    description: "Toggle the Settings panel.",
+    icon: GEAR_SVG,
+  },
+  {
+    id: "magnifier",
+    label: "Magnifier",
+    description: "Toggle the loupe overlay.",
+    icon: MAGNIFIER_SVG,
+  },
+  {
+    id: "measurer",
+    label: "Measure spacing",
+    description: "Toggle the distance and bounds measurer.",
+    icon: MEASURER_SVG,
+    legacyKbdClass: "measurer-hotkey-kbd",
+    legacyRecordClass: "measurer-record-btn",
+  },
+  {
+    id: "accessibility",
+    label: "Accessibility",
+    description: "Open the accessibility audit panel.",
+    icon: A11Y_ICON_SVG,
+  },
+  {
+    id: "logs",
+    label: "Logs",
+    description: "Open the console logs panel.",
+    icon: LOGS_SVG,
+  },
+  {
+    id: "network",
+    label: "Network",
+    description: "Open the network requests panel.",
+    icon: NETWORK_SVG,
+  },
+];
+
 const DEFAULT_DOCK_ENTRIES_STORAGE_KEY = "vue-grab-dock-entries";
+const DEFAULT_SHORTCUTS_STORAGE_KEY = "vue-grab-shortcuts";
 const DOCK_ENTRY_IDS = new Set<FloatingButtonDockEntryId>(DEFAULT_FLOATING_BUTTON_DOCK_ENTRY_ORDER);
 const DOCK_ENTRY_DEFINITION_BY_ID = new Map(
   DOCK_ENTRY_DEFINITIONS.map((entry) => [entry.id, entry]),
@@ -288,6 +346,41 @@ function tryReadDockEntries(key: string): FloatingButtonDockEntriesConfig | null
 
 function trySaveDockEntries(key: string, entries: FloatingButtonDockEntriesConfig): void {
   trySaveStorage(key, JSON.stringify(entries));
+}
+
+function normalizeShortcutCombo(combo: unknown): string | null {
+  if (typeof combo !== "string") return null;
+  const normalized = combo.trim();
+  return normalized ? normalized : null;
+}
+
+function normalizeShortcuts(
+  config: Partial<FloatingButtonShortcutsConfig> | null | undefined,
+): FloatingButtonShortcutsConfig {
+  const shortcuts: FloatingButtonShortcutsConfig = {};
+  const seen = new Set<string>();
+  for (const id of DEFAULT_FLOATING_BUTTON_DOCK_ENTRY_ORDER) {
+    const rawCombos = Array.isArray(config?.[id]) ? config[id]! : [];
+    const combos: string[] = [];
+    for (const rawCombo of rawCombos) {
+      const combo = normalizeShortcutCombo(rawCombo);
+      if (!combo) continue;
+      const key = combo.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      combos.push(combo);
+    }
+    if (combos.length > 0) shortcuts[id] = combos;
+  }
+  return shortcuts;
+}
+
+function tryReadShortcuts(key: string): FloatingButtonShortcutsConfig | null {
+  return tryReadStorage(key, (raw) => normalizeShortcuts(JSON.parse(raw)));
+}
+
+function trySaveShortcuts(key: string, shortcuts: FloatingButtonShortcutsConfig): void {
+  trySaveStorage(key, JSON.stringify(shortcuts));
 }
 
 const STYLES = `
@@ -981,40 +1074,6 @@ const STYLES = `
     background: rgba(255,255,255,0.07);
   }
 
-  /* Slider row */
-  .slider-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 12px;
-  }
-  .slider-row input[type="range"] {
-    flex: 1;
-    height: 4px;
-    -webkit-appearance: none;
-    appearance: none;
-    background: rgba(255,255,255,0.12);
-    border-radius: 2px;
-    outline: none;
-    cursor: pointer;
-  }
-  .slider-row input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    background: var(--grab-color, #4f46e5);
-    cursor: pointer;
-  }
-  .slider-value {
-    font-size: 11px;
-    color: #aaa;
-    min-width: 38px;
-    text-align: right;
-    font-variant-numeric: tabular-nums;
-  }
-
   /* Section label */
   .section-label {
     font-size: 11px;
@@ -1027,7 +1086,131 @@ const STYLES = `
     margin-top: 14px;
   }
 
-  /* Hotkey row */
+  /* Settings command rows */
+  .settings-list {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(12,12,12,0.36);
+  }
+  .settings-list + .section-label {
+    margin-top: 16px;
+  }
+  .setting-row {
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr) minmax(170px, auto);
+    align-items: center;
+    gap: 14px;
+    min-height: 58px;
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    box-sizing: border-box;
+  }
+  .setting-row:last-child {
+    border-bottom: 0;
+  }
+  .setting-row-icon {
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #9a9a9a;
+  }
+  .setting-row-icon svg {
+    width: 18px;
+    height: 18px;
+  }
+  .setting-row-copy {
+    min-width: 0;
+  }
+  .setting-row-title {
+    display: block;
+    color: #e8e8e8;
+    font-size: 13px;
+    font-weight: 650;
+    line-height: 1.25;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .setting-row-description {
+    display: block;
+    color: #7d7d7d;
+    font-size: 12px;
+    line-height: 1.35;
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .setting-row-control {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    min-width: 0;
+  }
+  .setting-row-control.stack {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .shortcut-controls {
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+  .shortcut-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-height: 26px;
+    padding: 0 4px 0 9px;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 6px;
+    background: rgba(0,0,0,0.32);
+    color: #ddd;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 12px;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .shortcut-remove-btn {
+    width: 18px;
+    height: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: #888;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13px;
+    line-height: 1;
+  }
+  .shortcut-remove-btn:hover {
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+  }
+  .shortcut-recording-chip {
+    animation: pulse 1.5s ease-in-out infinite;
+    border-color: var(--grab-color, #4f46e5);
+    box-shadow: 0 0 0 1px var(--grab-color, #4f46e5);
+  }
+  .shortcut-empty {
+    color: #777;
+    font-size: 12px;
+  }
+  .shortcut-error {
+    width: 100%;
+    color: #ff8a8a;
+    font-size: 11px;
+    text-align: right;
+  }
   .hotkey-row {
     display: flex;
     align-items: center;
@@ -1036,8 +1219,8 @@ const STYLES = `
   kbd {
     display: inline-flex;
     align-items: center;
-    background: rgba(255,255,255,0.08);
-    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(0,0,0,0.32);
+    border: 1px solid rgba(255,255,255,0.12);
     border-radius: 6px;
     padding: 4px 10px;
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -1057,11 +1240,11 @@ const STYLES = `
     50% { opacity: 0.6; }
   }
   .record-btn {
-    background: rgba(255,255,255,0.08);
-    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
     border-radius: 6px;
     color: #ccc;
-    padding: 4px 10px;
+    padding: 5px 11px;
     font-size: 12px;
     cursor: pointer;
     white-space: nowrap;
@@ -1075,9 +1258,10 @@ const STYLES = `
   /* Select dropdown */
   .editor-select {
     width: 100%;
-    padding: 6px 10px;
-    background: rgba(255,255,255,0.08);
-    border: 1px solid rgba(255,255,255,0.15);
+    min-width: 180px;
+    padding: 7px 30px 7px 10px;
+    background-color: rgba(0,0,0,0.32);
+    border: 1px solid rgba(255,255,255,0.12);
     border-radius: 6px;
     color: #ddd;
     font-size: 12px;
@@ -1099,8 +1283,6 @@ const STYLES = `
 
   /* Open file button */
   .open-file-btn {
-    width: 100%;
-    margin-top: 12px;
     padding: 7px 12px;
     background: var(--grab-color, #4f46e5);
     border: none;
@@ -1119,11 +1301,56 @@ const STYLES = `
     cursor: not-allowed;
   }
   .file-path-display {
-    margin-top: 8px;
     font-size: 11px;
-    color: #666;
+    color: #777;
     word-break: break-all;
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    line-height: 1.35;
+  }
+  .slider-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .slider-row input[type="range"] {
+    flex: 1;
+    min-width: 140px;
+    height: 4px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: rgba(255,255,255,0.12);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+  .slider-row input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--grab-color, #4f46e5);
+    cursor: pointer;
+  }
+  .slider-value {
+    font-size: 11px;
+    color: #aaa;
+    min-width: 42px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  @media (max-width: 520px) {
+    .setting-row {
+      grid-template-columns: 28px minmax(0, 1fr);
+    }
+    .setting-row-control {
+      grid-column: 2;
+      justify-content: flex-start;
+      flex-wrap: wrap;
+    }
+    .setting-row-description {
+      white-space: normal;
+    }
   }
 
   /* Vertical layout */
@@ -1609,6 +1836,8 @@ export class FloatingButton {
   private lastNetworkBadge: { count: number; hasError: boolean } | null = null;
   private dockEntries: FloatingButtonDockEntriesConfig;
   private dockEntriesStorageKey: string;
+  private shortcuts: FloatingButtonShortcutsConfig;
+  private shortcutsStorageKey: string;
   private dockEntryDragId: FloatingButtonDockEntryId | null = null;
   private dockEntryDropTargetEl: HTMLElement | null = null;
   private cachedA11yResults: ReturnType<typeof scanPageA11y> | null = null;
@@ -1645,14 +1874,13 @@ export class FloatingButton {
   private dragOffsetY = 0;
   private lastAppliedEdge: DockEdge | null = null;
 
-  // Hotkey state
-  private isRecording = false;
-  private currentHotkey = "";
-  private isRecordingMeasurer = false;
-  private currentMeasurerHotkey = "";
+  // Shortcut state
+  private recordingShortcutId: FloatingButtonShortcutCommandId | null = null;
+  private shortcutError: { id: FloatingButtonShortcutCommandId; message: string } | null = null;
 
   // Callbacks
   private toggleCb: (() => void) | null = null;
+  private shortcutsChangeCb: ((shortcuts: FloatingButtonShortcutsConfig) => void) | null = null;
   private hotkeyChangeCb: ((combo: string) => void) | null = null;
   private logsClearCb: (() => void) | null = null;
   private networkClearCb: (() => void) | null = null;
@@ -1686,20 +1914,31 @@ export class FloatingButton {
       if (this.posX <= INITIAL_SNAP_ZONE) this.posX = edgeMarginX();
       else if (this.posX >= 100 - INITIAL_SNAP_ZONE) this.posX = 100 - edgeMarginX();
     }
-    this.currentHotkey = tryReadHotkey(config.hotkeyStorageKey) ?? "";
-    this.currentMeasurerHotkey = tryReadHotkey(config.measurerHotkeyStorageKey) ?? "";
     this.editorChoice = tryReadEditor(config.editorStorageKey) ?? "";
     const configuredDockMode = isDockMode(config.dockMode) ? config.dockMode : "float";
     this.dockMode = tryReadDockMode(config.dockModeStorageKey) ?? configuredDockMode;
     this.dockEntriesStorageKey = config.dockEntriesStorageKey ?? DEFAULT_DOCK_ENTRIES_STORAGE_KEY;
     this.dockEntries =
       tryReadDockEntries(this.dockEntriesStorageKey) ?? normalizeDockEntries(config.dockEntries);
+    this.shortcutsStorageKey = config.shortcutsStorageKey ?? DEFAULT_SHORTCUTS_STORAGE_KEY;
+    const storedShortcuts = tryReadShortcuts(this.shortcutsStorageKey);
+    this.shortcuts =
+      storedShortcuts ??
+      this.normalizeShortcutsWithLegacy(
+        { ...DEFAULT_FLOATING_BUTTON.shortcuts, ...config.shortcuts },
+        config.hotkeyStorageKey,
+        config.measurerHotkeyStorageKey,
+      );
     this.closeOnOutsideClick =
       tryReadBoolean(config.closeOnOutsideClickStorageKey) ?? config.closeOnOutsideClick;
   }
 
   getCurrentHotkey(): string {
-    return this.currentHotkey;
+    return this.getShortcutCombos("grab")[0] ?? "";
+  }
+
+  getShortcuts(): FloatingButtonShortcutsConfig {
+    return this.cloneShortcuts(this.shortcuts);
   }
 
   getEditorChoice(): string {
@@ -1760,6 +1999,117 @@ export class FloatingButton {
       this.toolbarRowEl.appendChild(el);
       previousGroup = def.group;
     }
+  }
+
+  private cloneShortcuts(shortcuts: FloatingButtonShortcutsConfig): FloatingButtonShortcutsConfig {
+    const clone: FloatingButtonShortcutsConfig = {};
+    for (const id of DEFAULT_FLOATING_BUTTON_DOCK_ENTRY_ORDER) {
+      const combos = shortcuts[id];
+      if (combos?.length) clone[id] = [...combos];
+    }
+    return clone;
+  }
+
+  private normalizeShortcutsWithLegacy(
+    configured: FloatingButtonShortcutsConfig,
+    grabLegacyKey: string,
+    measurerLegacyKey: string,
+  ): FloatingButtonShortcutsConfig {
+    const shortcuts: FloatingButtonShortcutsConfig = { ...configured };
+    const legacyGrab = tryReadHotkey(grabLegacyKey);
+    const legacyMeasurer = tryReadHotkey(measurerLegacyKey);
+    if (legacyGrab) shortcuts.grab = [legacyGrab];
+    if (legacyMeasurer) shortcuts.measurer = [legacyMeasurer];
+    return normalizeShortcuts(shortcuts);
+  }
+
+  private getShortcutCombos(id: FloatingButtonShortcutCommandId): string[] {
+    return [...(this.shortcuts[id] ?? [])];
+  }
+
+  private hasShortcutCombo(combo: string, except?: FloatingButtonShortcutCommandId): boolean {
+    const needle = combo.toLowerCase();
+    return DEFAULT_FLOATING_BUTTON_DOCK_ENTRY_ORDER.some(
+      (id) =>
+        id !== except && (this.shortcuts[id] ?? []).some((value) => value.toLowerCase() === needle),
+    );
+  }
+
+  private persistShortcuts(): void {
+    trySaveShortcuts(this.shortcutsStorageKey, this.shortcuts);
+  }
+
+  private commitShortcuts(
+    shortcuts: FloatingButtonShortcutsConfig,
+    persist: boolean,
+    emit = true,
+  ): void {
+    const previousGrab = this.shortcuts.grab?.[0] ?? "";
+    const previousMeasurer = this.shortcuts.measurer?.[0] ?? "";
+    this.shortcuts = normalizeShortcuts(shortcuts);
+    if (persist) this.persistShortcuts();
+    if (this.activePanel === "settings" && this.settingsTab === "shortcuts") {
+      this.renderExpandBody();
+    }
+    if (!emit) return;
+    const snapshot = this.cloneShortcuts(this.shortcuts);
+    this.shortcutsChangeCb?.(snapshot);
+    const nextGrab = snapshot.grab?.[0] ?? "";
+    const nextMeasurer = snapshot.measurer?.[0] ?? "";
+    if (nextGrab !== previousGrab) this.hotkeyChangeCb?.(nextGrab);
+    if (nextMeasurer !== previousMeasurer) this.measurerHotkeyChangeCb?.(nextMeasurer);
+  }
+
+  private setFirstShortcut(
+    id: FloatingButtonShortcutCommandId,
+    combo: string,
+    persist: boolean,
+  ): void {
+    const next = this.cloneShortcuts(this.shortcuts);
+    const current = next[id] ?? [];
+    const normalized = normalizeShortcutCombo(combo);
+    if (normalized)
+      next[id] = [
+        normalized,
+        ...current.filter((value) => value.toLowerCase() !== normalized.toLowerCase()).slice(1),
+      ];
+    else delete next[id];
+    this.commitShortcuts(next, persist, false);
+  }
+
+  private addShortcut(id: FloatingButtonShortcutCommandId, combo: string): boolean {
+    const normalized = normalizeShortcutCombo(combo);
+    if (!normalized) return false;
+    if (this.hasShortcutCombo(normalized, id)) {
+      this.shortcutError = { id, message: "Already used by another feature" };
+      this.renderExpandBody();
+      return false;
+    }
+    const next = this.cloneShortcuts(this.shortcuts);
+    const existing = next[id] ?? [];
+    if (!existing.some((value) => value.toLowerCase() === normalized.toLowerCase())) {
+      next[id] = [...existing, normalized];
+    }
+    this.shortcutError = null;
+    this.commitShortcuts(next, true);
+    return true;
+  }
+
+  private removeShortcut(id: FloatingButtonShortcutCommandId, combo: string): void {
+    const next = this.cloneShortcuts(this.shortcuts);
+    const remaining = (next[id] ?? []).filter((value) => value !== combo);
+    if (remaining.length > 0) next[id] = remaining;
+    else delete next[id];
+    this.shortcutError = null;
+    this.commitShortcuts(next, true);
+  }
+
+  private triggerShortcutCommand(id: FloatingButtonShortcutCommandId): void {
+    this.getDockEntryElement(id)?.click();
+  }
+
+  triggerShortcut(id: FloatingButtonShortcutCommandId): void {
+    this.triggerShortcutCommand(id);
   }
 
   mount(): void {
@@ -1915,12 +2265,8 @@ export class FloatingButton {
     // Document: Escape closes panel or stops recording
     this.boundDocKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        if (this.isRecording) {
-          this.stopRecording();
-          e.preventDefault();
-          e.stopPropagation();
-        } else if (this.isRecordingMeasurer) {
-          this.stopMeasurerRecording();
+        if (this.recordingShortcutId) {
+          this.stopShortcutRecording();
           e.preventDefault();
           e.stopPropagation();
         } else if (this.activePanel) {
@@ -1993,12 +2339,7 @@ export class FloatingButton {
   }
 
   setCurrentHotkey(combo: string): void {
-    this.currentHotkey = combo;
-    // Update display if settings panel is showing
-    if (this.activePanel === "settings") {
-      const kbd = this.expandBodyEl?.querySelector(".grab-hotkey-kbd");
-      if (kbd) kbd.textContent = combo || "None";
-    }
+    this.setFirstShortcut("grab", combo, false);
   }
 
   onToggle(cb: () => void): void {
@@ -2007,6 +2348,10 @@ export class FloatingButton {
 
   onHotkeyChange(cb: (combo: string) => void): void {
     this.hotkeyChangeCb = cb;
+  }
+
+  onShortcutsChange(cb: (shortcuts: FloatingButtonShortcutsConfig) => void): void {
+    this.shortcutsChangeCb = cb;
   }
 
   onLogsClear(cb: () => void): void {
@@ -2051,7 +2396,7 @@ export class FloatingButton {
   }
 
   getCurrentMeasurerHotkey(): string {
-    return this.currentMeasurerHotkey;
+    return this.getShortcutCombos("measurer")[0] ?? "";
   }
 
   onMeasurerHotkeyChange(cb: (combo: string) => void): void {
@@ -2059,11 +2404,7 @@ export class FloatingButton {
   }
 
   setCurrentMeasurerHotkey(combo: string): void {
-    this.currentMeasurerHotkey = combo;
-    if (this.activePanel === "settings") {
-      const kbd = this.expandBodyEl?.querySelector(".measurer-hotkey-kbd");
-      if (kbd) kbd.textContent = combo || "None";
-    }
+    this.setFirstShortcut("measurer", combo, false);
   }
 
   // --- Panel activation (expand/collapse) ---
@@ -2081,8 +2422,7 @@ export class FloatingButton {
     this.preservedToolbarRect =
       this.dockMode === "float" ? (this.toolbarEl?.getBoundingClientRect() ?? null) : null;
     // Stop recording if switching away from settings
-    if (this.isRecording) this.stopRecording();
-    if (this.isRecordingMeasurer) this.stopMeasurerRecording();
+    if (this.recordingShortcutId) this.stopShortcutRecording();
 
     this.activePanel = panel;
     this.wrapperEl!.classList.add("expanded");
@@ -2168,8 +2508,7 @@ export class FloatingButton {
       <div class="tab-bar">
         <button class="tab-btn${this.settingsTab === "dock" ? " active" : ""}" data-tab="dock">Dock</button>
         <button class="tab-btn${this.settingsTab === "shortcuts" ? " active" : ""}" data-tab="shortcuts">Shortcuts</button>
-        <button class="tab-btn${this.settingsTab === "editor" ? " active" : ""}" data-tab="editor">Editor</button>
-        <button class="tab-btn${this.settingsTab === "magnifier" ? " active" : ""}" data-tab="magnifier">Magnifier</button>
+        <button class="tab-btn${this.settingsTab === "tools" ? " active" : ""}" data-tab="tools">Tools</button>
       </div>
       <div class="tab-content${this.settingsTab === "dock" ? " active" : ""}" data-tab-content="dock">
         <div class="section-label">Dock Mode</div>
@@ -2192,37 +2531,103 @@ export class FloatingButton {
         ${this.renderDockEntryManager()}
       </div>
       <div class="tab-content${this.settingsTab === "shortcuts" ? " active" : ""}" data-tab-content="shortcuts">
-        <div class="section-label">Grab Hotkey</div>
-        <div class="hotkey-row">
-          <kbd class="grab-hotkey-kbd">${esc(this.currentHotkey || "None")}</kbd>
-          <button class="record-btn grab-record-btn">Record</button>
-        </div>
-        <div class="section-label">Measurer Hotkey</div>
-        <div class="hotkey-row">
-          <kbd class="measurer-hotkey-kbd">${esc(this.currentMeasurerHotkey || "None")}</kbd>
-          <button class="record-btn measurer-record-btn">Record</button>
+        <div class="section-label">Shortcuts</div>
+        <div class="settings-list shortcuts-list">
+          ${this.renderShortcutRows()}
         </div>
       </div>
-      <div class="tab-content${this.settingsTab === "editor" ? " active" : ""}" data-tab-content="editor">
+      <div class="tab-content${this.settingsTab === "tools" ? " active" : ""}" data-tab-content="tools">
         <div class="section-label">Editor</div>
-        <select class="editor-select">${editorOptions}</select>
-        <div class="section-label">Open file</div>
-        <div class="file-path-display">${esc(filePathText)}</div>
-        <button class="open-file-btn"${fileDisabled ? " disabled" : ""}>Open in Editor</button>
-      </div>
-      <div class="tab-content${this.settingsTab === "magnifier" ? " active" : ""}" data-tab-content="magnifier">
-        <div class="section-label">Loupe Size</div>
-        <div class="slider-row">
-          <input type="range" class="magnifier-size-slider" min="100" max="600" step="50" value="${this.magnifierLoupeSize}">
-          <span class="slider-value">${this.magnifierLoupeSize}px</span>
+        <div class="settings-list tools-list">
+          <div class="setting-row tool-row" data-settings-row="editor-choice">
+            <span class="setting-row-icon">${GEAR_SVG}</span>
+            <span class="setting-row-copy">
+              <span class="setting-row-title">Preferred editor</span>
+              <span class="setting-row-description">Choose the command used for source handoff.</span>
+            </span>
+            <span class="setting-row-control">
+              <select class="editor-select">${editorOptions}</select>
+            </span>
+          </div>
+          <div class="setting-row tool-row" data-settings-row="open-file">
+            <span class="setting-row-icon">${LOGS_SVG}</span>
+            <span class="setting-row-copy">
+              <span class="setting-row-title">Open grabbed file</span>
+              <span class="setting-row-description file-path-display">${esc(filePathText)}</span>
+            </span>
+            <span class="setting-row-control">
+              <button class="open-file-btn"${fileDisabled ? " disabled" : ""}>Open in Editor</button>
+            </span>
+          </div>
         </div>
-        <div class="section-label">Zoom Level</div>
-        <div class="slider-row">
-          <input type="range" class="magnifier-zoom-slider" min="1" max="8" step="0.5" value="${this.magnifierZoomLevel}">
-          <span class="slider-value">${this.magnifierZoomLevel}x</span>
+        <div class="section-label">Magnifier</div>
+        <div class="settings-list tools-list">
+          <div class="setting-row tool-row" data-settings-row="magnifier-size">
+            <span class="setting-row-icon">${MAGNIFIER_SVG}</span>
+            <span class="setting-row-copy">
+              <span class="setting-row-title">Loupe size</span>
+              <span class="setting-row-description">Adjust the diameter of the magnifier window.</span>
+            </span>
+            <span class="setting-row-control slider-row">
+              <input type="range" class="magnifier-size-slider" min="100" max="600" step="50" value="${this.magnifierLoupeSize}">
+              <span class="slider-value">${this.magnifierLoupeSize}px</span>
+            </span>
+          </div>
+          <div class="setting-row tool-row" data-settings-row="magnifier-zoom">
+            <span class="setting-row-icon">${MAGNIFIER_SVG}</span>
+            <span class="setting-row-copy">
+              <span class="setting-row-title">Zoom level</span>
+              <span class="setting-row-description">Control the loupe magnification factor.</span>
+            </span>
+            <span class="setting-row-control slider-row">
+              <input type="range" class="magnifier-zoom-slider" min="1" max="8" step="0.5" value="${this.magnifierZoomLevel}">
+              <span class="slider-value">${this.magnifierZoomLevel}x</span>
+            </span>
+          </div>
         </div>
       </div>
     `;
+  }
+
+  private renderShortcutRows(): string {
+    return SHORTCUT_COMMAND_DEFINITIONS.map((command) => {
+      const combos = this.getShortcutCombos(command.id);
+      const isRecording = this.recordingShortcutId === command.id;
+      const error =
+        this.shortcutError && this.shortcutError.id === command.id
+          ? this.shortcutError.message
+          : "";
+      const chips =
+        combos.length > 0
+          ? combos
+              .map((combo, index) => {
+                const label =
+                  command.legacyKbdClass && index === 0
+                    ? `<span class="${command.legacyKbdClass}">${esc(combo)}</span>`
+                    : esc(combo);
+                return `<span class="shortcut-chip" data-shortcut-chip="${command.id}" data-shortcut-combo="${esc(combo)}">${label}<button class="shortcut-remove-btn" type="button" data-shortcut-remove="${command.id}" data-shortcut-combo="${esc(combo)}" aria-label="Remove ${esc(combo)} shortcut">×</button></span>`;
+              })
+              .join("")
+          : '<span class="shortcut-empty">Add shortcut</span>';
+      return `
+        <div class="setting-row shortcut-row" data-settings-row="${command.id}-shortcut" data-shortcut-row="${command.id}">
+          <span class="setting-row-icon">${command.icon}</span>
+          <span class="setting-row-copy">
+            <span class="setting-row-title">${esc(command.label)}</span>
+            <span class="setting-row-description">${esc(command.description)}</span>
+          </span>
+          <span class="setting-row-control shortcut-controls">
+            ${chips}
+            ${
+              isRecording
+                ? `<span class="shortcut-chip shortcut-recording-chip">Press keys...</span><button class="record-btn${command.legacyRecordClass ? ` ${command.legacyRecordClass}` : ""}" type="button" data-shortcut-record="${command.id}">Cancel</button>`
+                : `<button class="record-btn${command.legacyRecordClass ? ` ${command.legacyRecordClass}` : ""}" type="button" data-shortcut-record="${command.id}">Add shortcut</button>`
+            }
+            ${error ? `<span class="shortcut-error">${esc(error)}</span>` : ""}
+          </span>
+        </div>
+      `;
+    }).join("");
   }
 
   private renderDockEntryManager(): string {
@@ -2337,18 +2742,8 @@ export class FloatingButton {
       }
     });
 
-    // Record buttons
-    const grabRecordBtn = this.expandBodyEl.querySelector(".grab-record-btn");
-    grabRecordBtn?.addEventListener("click", (e: Event) => {
-      e.stopPropagation();
-      this.toggleRecording();
-    });
-
-    const measurerRecordBtn = this.expandBodyEl.querySelector(".measurer-record-btn");
-    measurerRecordBtn?.addEventListener("click", (e: Event) => {
-      e.stopPropagation();
-      this.toggleMeasurerRecording();
-    });
+    // Shortcut recording and removal
+    this.wireShortcutEvents();
 
     // Magnifier: loupe size slider
     const sizeSlider = this.expandBodyEl.querySelector<HTMLInputElement>(".magnifier-size-slider");
@@ -2369,6 +2764,29 @@ export class FloatingButton {
       if (label) label.textContent = `${val}x`;
       this.magnifierConfigChangeCb?.({ zoomLevel: val });
     });
+  }
+
+  private wireShortcutEvents(): void {
+    if (!this.expandBodyEl) return;
+
+    for (const btn of this.expandBodyEl.querySelectorAll<HTMLElement>("[data-shortcut-record]")) {
+      btn.addEventListener("click", (e: Event) => {
+        e.stopPropagation();
+        const id = btn.dataset.shortcutRecord;
+        if (!isDockEntryId(id)) return;
+        this.toggleShortcutRecording(id);
+      });
+    }
+
+    for (const btn of this.expandBodyEl.querySelectorAll<HTMLElement>("[data-shortcut-remove]")) {
+      btn.addEventListener("click", (e: Event) => {
+        e.stopPropagation();
+        const id = btn.dataset.shortcutRemove;
+        const combo = btn.dataset.shortcutCombo;
+        if (!isDockEntryId(id) || !combo) return;
+        this.removeShortcut(id, combo);
+      });
+    }
   }
 
   private wireDockEntryManagerEvents(): void {
@@ -3393,8 +3811,7 @@ export class FloatingButton {
   }
 
   private clearPanelState(): void {
-    if (this.isRecording) this.stopRecording();
-    if (this.isRecordingMeasurer) this.stopMeasurerRecording();
+    if (this.recordingShortcutId) this.stopShortcutRecording();
 
     this.activePanel = null;
     this.wrapperEl?.classList.remove("expanded", "expand-up", "expand-left", "expand-right");
@@ -3502,89 +3919,19 @@ export class FloatingButton {
 
   // --- Hotkey recording ---
 
-  private toggleRecording(): void {
-    if (this.isRecording) {
-      this.stopRecording();
-    } else {
-      this.startRecording();
-    }
+  private toggleShortcutRecording(id: FloatingButtonShortcutCommandId): void {
+    if (this.recordingShortcutId === id) this.stopShortcutRecording();
+    else this.startShortcutRecording(id);
   }
 
-  private startRecording(): void {
-    this.isRecording = true;
-    this.boundRecordKeyDown = this.startRecordingFor(
-      ".grab-hotkey-kbd",
-      ".grab-record-btn",
-      this.config.hotkeyStorageKey,
-      (combo) => {
-        this.currentHotkey = combo;
-        this.stopRecording();
-        this.hotkeyChangeCb?.(combo);
-      },
-    );
-  }
-
-  private stopRecording(): void {
-    this.isRecording = false;
-    this.boundRecordKeyDown = this.stopRecordingFor(
-      this.boundRecordKeyDown,
-      ".grab-hotkey-kbd",
-      ".grab-record-btn",
-      this.currentHotkey,
-    );
-  }
-
-  private toggleMeasurerRecording(): void {
-    if (this.isRecordingMeasurer) {
-      this.stopMeasurerRecording();
-    } else {
-      this.startMeasurerRecording();
-    }
-  }
-
-  private startMeasurerRecording(): void {
-    this.isRecordingMeasurer = true;
-    this.boundRecordKeyDown = this.startRecordingFor(
-      ".measurer-hotkey-kbd",
-      ".measurer-record-btn",
-      this.config.measurerHotkeyStorageKey,
-      (combo) => {
-        this.currentMeasurerHotkey = combo;
-        this.stopMeasurerRecording();
-        this.measurerHotkeyChangeCb?.(combo);
-      },
-    );
-  }
-
-  private stopMeasurerRecording(): void {
-    this.isRecordingMeasurer = false;
-    this.boundRecordKeyDown = this.stopRecordingFor(
-      this.boundRecordKeyDown,
-      ".measurer-hotkey-kbd",
-      ".measurer-record-btn",
-      this.currentMeasurerHotkey,
-    );
-  }
-
-  /** Shared: begin recording a hotkey, returns the bound keydown handler */
-  private startRecordingFor(
-    kbdSelector: string,
-    btnSelector: string,
-    storageKey: string,
-    onRecord: (combo: string) => void,
-  ): (e: KeyboardEvent) => void {
-    const kbdEl = this.expandBodyEl?.querySelector(kbdSelector);
-    const recordBtn = this.expandBodyEl?.querySelector(btnSelector);
-    if (kbdEl) {
-      kbdEl.textContent = "Press keys\u2026";
-      kbdEl.classList.add("recording");
-    }
-    if (recordBtn) recordBtn.textContent = "Cancel";
-
-    // Remove previous handler if any
+  private startShortcutRecording(id: FloatingButtonShortcutCommandId): void {
     if (this.boundRecordKeyDown) {
       document.removeEventListener("keydown", this.boundRecordKeyDown, { capture: true });
+      this.boundRecordKeyDown = null;
     }
+    this.recordingShortcutId = id;
+    this.shortcutError = null;
+    this.renderExpandBody();
 
     const handler = (e: KeyboardEvent) => {
       e.preventDefault();
@@ -3592,31 +3939,24 @@ export class FloatingButton {
       e.stopImmediatePropagation();
       if (["Alt", "Control", "Shift", "Meta"].includes(e.key)) return;
       const combo = buildCombo(e);
-      trySaveHotkey(storageKey, combo);
-      onRecord(combo);
+      const recordedId = this.recordingShortcutId;
+      if (!recordedId) return;
+      this.recordingShortcutId = null;
+      this.boundRecordKeyDown = null;
+      this.addShortcut(recordedId, combo);
+      document.removeEventListener("keydown", handler, { capture: true });
     };
 
+    this.boundRecordKeyDown = handler;
     document.addEventListener("keydown", handler, { capture: true });
-    return handler;
   }
 
-  /** Shared: stop recording, returns null to clear the bound handler */
-  private stopRecordingFor(
-    handler: ((e: KeyboardEvent) => void) | null,
-    kbdSelector: string,
-    btnSelector: string,
-    currentValue: string,
-  ): null {
-    if (handler) {
-      document.removeEventListener("keydown", handler, { capture: true });
+  private stopShortcutRecording(): void {
+    if (this.boundRecordKeyDown) {
+      document.removeEventListener("keydown", this.boundRecordKeyDown, { capture: true });
+      this.boundRecordKeyDown = null;
     }
-    const kbdEl = this.expandBodyEl?.querySelector(kbdSelector);
-    const recordBtn = this.expandBodyEl?.querySelector(btnSelector);
-    if (kbdEl) {
-      kbdEl.textContent = currentValue || "None";
-      kbdEl.classList.remove("recording");
-    }
-    if (recordBtn) recordBtn.textContent = "Record";
-    return null;
+    this.recordingShortcutId = null;
+    this.renderExpandBody();
   }
 }
