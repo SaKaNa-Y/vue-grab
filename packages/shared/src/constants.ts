@@ -34,9 +34,14 @@ export const DEFAULT_FLOATING_BUTTON: FloatingButtonConfig = {
     order: [...DEFAULT_FLOATING_BUTTON_DOCK_ENTRY_ORDER],
     hidden: [],
   },
+  shortcuts: {
+    grab: [DEFAULT_HOTKEY],
+    measurer: ["Alt+Shift+M"],
+  },
   storageKey: "vue-grab-fab-pos",
   dockModeStorageKey: "vue-grab-dock-mode",
   dockEntriesStorageKey: "vue-grab-dock-entries",
+  shortcutsStorageKey: "vue-grab-shortcuts",
   hotkeyStorageKey: "vue-grab-hotkey",
   editorStorageKey: "vue-grab-editor",
   measurerHotkeyStorageKey: "vue-grab-measurer-hotkey",
@@ -152,6 +157,12 @@ export function mergeConfig(defaults: GrabConfig, options: GrabUserConfig): Grab
           ...(floatingButton?.dockEntries?.hidden ?? defaults.floatingButton.dockEntries.hidden),
         ],
       },
+      shortcuts: Object.fromEntries(
+        Object.entries({
+          ...defaults.floatingButton.shortcuts,
+          ...floatingButton?.shortcuts,
+        }).map(([id, combos]) => [id, [...(combos ?? [])]]),
+      ),
     },
     consoleCapture: {
       ...defaults.consoleCapture,

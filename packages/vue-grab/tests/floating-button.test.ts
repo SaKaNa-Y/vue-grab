@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
-import type { CapturedLog, LogLevel } from "@sakana-y/vue-grab-shared";
+import type { CapturedLog, GrabResult, LogLevel } from "@sakana-y/vue-grab-shared";
 import { DEFAULT_FLOATING_BUTTON } from "@sakana-y/vue-grab-shared";
 import { FloatingButton, FAB_HOST_ID } from "../src/floating-button";
 import { cleanupDOM } from "./helpers/setup";
@@ -16,6 +16,17 @@ function makeLog(
     message,
     count: 1,
     timestamp: Date.now(),
+    ...overrides,
+  };
+}
+
+function makeGrabResult(overrides: Partial<GrabResult> = {}): GrabResult {
+  return {
+    element: document.createElement("button"),
+    html: "<button>Grabbed</button>",
+    componentStack: [],
+    selector: "button",
+    a11y: { attributes: [], audit: [], hasA11y: false },
     ...overrides,
   };
 }
@@ -72,6 +83,14 @@ function getDockEntryToggle(id: string): HTMLButtonElement | null {
 
 function getDockEntryDragHandle(id: string): HTMLElement | null {
   return getShadow()?.querySelector<HTMLElement>(`[data-dock-entry-drag="${id}"]`) ?? null;
+}
+
+function getShortcutRow(id: string): HTMLElement | null {
+  return getShadow()?.querySelector<HTMLElement>(`[data-shortcut-row="${id}"]`) ?? null;
+}
+
+function getShortcutRecordButton(id: string): HTMLElement | null {
+  return getShadow()?.querySelector<HTMLElement>(`[data-shortcut-record="${id}"]`) ?? null;
 }
 
 function mockToolbarRowRect(left = 540, top = 102, width = 120, height = 36): void {
@@ -618,7 +637,7 @@ describe("FloatingButton", () => {
       expect(getSettingsTab("Dock")!.classList.contains("active")).toBe(true);
       expect(
         Array.from(getShadow()!.querySelectorAll(".tab-btn")).map((btn) => btn.textContent?.trim()),
-      ).toEqual(["Dock", "Shortcuts", "Editor", "Magnifier"]);
+      ).toEqual(["Dock", "Shortcuts", "Tools"]);
       expect(
         Array.from(getShadow()!.querySelectorAll(".dock-mode-option")).map((btn) =>
           btn.textContent?.trim(),
@@ -879,6 +898,188 @@ describe("FloatingButton", () => {
       expect(getShadow()!.querySelector(".measurer-hotkey-kbd")!.textContent).toBe("Alt+Shift+M");
     });
 
+    it("Shortcuts tab only renders keybinding controls", () => {
+      fab = createFab();
+      fab.mount();
+
+      getGear()!.click();
+      getSettingsTab("Shortcuts")!.click();
+
+      const shortcuts = getShadow()!.querySelector('[data-tab-content="shortcuts"]')!;
+      expect(shortcuts.querySelectorAll(".shortcut-row")).toHaveLength(7);
+      expect(
+        Array.from(shortcuts.querySelectorAll<HTMLElement>(".setting-row-title")).map((el) =>
+          el.textContent?.trim(),
+        ),
+      ).toEqual([
+        "Grab element",
+        "Open settings",
+        "Magnifier",
+        "Measure spacing",
+        "Accessibility",
+        "Logs",
+        "Network",
+      ]);
+      expect(shortcuts.querySelector(".grab-hotkey-kbd")).not.toBeNull();
+      expect(shortcuts.querySelector(".measurer-hotkey-kbd")).not.toBeNull();
+      expect(shortcuts.querySelector(".editor-select")).toBeNull();
+      expect(shortcuts.querySelector(".magnifier-size-slider")).toBeNull();
+      expect(shortcuts.querySelector(".magnifier-zoom-slider")).toBeNull();
+    });
+
+    it("records and persists additional feature shortcuts", () => {
+      fab = createFab();
+      const spy = vi.fn<(shortcuts: Record<string, string[]>) => void>();
+      fab.onShortcutsChange(spy);
+      fab.mount();
+
+      getGear()!.click();
+      getSettingsTab("Shortcuts")!.click();
+      getShortcutRecordButton("logs")!.click();
+      document.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "L",
+          ctrlKey: true,
+          shiftKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+
+      expect(fab.getShortcuts().logs).toEqual(["Ctrl+Shift+L"]);
+      expect(JSON.parse(localStorage.getItem("vue-grab-shortcuts")!)).toMatchObject({
+        logs: ["Ctrl+Shift+L"],
+      });
+      expect(getShortcutRow("logs")!.textContent).toContain("Ctrl+Shift+L");
+      expect(spy).toHaveBeenCalledWith(expect.objectContaining({ logs: ["Ctrl+Shift+L"] }));
+    });
+
+    it("removes feature shortcuts and persists the updated map", () => {
+      fab = createFab({ shortcuts: { ...DEFAULT_FLOATING_BUTTON.shortcuts, logs: ["Ctrl+L"] } });
+      fab.mount();
+
+      getGear()!.click();
+      getSettingsTab("Shortcuts")!.click();
+      getShortcutRow("logs")!
+        .querySelector<HTMLButtonElement>('[data-shortcut-remove="logs"]')!
+        .click();
+
+      expect(fab.getShortcuts().logs).toBeUndefined();
+      expect(JSON.parse(localStorage.getItem("vue-grab-shortcuts")!)).not.toHaveProperty("logs");
+      expect(getShortcutRow("logs")!.textContent).toContain("Add shortcut");
+    });
+
+    it("rejects duplicate shortcuts across features", () => {
+      fab = createFab();
+      fab.mount();
+
+      getGear()!.click();
+      getSettingsTab("Shortcuts")!.click();
+      getShortcutRecordButton("logs")!.click();
+      document.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "G",
+          altKey: true,
+          shiftKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+
+      expect(fab.getShortcuts().logs).toBeUndefined();
+      expect(getShortcutRow("logs")!.textContent).toContain("Already used by another feature");
+    });
+
+    it("migrates legacy grab and measurer hotkey storage when shortcut storage is absent", () => {
+      localStorage.setItem("vue-grab-hotkey", "Ctrl+Shift+G");
+      localStorage.setItem("vue-grab-measurer-hotkey", "Ctrl+Shift+M");
+
+      fab = createFab();
+
+      expect(fab.getShortcuts().grab).toEqual(["Ctrl+Shift+G"]);
+      expect(fab.getShortcuts().measurer).toEqual(["Ctrl+Shift+M"]);
+    });
+
+    it("Tools tab renders editor and magnifier controls", () => {
+      fab = createFab();
+      fab.mount();
+
+      getGear()!.click();
+      getSettingsTab("Tools")!.click();
+
+      const tools = getShadow()!.querySelector('[data-tab-content="tools"]')!;
+      expect(tools.querySelector(".editor-select")).not.toBeNull();
+      expect(tools.querySelector(".file-path-display")!.textContent).toBe("No element grabbed yet");
+      expect(tools.querySelector<HTMLButtonElement>(".open-file-btn")!.disabled).toBe(true);
+      expect(tools.querySelector(".magnifier-size-slider")).not.toBeNull();
+      expect(tools.querySelector(".magnifier-zoom-slider")).not.toBeNull();
+    });
+
+    it("Tools tab persists editor choice", () => {
+      fab = createFab();
+      fab.mount();
+
+      getGear()!.click();
+      getSettingsTab("Tools")!.click();
+      const select = getShadow()!.querySelector<HTMLSelectElement>(".editor-select")!;
+      select.value = "cursor";
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+
+      expect(fab.getEditorChoice()).toBe("cursor");
+      expect(localStorage.getItem("vue-grab-editor")).toBe("cursor");
+    });
+
+    it("Tools tab opens the last grabbed file with the selected editor", async () => {
+      const fetchSpy = vi.fn<typeof fetch>(() =>
+        Promise.resolve(new Response(null, { status: 204 })),
+      );
+      vi.stubGlobal("fetch", fetchSpy);
+      fab = createFab();
+      fab.mount();
+      fab.setLastResult(
+        makeGrabResult({
+          componentStack: [{ name: "Panel", filePath: "src/Panel.vue", line: 42 }],
+        }),
+      );
+
+      getGear()!.click();
+      getSettingsTab("Tools")!.click();
+      const select = getShadow()!.querySelector<HTMLSelectElement>(".editor-select")!;
+      select.value = "code";
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+      const openBtn = getShadow()!.querySelector<HTMLButtonElement>(".open-file-btn")!;
+      expect(openBtn.disabled).toBe(false);
+      openBtn.click();
+
+      await vi.waitFor(() => expect(fetchSpy).toHaveBeenCalledOnce());
+      expect(JSON.parse(fetchSpy.mock.calls[0]![1]!.body as string)).toEqual({
+        file: "src/Panel.vue",
+        line: 42,
+        editor: "code",
+      });
+    });
+
+    it("Tools tab emits magnifier slider changes", () => {
+      fab = createFab();
+      const spy = vi.fn<(config: { loupeSize?: number; zoomLevel?: number }) => void>();
+      fab.onMagnifierConfigChange(spy);
+      fab.mount();
+
+      getGear()!.click();
+      getSettingsTab("Tools")!.click();
+      const size = getShadow()!.querySelector<HTMLInputElement>(".magnifier-size-slider")!;
+      const zoom = getShadow()!.querySelector<HTMLInputElement>(".magnifier-zoom-slider")!;
+      size.value = "500";
+      size.dispatchEvent(new Event("input", { bubbles: true }));
+      zoom.value = "4.5";
+      zoom.dispatchEvent(new Event("input", { bubbles: true }));
+
+      expect(spy).toHaveBeenNthCalledWith(1, { loupeSize: 500 });
+      expect(spy).toHaveBeenNthCalledWith(2, { zoomLevel: 4.5 });
+      expect(size.parentElement!.querySelector(".slider-value")!.textContent).toBe("500px");
+      expect(zoom.parentElement!.querySelector(".slider-value")!.textContent).toBe("4.5x");
+    });
+
     it("Escape closes the panel", () => {
       fab = createFab();
       fab.mount();
@@ -905,10 +1106,10 @@ describe("FloatingButton", () => {
       expect(getExpandBody()!.classList.contains("open")).toBe(false);
     });
 
-    it("hotkey recording captures modifier+key combo", () => {
+    it("hotkey recording adds modifier+key combo", () => {
       fab = createFab();
-      const spy = vi.fn<() => void>();
-      fab.onHotkeyChange(spy);
+      const spy = vi.fn<(shortcuts: Record<string, string[]>) => void>();
+      fab.onShortcutsChange(spy);
       fab.mount();
 
       // Open panel
@@ -930,14 +1131,18 @@ describe("FloatingButton", () => {
         }),
       );
 
-      expect(spy).toHaveBeenCalledWith("Ctrl+Shift+K");
-      expect(getShadow()!.querySelector(".grab-hotkey-kbd")!.textContent).toBe("Ctrl+Shift+K");
+      expect(spy).toHaveBeenCalledWith(
+        expect.objectContaining({ grab: ["Alt+Shift+G", "Ctrl+Shift+K"] }),
+      );
+      expect(fab.getShortcuts().grab).toEqual(["Alt+Shift+G", "Ctrl+Shift+K"]);
+      expect(getShadow()!.querySelector(".grab-hotkey-kbd")!.textContent).toBe("Alt+Shift+G");
+      expect(getShortcutRow("grab")!.textContent).toContain("Ctrl+Shift+K");
     });
 
-    it("measurer hotkey recording captures modifier+key combo from Shortcuts", () => {
+    it("measurer hotkey recording adds modifier+key combo from Shortcuts", () => {
       fab = createFab();
-      const spy = vi.fn<() => void>();
-      fab.onMeasurerHotkeyChange(spy);
+      const spy = vi.fn<(shortcuts: Record<string, string[]>) => void>();
+      fab.onShortcutsChange(spy);
       fab.mount();
 
       getGear()!.click();
@@ -956,7 +1161,7 @@ describe("FloatingButton", () => {
         }),
       );
 
-      expect(spy).toHaveBeenCalledWith("Alt+Shift+M");
+      expect(spy).toHaveBeenCalledWith(expect.objectContaining({ measurer: ["Alt+Shift+M"] }));
       expect(getShadow()!.querySelector(".measurer-hotkey-kbd")!.textContent).toBe("Alt+Shift+M");
     });
   });
