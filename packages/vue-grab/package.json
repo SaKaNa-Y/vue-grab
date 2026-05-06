@@ -2,8 +2,32 @@
   "name": "@sakana-y/vue-grab",
   "version": "0.1.1",
   "private": false,
+  "description": "Grab UI context from Vue apps for AI coding agents.",
+  "keywords": [
+    "accessibility",
+    "ai",
+    "component-inspector",
+    "debugging",
+    "devtools",
+    "network",
+    "vite",
+    "vue"
+  ],
+  "bugs": {
+    "url": "https://github.com/SaKaNa-Y/vue-grab/issues"
+  },
+  "license": "MIT",
+  "author": "SaKaNa-Y",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SaKaNa-Y/vue-grab.git",
+    "directory": "packages/vue-grab"
+  },
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
   ],
   "type": "module",
   "main": "./dist/index.cjs",

@@ -1,6 +1,9 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
 import type { CapturedLog, GrabResult, LogLevel } from "@sakana-y/vue-grab-shared";
-import { DEFAULT_FLOATING_BUTTON } from "@sakana-y/vue-grab-shared";
+import {
+  DEFAULT_FLOATING_BUTTON,
+  DEFAULT_FLOATING_BUTTON_DOCK_ENTRY_ORDER,
+} from "@sakana-y/vue-grab-shared";
 import { FloatingButton, FAB_HOST_ID } from "../src/floating-button";
 import { cleanupDOM } from "./helpers/setup";
 
@@ -33,6 +36,18 @@ function makeGrabResult(overrides: Partial<GrabResult> = {}): GrabResult {
 
 function createFab(overrides: Partial<typeof DEFAULT_FLOATING_BUTTON> = {}): FloatingButton {
   return new FloatingButton({ ...DEFAULT_FLOATING_BUTTON, enabled: true, ...overrides });
+}
+
+function createFabWithAllToolbarEntries(
+  overrides: Partial<typeof DEFAULT_FLOATING_BUTTON> = {},
+): FloatingButton {
+  return createFab({
+    dockEntries: {
+      order: [...DEFAULT_FLOATING_BUTTON_DOCK_ENTRY_ORDER],
+      hidden: [],
+    },
+    ...overrides,
+  });
 }
 
 function getHost(): HTMLElement | null {
@@ -246,15 +261,7 @@ describe("FloatingButton", () => {
       fab = createFab();
       fab.mount();
 
-      expect(getDockEntryButtonIds()).toEqual([
-        "grab",
-        "settings",
-        "magnifier",
-        "measurer",
-        "accessibility",
-        "logs",
-        "network",
-      ]);
+      expect(getDockEntryButtonIds()).toEqual(["grab", "settings", "measurer", "accessibility"]);
     });
 
     it("gear button is always visible in toolbar", () => {
@@ -418,7 +425,10 @@ describe("FloatingButton", () => {
     });
 
     it("float mode keeps the toolbar stable when switching between open panels", () => {
-      fab = createFab({ dockMode: "float", initialPosition: "bottom-right" });
+      fab = createFabWithAllToolbarEntries({
+        dockMode: "float",
+        initialPosition: "bottom-right",
+      });
       fab.mount();
       const toolbar = getToolbar()!;
       const openingRect = {
@@ -669,6 +679,26 @@ describe("FloatingButton", () => {
       expect(getDockEntryButtonIds()).toContain("settings");
     });
 
+    it("renders beta labels for hidden beta dock entries", () => {
+      fab = createFab();
+      fab.mount();
+
+      getGear()!.click();
+
+      const expectedBetaIds = DEFAULT_FLOATING_BUTTON.dockEntries.hidden;
+      const betaRows = Array.from(
+        getShadow()!.querySelectorAll<HTMLElement>(".dock-entry-row:has(.dock-entry-badge)"),
+      );
+      expect(getDockEntryButtonIds()).toEqual(["grab", "settings", "measurer", "accessibility"]);
+      expect(betaRows.map((row) => row.dataset.dockEntryRow)).toEqual(expectedBetaIds);
+      for (const id of expectedBetaIds) {
+        const row = getDockEntryRow(id)!;
+        expect(row).not.toBeNull();
+        expect(getDockEntryToggle(id)!.getAttribute("aria-pressed")).toBe("false");
+        expect(row.querySelector(".dock-entry-badge")?.textContent).toBe("Beta");
+      }
+    });
+
     it("ignores config attempts to hide settings", () => {
       fab = createFab({
         dockEntries: {
@@ -707,7 +737,7 @@ describe("FloatingButton", () => {
     });
 
     it("hides toolbar entries and persists hidden ids", () => {
-      fab = createFab();
+      fab = createFabWithAllToolbarEntries();
       fab.mount();
       getGear()!.click();
 
@@ -721,7 +751,7 @@ describe("FloatingButton", () => {
     });
 
     it("group toggles hide and restore hideable entries", () => {
-      fab = createFab();
+      fab = createFabWithAllToolbarEntries();
       fab.mount();
       getGear()!.click();
 
@@ -741,7 +771,7 @@ describe("FloatingButton", () => {
     });
 
     it("reorders entries within a feature group and persists order", () => {
-      fab = createFab();
+      fab = createFabWithAllToolbarEntries();
       fab.mount();
       getGear()!.click();
 
@@ -770,7 +800,7 @@ describe("FloatingButton", () => {
     });
 
     it("drag-reorders entries within a feature group and persists order", () => {
-      fab = createFab();
+      fab = createFabWithAllToolbarEntries();
       fab.mount();
       getGear()!.click();
 
@@ -801,7 +831,7 @@ describe("FloatingButton", () => {
     });
 
     it("ignores drag drops across feature groups", () => {
-      fab = createFab();
+      fab = createFabWithAllToolbarEntries();
       fab.mount();
       getGear()!.click();
 
@@ -1187,7 +1217,7 @@ describe("FloatingButton", () => {
     }
 
     it("clicking logs button opens panel with five level pills", () => {
-      fab = createFab();
+      fab = createFabWithAllToolbarEntries();
       fab.mount();
 
       getLogsBtn()!.click();
@@ -1196,7 +1226,7 @@ describe("FloatingButton", () => {
     });
 
     it("badge counts only warn + error levels", () => {
-      fab = createFab();
+      fab = createFabWithAllToolbarEntries();
       fab.mount();
       fab.setLogs([
         makeLog("log", "a"),
@@ -1212,28 +1242,28 @@ describe("FloatingButton", () => {
     });
 
     it("badge gains has-error class when an error-level entry is present", () => {
-      fab = createFab();
+      fab = createFabWithAllToolbarEntries();
       fab.mount();
       fab.setLogs([makeLog("warn", "a"), makeLog("error", "b")]);
       expect(getLogsBadge()!.classList.contains("has-error")).toBe(true);
     });
 
     it("badge does not have has-error class when only warnings exist", () => {
-      fab = createFab();
+      fab = createFabWithAllToolbarEntries();
       fab.mount();
       fab.setLogs([makeLog("warn", "a"), makeLog("warn", "b")]);
       expect(getLogsBadge()!.classList.contains("has-error")).toBe(false);
     });
 
     it("badge is hidden when there are no warn or error entries", () => {
-      fab = createFab();
+      fab = createFabWithAllToolbarEntries();
       fab.mount();
       fab.setLogs([makeLog("log", "a"), makeLog("info", "b")]);
       expect(getLogsBadge()!.style.display).toBe("none");
     });
 
     it("clicking a level pill toggles visibility of rows at that level", () => {
-      fab = createFab();
+      fab = createFabWithAllToolbarEntries();
       fab.mount();
       fab.setLogs([makeLog("log", "a"), makeLog("warn", "b"), makeLog("error", "c")]);
 
@@ -1251,7 +1281,7 @@ describe("FloatingButton", () => {
     });
 
     it("search input filters rows by message substring", async () => {
-      fab = createFab();
+      fab = createFabWithAllToolbarEntries();
       fab.mount();
       fab.setLogs([
         makeLog("log", "foo bar"),
@@ -1273,7 +1303,7 @@ describe("FloatingButton", () => {
     });
 
     it("Clear button triggers onLogsClear callback", () => {
-      fab = createFab();
+      fab = createFabWithAllToolbarEntries();
       fab.mount();
       const spy = vi.fn<() => void>();
       fab.onLogsClear(spy);
@@ -1286,7 +1316,7 @@ describe("FloatingButton", () => {
     });
 
     it("non-console sources display an extra source badge", () => {
-      fab = createFab();
+      fab = createFabWithAllToolbarEntries();
       fab.mount();
       fab.setLogs([makeLog("error", "boom", { source: "runtime" })]);
 
@@ -1298,7 +1328,7 @@ describe("FloatingButton", () => {
     });
 
     it("console-source entries do not render a source badge", () => {
-      fab = createFab();
+      fab = createFabWithAllToolbarEntries();
       fab.mount();
       fab.setLogs([makeLog("log", "hi")]);
 

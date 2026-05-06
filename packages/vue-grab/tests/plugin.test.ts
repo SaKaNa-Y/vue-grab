@@ -77,7 +77,13 @@ describe("createVueGrab", () => {
       global: {
         plugins: [
           createVueGrab({
-            floatingButton: { enabled: true },
+            floatingButton: {
+              enabled: true,
+              dockEntries: {
+                order: [...DEFAULT_CONFIG.floatingButton.dockEntries.order],
+                hidden: [],
+              },
+            },
             networkCapture: { enabled: false },
             magnifier: { enabled: false },
             measurer: { enabled: false },

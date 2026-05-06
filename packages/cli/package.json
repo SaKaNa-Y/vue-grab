@@ -2,11 +2,34 @@
   "name": "@sakana-y/vue-grab-cli",
   "version": "0.1.1",
   "private": false,
+  "description": "CLI setup tool for adding Vue Grab to Vite and Vue projects.",
+  "keywords": [
+    "ai",
+    "cli",
+    "debugging",
+    "devtools",
+    "scaffold",
+    "vite",
+    "vue"
+  ],
+  "bugs": {
+    "url": "https://github.com/SaKaNa-Y/vue-grab/issues"
+  },
+  "license": "MIT",
+  "author": "SaKaNa-Y",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SaKaNa-Y/vue-grab.git",
+    "directory": "packages/cli"
+  },
   "bin": {
     "vue-grab": "./dist/bin.mjs"
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
   ],
   "type": "module",
   "main": "./dist/index.cjs",
