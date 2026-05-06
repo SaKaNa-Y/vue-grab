@@ -1,5 +1,16 @@
 # @sakana-y/vue-grab
 
+## 0.1.2
+
+### Patch Changes
+
+- [#38](https://github.com/SaKaNa-Y/vue-grab/pull/38) [`a90677f`](https://github.com/SaKaNa-Y/vue-grab/commit/a90677f19389bb7875ca54164e4554830f80a2d7) Thanks [@SaKaNa-Y](https://github.com/SaKaNa-Y)! - Hide beta toolbar entries by default and label Magnifier, Logs, and Network as Beta in Dock settings.
+
+- [#38](https://github.com/SaKaNa-Y/vue-grab/pull/38) [`a90677f`](https://github.com/SaKaNa-Y/vue-grab/commit/a90677f19389bb7875ca54164e4554830f80a2d7) Thanks [@SaKaNa-Y](https://github.com/SaKaNa-Y)! - Add package README, license, and npm metadata so published package pages show documentation and project links.
+
+- Updated dependencies [[`a90677f`](https://github.com/SaKaNa-Y/vue-grab/commit/a90677f19389bb7875ca54164e4554830f80a2d7), [`a90677f`](https://github.com/SaKaNa-Y/vue-grab/commit/a90677f19389bb7875ca54164e4554830f80a2d7)]:
+  - @sakana-y/vue-grab-shared@0.1.2
+
 ## 0.1.1
 
 ### Patch Changes
