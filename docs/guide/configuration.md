@@ -45,7 +45,7 @@ createVueGrab({
 | `enabled`                       | `boolean`                                                                      | `false`                             | Render the floating button. Off by default so you can opt in.        |
 | `initialPosition`               | `"bottom-right" \| "bottom-left" \| "top-right" \| "top-left" \| "top-center"` | `"top-center"`                      | Starting position before any persisted position is restored.         |
 | `dockMode`                      | `"float" \| "edge"`                                                            | `"float"`                           | Display mode for panels: draggable floating panel or full-edge rail. |
-| `dockEntries`                   | `FloatingButtonDockEntriesConfig`                                              | all entries visible                 | Toolbar entry order and hidden entries. Settings is always visible.  |
+| `dockEntries`                   | `FloatingButtonDockEntriesConfig`                                              | Magnifier, Logs, and Network hidden | Toolbar entry order and hidden entries. Settings is always visible.  |
 | `storageKey`                    | `string`                                                                       | `"vue-grab-fab-pos"`                | localStorage key for persisted position. Set `""` to disable.        |
 | `dockModeStorageKey`            | `string`                                                                       | `"vue-grab-dock-mode"`              | localStorage key for the dock mode preference. Set `""` to disable.  |
 | `dockEntriesStorageKey`         | `string`                                                                       | `"vue-grab-dock-entries"`           | localStorage key for toolbar entry visibility/order.                 |
@@ -57,7 +57,7 @@ createVueGrab({
 
 ### `floatingButton.dockEntries`
 
-`order` accepts toolbar entry ids: `"grab"`, `"settings"`, `"magnifier"`, `"measurer"`, `"accessibility"`, `"logs"`, and `"network"`. Unknown ids are ignored and missing ids are appended in the default order. `hidden` removes entries from the toolbar only; `"settings"` is always forced visible. Users can reorder entries within each Dock feature group from Settings.
+`order` accepts toolbar entry ids: `"grab"`, `"settings"`, `"magnifier"`, `"measurer"`, `"accessibility"`, `"logs"`, and `"network"`. Unknown ids are ignored and missing ids are appended in the default order. `hidden` removes entries from the toolbar only; `"settings"` is always forced visible. Magnifier, Logs, and Network are hidden by default while they are beta, but users can re-enable them from Settings > Dock. Users can reorder entries within each Dock feature group from Settings.
 
 ```ts
 createVueGrab({

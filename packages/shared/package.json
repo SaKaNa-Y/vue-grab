@@ -2,8 +2,31 @@
   "name": "@sakana-y/vue-grab-shared",
   "version": "0.1.1",
   "private": false,
+  "description": "Shared types, defaults, config merging, and protocol constants for Vue Grab integrations.",
+  "keywords": [
+    "ai",
+    "configuration",
+    "devtools",
+    "protocol",
+    "types",
+    "vite",
+    "vue"
+  ],
+  "bugs": {
+    "url": "https://github.com/SaKaNa-Y/vue-grab/issues"
+  },
+  "license": "MIT",
+  "author": "SaKaNa-Y",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SaKaNa-Y/vue-grab.git",
+    "directory": "packages/shared"
+  },
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
   ],
   "type": "module",
   "main": "./dist/index.cjs",

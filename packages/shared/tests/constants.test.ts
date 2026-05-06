@@ -15,7 +15,11 @@ describe("constants", () => {
     expect(DEFAULT_CONFIG.floatingButton.dockEntries.order).toEqual(
       DEFAULT_FLOATING_BUTTON_DOCK_ENTRY_ORDER,
     );
-    expect(DEFAULT_CONFIG.floatingButton.dockEntries.hidden).toEqual([]);
+    expect(DEFAULT_CONFIG.floatingButton.dockEntries.hidden).toEqual([
+      "magnifier",
+      "logs",
+      "network",
+    ]);
     expect(DEFAULT_CONFIG.floatingButton.shortcutsStorageKey).toBe("vue-grab-shortcuts");
     expect(DEFAULT_CONFIG.floatingButton.shortcuts).toEqual({
       grab: ["Alt+Shift+G"],

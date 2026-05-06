@@ -46,7 +46,7 @@ createVueGrab({
 
 ## Toolbar entries
 
-The Dock tab also lets users hide and reorder toolbar entries by feature group. Hiding an entry removes it from the toolbar only; the underlying feature can still be used through hotkeys or programmatic APIs. The Settings entry is always visible and cannot be hidden. Entries can be reordered within their feature group with the drag handle or arrow controls.
+The Dock tab also lets users hide and reorder toolbar entries by feature group. Hiding an entry removes it from the toolbar only; the underlying feature can still be used through hotkeys or programmatic APIs. Magnifier, Logs, and Network are hidden by default while they are beta, but users can re-enable them from Settings > Dock. The Settings entry is always visible and cannot be hidden. Entries can be reordered within their feature group with the drag handle or arrow controls.
 
 ```ts
 createVueGrab({

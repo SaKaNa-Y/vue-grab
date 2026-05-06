@@ -32,7 +32,7 @@ export const DEFAULT_FLOATING_BUTTON: FloatingButtonConfig = {
   dockMode: "float",
   dockEntries: {
     order: [...DEFAULT_FLOATING_BUTTON_DOCK_ENTRY_ORDER],
-    hidden: [],
+    hidden: ["magnifier", "logs", "network"],
   },
   shortcuts: {
     grab: [DEFAULT_HOTKEY],

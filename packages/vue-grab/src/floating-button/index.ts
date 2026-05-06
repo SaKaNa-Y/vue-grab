@@ -166,6 +166,7 @@ interface DockEntryDefinition {
   group: DockEntryGroupId;
   buttonClass: string;
   icon: string;
+  badge?: string;
   locked?: boolean;
 }
 
@@ -189,6 +190,8 @@ const DOCK_ENTRY_GROUPS: readonly DockEntryGroupDefinition[] = [
   { id: "diagnostics", label: "Diagnostics" },
   { id: "system", label: "System" },
 ];
+
+const BETA_BADGE = "Beta";
 
 const DOCK_ENTRY_DEFINITIONS: readonly DockEntryDefinition[] = [
   {
@@ -215,6 +218,7 @@ const DOCK_ENTRY_DEFINITIONS: readonly DockEntryDefinition[] = [
     group: "inspection",
     buttonClass: "magnifier-btn",
     icon: MAGNIFIER_SVG,
+    badge: BETA_BADGE,
   },
   {
     id: "measurer",
@@ -239,6 +243,7 @@ const DOCK_ENTRY_DEFINITIONS: readonly DockEntryDefinition[] = [
     group: "diagnostics",
     buttonClass: "logs-btn",
     icon: LOGS_SVG,
+    badge: BETA_BADGE,
   },
   {
     id: "network",
@@ -247,6 +252,7 @@ const DOCK_ENTRY_DEFINITIONS: readonly DockEntryDefinition[] = [
     group: "diagnostics",
     buttonClass: "network-btn",
     icon: NETWORK_SVG,
+    badge: BETA_BADGE,
   },
 ];
 
@@ -1035,12 +1041,30 @@ const STYLES = `
   }
   .dock-entry-label {
     min-width: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     color: #e8e8e8;
     font-size: 13px;
     font-weight: 600;
+  }
+  .dock-entry-label-text {
+    min-width: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+  .dock-entry-badge {
+    flex: 0 0 auto;
+    padding: 1px 5px;
+    border-radius: 999px;
+    background: rgba(251,191,36,0.14);
+    color: #fbbf24;
+    box-shadow: inset 0 0 0 1px rgba(251,191,36,0.28);
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 1.35;
+    text-transform: uppercase;
   }
   .dock-entry-actions {
     display: inline-flex;
@@ -2667,7 +2691,9 @@ export class FloatingButton {
           entry.locked ? " disabled" : ""
         }>${visible ? "\u2713" : ""}</button>`;
         html += `<span class="dock-entry-icon">${entry.icon}</span>`;
-        html += `<span class="dock-entry-label">${esc(entry.label)}</span>`;
+        html += `<span class="dock-entry-label"><span class="dock-entry-label-text">${esc(entry.label)}</span>${
+          entry.badge ? `<span class="dock-entry-badge">${esc(entry.badge)}</span>` : ""
+        }</span>`;
         html += '<span class="dock-entry-actions">';
         if (entry.locked) {
           html += '<span class="dock-entry-lock">Locked</span>';
