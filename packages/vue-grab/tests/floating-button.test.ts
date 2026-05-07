@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
-import type { CapturedLog, GrabResult, LogLevel } from "@sakana-y/vue-grab-shared";
+import type { CapturedLog, CapturedRequest, GrabResult, LogLevel } from "@sakana-y/vue-grab-shared";
 import {
   DEFAULT_FLOATING_BUTTON,
   DEFAULT_FLOATING_BUTTON_DOCK_ENTRY_ORDER,
@@ -19,6 +19,22 @@ function makeLog(
     message,
     count: 1,
     timestamp: Date.now(),
+    ...overrides,
+  };
+}
+
+function makeRequest(overrides: Partial<CapturedRequest> = {}): CapturedRequest {
+  return {
+    id: Math.random(),
+    method: "GET",
+    url: "https://example.com/api/items",
+    initiator: "fetch",
+    status: 200,
+    statusClass: "2xx",
+    startTime: 1,
+    duration: 42,
+    timestamp: Date.now(),
+    count: 1,
     ...overrides,
   };
 }
@@ -660,6 +676,29 @@ describe("FloatingButton", () => {
       );
     });
 
+    it("renders Dock controls with settings-style rows and lists", () => {
+      fab = createFab();
+      fab.mount();
+
+      getGear()!.click();
+
+      const dockTab = getShadow()!.querySelector<HTMLElement>('[data-tab-content="dock"]')!;
+      expect(dockTab.querySelector('[data-settings-row="dock-mode"]')).not.toBeNull();
+      expect(dockTab.querySelector('[data-settings-row="outside-click"]')).not.toBeNull();
+      expect(dockTab.querySelector(".dock-settings-list")).not.toBeNull();
+      expect(dockTab.querySelectorAll(".dock-entry-list")).toHaveLength(4);
+      expect(getDockEntryRow("grab")!.classList.contains("setting-row")).toBe(true);
+      expect(getDockEntryRow("grab")!.closest(".settings-list")).not.toBeNull();
+      expect(getDockEntryRow("grab")!.querySelector(".setting-row-title")!.textContent).toBe(
+        "Grab",
+      );
+      expect(getDockEntryRow("grab")!.querySelector("[data-dock-entry-drag]")).not.toBeNull();
+      expect(getDockEntryRow("grab")!.querySelector("[data-dock-entry-toggle]")).not.toBeNull();
+      expect(
+        getDockEntryRow("grab")!.querySelector('[data-dock-entry-move][data-direction="up"]'),
+      ).not.toBeNull();
+    });
+
     it("renders grouped dock entries and keeps settings locked visible", () => {
       fab = createFab();
       fab.mount();
@@ -1206,6 +1245,9 @@ describe("FloatingButton", () => {
     function getLogsPanel(): HTMLElement | null {
       return getShadow()?.querySelector(".logs-panel") ?? null;
     }
+    function getNetworkPanel(): HTMLElement | null {
+      return getShadow()?.querySelector(".network-panel") ?? null;
+    }
     function getPills(): NodeListOf<HTMLElement> {
       return getShadow()!.querySelectorAll<HTMLElement>(".logs-pill");
     }
@@ -1223,6 +1265,26 @@ describe("FloatingButton", () => {
       getLogsBtn()!.click();
       expect(getLogsPanel()).not.toBeNull();
       expect(getPills()).toHaveLength(5);
+      expect(getShadow()!.querySelector(".logs-panel-meta")!.textContent).toBe("No entries yet");
+      expect(getShadow()!.querySelectorAll(".logs-section-label")).toHaveLength(1);
+    });
+
+    it("renders a compact empty state before any logs are captured", () => {
+      fab = createFabWithAllToolbarEntries();
+      fab.mount();
+
+      getLogsBtn()!.click();
+
+      expect(getLogsPanel()!.classList.contains("is-empty")).toBe(true);
+      expect(getSearch()).toBeNull();
+      expect(getShadow()!.querySelector(".logs-list")).toBeNull();
+      expect(getShadow()!.querySelector(".logs-empty-compact")!.textContent).toBe(
+        "No logs captured yet",
+      );
+      expect(getComputedStyle(getExpandBody()!).height).not.toBe("auto");
+      expect(getShadow()!.querySelector("style")!.textContent).not.toContain(
+        ".expand-body:has(.logs-panel.is-empty)",
+      );
     });
 
     it("badge counts only warn + error levels", () => {
@@ -1300,6 +1362,27 @@ describe("FloatingButton", () => {
       expect(rows).toHaveLength(2);
       const messages = Array.from(rows).map((r) => r.querySelector(".log-row-msg")!.textContent);
       expect(messages.every((m) => m!.includes("foo"))).toBe(true);
+      expect(getShadow()!.querySelector(".logs-panel-meta")!.textContent).toBe("2 of 3 entries");
+    });
+
+    it("keeps search visible when filters leave a non-empty log set with no matches", async () => {
+      fab = createFabWithAllToolbarEntries();
+      fab.mount();
+      fab.setLogs([makeLog("log", "alpha")]);
+
+      getLogsBtn()!.click();
+      const search = getSearch()!;
+      search.value = "missing";
+      search.dispatchEvent(new Event("input", { bubbles: true }));
+
+      await new Promise((r) => setTimeout(r, 150));
+
+      expect(getLogsPanel()!.classList.contains("is-empty")).toBe(false);
+      expect(getSearch()).not.toBeNull();
+      expect(getShadow()!.querySelector(".logs-list")).not.toBeNull();
+      expect(getShadow()!.querySelector(".logs-empty")!.textContent).toBe(
+        "No logs match the current filter",
+      );
     });
 
     it("Clear button triggers onLogsClear callback", () => {
@@ -1335,6 +1418,66 @@ describe("FloatingButton", () => {
       getLogsBtn()!.click();
       const row = getShadow()!.querySelector<HTMLElement>(".log-row")!;
       expect(row.querySelector(".log-row-source")).toBeNull();
+    });
+
+    it("renders entries in a settings-style list with compact one-line rows", () => {
+      fab = createFabWithAllToolbarEntries();
+      fab.mount();
+      fab.setLogs([makeLog("warn", "settings aligned row", { count: 3 })]);
+
+      getLogsBtn()!.click();
+
+      expect(getShadow()!.querySelector(".logs-list")).not.toBeNull();
+      expect(getShadow()!.querySelectorAll(".logs-section-label")).toHaveLength(2);
+      expect(getShadow()!.querySelector(".logs-panel-meta")!.textContent).toBe("1 of 1 entry");
+      const row = getShadow()!.querySelector<HTMLElement>(".log-row")!;
+      expect(row.closest(".logs-list")).not.toBeNull();
+      expect(row.querySelector(".log-row-header")!.tagName).toBe("BUTTON");
+      expect(row.querySelector(".log-row-msg")!.textContent).toBe("settings aligned row");
+      expect(row.querySelector(".log-row-count")!.textContent).toBe("×3");
+    });
+
+    it("expands a compact drawer with details and actions", () => {
+      fab = createFabWithAllToolbarEntries();
+      fab.mount();
+      fab.setLogs([
+        makeLog("error", "boom", {
+          stack: "Error: boom\n at setup",
+          vueInfo: "mounted hook",
+          sourceFile: "/src/App.vue",
+        }),
+      ]);
+
+      getLogsBtn()!.click();
+      const header = getShadow()!.querySelector<HTMLElement>(".log-row-header")!;
+      const details = getShadow()!.querySelector<HTMLElement>(".log-row-details")!;
+      const chevron = getShadow()!.querySelector<HTMLElement>(".log-row-chevron")!;
+
+      expect(details.classList.contains("open")).toBe(false);
+      header.click();
+
+      expect(details.classList.contains("open")).toBe(true);
+      expect(chevron.classList.contains("open")).toBe(true);
+      expect(details.querySelector(".log-row-detail-surface")).not.toBeNull();
+      expect(details.textContent).toContain("Vue: mounted hook");
+      expect(details.textContent).toContain("Error: boom");
+      expect(details.querySelector("[data-log-copy]")).not.toBeNull();
+      expect(details.querySelector("[data-log-claude]")).not.toBeNull();
+      expect(details.querySelector("[data-log-open]")).not.toBeNull();
+    });
+
+    it("keeps the network panel isolated from redesigned logs-only structure", () => {
+      fab = createFabWithAllToolbarEntries();
+      fab.mount();
+      fab.setNetwork([makeRequest()]);
+
+      getShadow()!.querySelector<HTMLElement>(".network-btn")!.click();
+
+      expect(getNetworkPanel()).not.toBeNull();
+      expect(getNetworkPanel()!.querySelector(".logs-list")).toBeNull();
+      expect(getNetworkPanel()!.querySelector(".logs-panel-meta")).toBeNull();
+      expect(getNetworkPanel()!.querySelector(".logs-section-label")).toBeNull();
+      expect(getNetworkPanel()!.querySelector(".net-row")).not.toBeNull();
     });
   });
 
