@@ -392,6 +392,8 @@ function trySaveShortcuts(key: string, shortcuts: FloatingButtonShortcutsConfig)
 const STYLES = `
   :host {
     all: initial;
+    --grab-toolbar-active-bg: color-mix(in srgb, var(--grab-color, #4f46e5) 12%, transparent);
+    --grab-control-active-bg: color-mix(in srgb, var(--grab-color, #4f46e5) 12%, rgba(255,255,255,0.04));
     --lvl-log: #9ca3af;
     --lvl-info: #60a5fa;
     --lvl-warn: #f59e0b;
@@ -502,12 +504,12 @@ const STYLES = `
   .grab-btn.active {
     color: var(--grab-color, #4f46e5);
     box-shadow: inset 0 0 0 1.5px var(--grab-color, #4f46e5);
-    background: color-mix(in srgb, var(--grab-color, #4f46e5) 12%, transparent);
+    background: var(--grab-toolbar-active-bg);
   }
   .gear-btn.active {
     color: var(--grab-color, #4f46e5);
     box-shadow: inset 0 0 0 1.5px var(--grab-color, #4f46e5);
-    background: color-mix(in srgb, var(--grab-color, #4f46e5) 12%, transparent);
+    background: var(--grab-toolbar-active-bg);
   }
   .toolbar-divider {
     width: 1px;
@@ -818,7 +820,6 @@ const STYLES = `
     max-width: 100%;
     gap: 2px;
     padding: 4px;
-    margin-bottom: 16px;
     border-radius: 8px;
     border: 1px solid rgba(255,255,255,0.1);
     background: rgba(255,255,255,0.07);
@@ -852,11 +853,20 @@ const STYLES = `
   .dock-mode-icon {
     flex: 0 0 auto;
   }
+  .dock-settings-list {
+    margin-bottom: 16px;
+  }
+  .dock-mode-row .setting-row-control {
+    min-width: 174px;
+  }
   .setting-toggle {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 16px;
+    cursor: pointer;
+  }
+  .setting-toggle-row {
     cursor: pointer;
   }
   .setting-toggle-copy {
@@ -902,7 +912,7 @@ const STYLES = `
     transition: transform 0.15s ease;
   }
   .setting-toggle-input:checked + .setting-toggle-switch {
-    background: #84cc16;
+    background: var(--grab-color, #4f46e5);
     box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18);
   }
   .setting-toggle-input:checked + .setting-toggle-switch::after {
@@ -914,46 +924,49 @@ const STYLES = `
   .dock-entry-manager {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    margin-top: 14px;
+    gap: 16px;
   }
   .dock-entry-group {
-    overflow: hidden;
-    border-radius: 8px;
-    border: 1px solid rgba(255,255,255,0.1);
-    background: rgba(10,10,10,0.22);
+    overflow: visible;
   }
   .dock-entry-group-header {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 10px;
-    padding: 10px 12px;
-    border-bottom: 1px solid rgba(255,255,255,0.08);
-    background: rgba(255,255,255,0.04);
+    margin-bottom: 8px;
   }
   .dock-entry-group-title {
-    color: #e8e8e8;
-    font-size: 13px;
-    font-weight: 650;
+    color: #888;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
   }
   .dock-entry-group-count {
     color: #888;
     font-size: 12px;
+    margin-left: 4px;
   }
   .dock-entry-group-toggle {
-    width: 22px;
-    height: 22px;
+    margin-left: auto;
+    width: 26px;
+    height: 26px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border: 0;
+    border: 1px solid rgba(255,255,255,0.1);
     border-radius: 6px;
-    color: #8fbf28;
-    background: rgba(132,204,22,0.18);
+    color: var(--grab-color, #4f46e5);
+    background: var(--grab-control-active-bg);
     cursor: pointer;
     font-family: inherit;
-    font-size: 15px;
+    font-size: 14px;
     line-height: 1;
+  }
+  .dock-entry-group-toggle:hover {
+    color: #fff;
+    background: rgba(255,255,255,0.1);
   }
   .dock-entry-group-toggle.is-partial {
     color: #bbb;
@@ -966,16 +979,9 @@ const STYLES = `
   }
   .dock-entry-row {
     display: grid;
-    grid-template-columns: 22px 22px 28px minmax(0, 1fr) auto;
+    grid-template-columns: 28px minmax(0, 1fr) minmax(210px, auto);
     align-items: center;
-    gap: 12px;
-    min-height: 52px;
-    padding: 8px 12px;
-    border-bottom: 1px solid rgba(255,255,255,0.07);
     position: relative;
-  }
-  .dock-entry-row:last-child {
-    border-bottom: 0;
   }
   .dock-entry-row.is-dragging {
     opacity: 0.45;
@@ -988,8 +994,8 @@ const STYLES = `
     right: 12px;
     height: 2px;
     border-radius: 999px;
-    background: #8fbf28;
-    box-shadow: 0 0 8px rgba(143,191,40,0.45);
+    background: var(--grab-color, #4f46e5);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--grab-color, #4f46e5) 45%, transparent);
   }
   .dock-entry-row.is-drop-before::before {
     top: 0;
@@ -998,37 +1004,51 @@ const STYLES = `
     bottom: 0;
   }
   .dock-entry-drag {
-    color: #555;
+    width: 24px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    color: #666;
     font-size: 18px;
     line-height: 1;
     cursor: grab;
     user-select: none;
   }
+  .dock-entry-drag:hover {
+    color: #bbb;
+    background: rgba(255,255,255,0.08);
+  }
   .dock-entry-drag:active {
     cursor: grabbing;
   }
   .dock-entry-check {
-    width: 22px;
-    height: 22px;
+    width: 24px;
+    height: 24px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border: 0;
+    border: 1px solid rgba(255,255,255,0.1);
     border-radius: 6px;
-    color: #8fbf28;
-    background: rgba(132,204,22,0.2);
+    color: var(--grab-color, #4f46e5);
+    background: var(--grab-control-active-bg);
     cursor: pointer;
     font-family: inherit;
     font-size: 15px;
     line-height: 1;
   }
+  .dock-entry-check:hover {
+    color: #fff;
+    background: rgba(255,255,255,0.1);
+  }
   .dock-entry-check.is-hidden {
     color: #777;
-    background: rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.05);
   }
   .dock-entry-check:disabled {
     color: #777;
-    background: rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.05);
     cursor: not-allowed;
   }
   .dock-entry-icon {
@@ -1037,16 +1057,17 @@ const STYLES = `
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    color: #d6d6d6;
+    color: #9a9a9a;
+  }
+  .dock-entry-icon svg {
+    width: 18px;
+    height: 18px;
   }
   .dock-entry-label {
     min-width: 0;
-    display: inline-flex;
+    display: flex;
     align-items: center;
     gap: 6px;
-    color: #e8e8e8;
-    font-size: 13px;
-    font-weight: 600;
   }
   .dock-entry-label-text {
     min-width: 0;
@@ -1065,10 +1086,6 @@ const STYLES = `
     font-weight: 700;
     line-height: 1.35;
     text-transform: uppercase;
-  }
-  .dock-entry-actions {
-    display: inline-flex;
-    gap: 4px;
   }
   .dock-entry-move {
     width: 24px;
@@ -1093,8 +1110,8 @@ const STYLES = `
   .dock-entry-lock {
     color: #888;
     font-size: 11px;
-    padding: 3px 7px;
-    border-radius: 999px;
+    padding: 3px 6px;
+    border-radius: 6px;
     background: rgba(255,255,255,0.07);
   }
 
@@ -1176,6 +1193,10 @@ const STYLES = `
     justify-content: flex-end;
     gap: 8px;
     min-width: 0;
+  }
+  .dock-entry-controls {
+    gap: 6px;
+    flex-wrap: nowrap;
   }
   .setting-row-control.stack {
     flex-direction: column;
@@ -1431,7 +1452,11 @@ const STYLES = `
   }
 
   /* ── Console (logs) panel ── */
-  .logs-panel { padding: 12px 14px; min-width: 340px; }
+  .logs-panel {
+    padding: 14px;
+    min-width: min(420px, 100%);
+    box-sizing: border-box;
+  }
   .logs-header {
     display: flex;
     align-items: center;
@@ -1457,11 +1482,50 @@ const STYLES = `
     background: rgba(255,255,255,0.14);
     color: #fff;
   }
+  .logs-panel .logs-header {
+    margin-bottom: 14px;
+    gap: 14px;
+  }
+  .logs-panel-heading {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .logs-panel .logs-title {
+    color: #e8e8e8;
+    font-size: 13px;
+    font-weight: 650;
+    line-height: 1.25;
+  }
+  .logs-panel-meta {
+    color: #7d7d7d;
+    font-size: 12px;
+    line-height: 1.3;
+  }
+  .logs-panel .logs-clear-btn {
+    flex: 0 0 auto;
+    padding: 5px 11px;
+    border-color: rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.07);
+    color: #ccc;
+  }
+  .logs-panel .logs-clear-btn:hover {
+    background: rgba(255,255,255,0.13);
+    color: #fff;
+  }
+  .logs-section-label {
+    margin-bottom: 8px;
+  }
   .logs-filter-bar {
     display: flex;
     gap: 4px;
     margin-bottom: 8px;
     flex-wrap: wrap;
+  }
+  .logs-panel .logs-filter-bar {
+    gap: 6px;
+    margin-bottom: 12px;
   }
   .logs-pill {
     display: inline-flex;
@@ -1494,6 +1558,31 @@ const STYLES = `
     opacity: 0.8;
     font-weight: 500;
   }
+  .logs-panel .logs-pill {
+    min-height: 26px;
+    padding: 0 8px;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.05);
+    border-color: rgba(255,255,255,0.08);
+    color: #999;
+    letter-spacing: 0.02em;
+  }
+  .logs-panel .logs-pill:hover {
+    background: rgba(255,255,255,0.1);
+    color: #ddd;
+  }
+  .logs-panel .logs-pill.active {
+    background: color-mix(in srgb, var(--c) 14%, rgba(0,0,0,0.28));
+    color: var(--c);
+    border-color: color-mix(in srgb, var(--c) 32%, rgba(255,255,255,0.08));
+  }
+  .logs-panel .logs-pill .count {
+    color: #d0d0d0;
+    font-variant-numeric: tabular-nums;
+  }
+  .logs-search-row {
+    margin-bottom: 14px;
+  }
   .logs-search {
     width: 100%;
     box-sizing: border-box;
@@ -1509,6 +1598,22 @@ const STYLES = `
   }
   .logs-search:focus {
     border-color: rgba(99,102,241,0.5);
+  }
+  .logs-panel .logs-search {
+    margin-bottom: 0;
+    padding: 7px 10px;
+    border-color: rgba(255,255,255,0.1);
+    background: rgba(0,0,0,0.28);
+    border-radius: 6px;
+  }
+  .logs-panel .logs-search:focus {
+    border-color: var(--grab-color, #4f46e5);
+  }
+  .logs-list {
+    overflow: hidden;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(12,12,12,0.36);
   }
   .log-row {
     padding: 8px 10px;
@@ -1526,11 +1631,51 @@ const STYLES = `
   .log-row[data-level="warn"]  { --c: var(--lvl-warn); }
   .log-row[data-level="error"] { --c: var(--lvl-error); }
   .log-row[data-level="debug"] { --c: var(--lvl-debug); }
+  .logs-panel .log-row {
+    position: relative;
+    padding: 0;
+    margin-bottom: 0;
+    border-left: 0;
+    border-radius: 0;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    background: transparent;
+  }
+  .logs-panel .log-row:last-child {
+    border-bottom: 0;
+  }
+  .logs-panel .log-row::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: var(--c, #666);
+    opacity: 0.9;
+  }
+  .logs-panel .log-row:hover {
+    background: color-mix(in srgb, var(--c, #666) 7%, transparent);
+  }
   .log-row-header {
     display: flex;
     align-items: center;
     gap: 6px;
     cursor: pointer;
+  }
+  .logs-panel .log-row-header {
+    width: 100%;
+    min-height: 44px;
+    padding: 9px 12px 9px 14px;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    box-sizing: border-box;
+  }
+  .logs-panel .log-row-header:focus-visible {
+    outline: 2px solid var(--grab-color, #4f46e5);
+    outline-offset: -2px;
   }
   .log-row-level {
     font-size: 10px;
@@ -1543,6 +1688,13 @@ const STYLES = `
     text-transform: uppercase;
     letter-spacing: 0.03em;
   }
+  .logs-panel .log-row-level {
+    min-width: 40px;
+    padding: 2px 6px;
+    border-radius: 5px;
+    text-align: center;
+    box-sizing: border-box;
+  }
   .log-row-source {
     font-size: 9px;
     color: #888;
@@ -1551,6 +1703,14 @@ const STYLES = `
     background: rgba(255,255,255,0.04);
     flex-shrink: 0;
     text-transform: lowercase;
+  }
+  .logs-panel .log-row-source {
+    min-width: 44px;
+    padding: 2px 6px;
+    border-radius: 5px;
+    color: #aaa;
+    background: rgba(255,255,255,0.06);
+    text-align: center;
   }
   .log-row-msg {
     font-size: 12px;
@@ -1561,6 +1721,10 @@ const STYLES = `
     flex: 1;
     min-width: 0;
   }
+  .logs-panel .log-row-msg {
+    color: #e6e6e6;
+    line-height: 1.35;
+  }
   .log-row-count {
     font-size: 10px;
     background: color-mix(in srgb, var(--c) 20%, transparent);
@@ -1570,10 +1734,21 @@ const STYLES = `
     font-weight: 600;
     flex-shrink: 0;
   }
+  .logs-panel .log-row-count {
+    border-radius: 999px;
+    padding: 1px 6px;
+    font-variant-numeric: tabular-nums;
+  }
   .log-row-time {
     font-size: 10px;
     color: #666;
     flex-shrink: 0;
+  }
+  .logs-panel .log-row-time {
+    min-width: 74px;
+    color: #777;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
   }
   .log-row-chevron {
     display: inline-block;
@@ -1581,6 +1756,10 @@ const STYLES = `
     font-size: 10px;
     color: #666;
     flex-shrink: 0;
+  }
+  .logs-panel .log-row-chevron {
+    width: 12px;
+    color: #777;
   }
   .log-row-chevron.open {
     transform: rotate(90deg);
@@ -1591,6 +1770,19 @@ const STYLES = `
   }
   .log-row-details.open {
     display: block;
+  }
+  .logs-panel .log-row-details {
+    margin: 0;
+    padding: 0 12px 10px 29px;
+  }
+  .logs-panel .log-row-details.open {
+    display: block;
+  }
+  .log-row-detail-surface {
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(0,0,0,0.24);
   }
   .log-row-stack {
     font-size: 11px;
@@ -1605,10 +1797,19 @@ const STYLES = `
     border-radius: 4px;
     margin-bottom: 6px;
   }
+  .logs-panel .log-row-stack {
+    max-height: 170px;
+    border: 1px solid rgba(255,255,255,0.06);
+    background: rgba(0,0,0,0.28);
+  }
   .log-row-vue-info {
     font-size: 11px;
     color: #c792ea;
     margin-bottom: 6px;
+  }
+  .logs-panel .log-row-vue-info {
+    color: #d8b4fe;
+    line-height: 1.35;
   }
   .log-row-actions {
     display: flex;
@@ -1639,11 +1840,32 @@ const STYLES = `
     background: rgba(99, 102, 241, 0.25);
     color: #c7d2fe;
   }
+  .logs-panel .log-action-btn {
+    padding: 5px 10px;
+  }
+  .logs-panel .log-row-actions {
+    flex-wrap: wrap;
+  }
   .logs-empty {
     color: #555;
     text-align: center;
     padding: 20px;
     font-size: 12px;
+  }
+  .logs-panel .logs-empty {
+    color: #777;
+    padding: 24px 14px;
+    background: rgba(12,12,12,0.36);
+  }
+  .logs-panel .logs-empty-compact {
+    margin-top: 2px;
+    padding: 9px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.04);
+    color: #888;
+    font-size: 12px;
+    line-height: 1.35;
   }
 
   /* ── Network panel ── */
@@ -2535,23 +2757,35 @@ export class FloatingButton {
         <button class="tab-btn${this.settingsTab === "tools" ? " active" : ""}" data-tab="tools">Tools</button>
       </div>
       <div class="tab-content${this.settingsTab === "dock" ? " active" : ""}" data-tab-content="dock">
-        <div class="section-label">Dock Mode</div>
-        <div class="setting-help">How the DevTools panel is displayed</div>
-        <div class="dock-mode-group" role="group" aria-label="Dock mode">
-          ${dockModeOptions}
+        <div class="section-label">Panel</div>
+        <div class="settings-list dock-settings-list">
+          <div class="setting-row dock-mode-row" data-settings-row="dock-mode">
+            <span class="setting-row-icon">${GEAR_SVG}</span>
+            <span class="setting-row-copy">
+              <span class="setting-row-title">Dock mode</span>
+              <span class="setting-row-description">How the DevTools panel is displayed.</span>
+            </span>
+            <span class="setting-row-control">
+              <span class="dock-mode-group" role="group" aria-label="Dock mode">
+                ${dockModeOptions}
+              </span>
+            </span>
+          </div>
+          <label class="setting-row setting-toggle-row" data-settings-row="outside-click">
+            <span class="setting-row-icon">${CROSSHAIR_SVG}</span>
+            <span class="setting-row-copy setting-toggle-copy">
+              <span class="setting-row-title setting-toggle-title">Close panel on outside click</span>
+              <span class="setting-row-description setting-toggle-description">Close the DevTools panel when clicking outside of it.</span>
+            </span>
+            <span class="setting-row-control">
+              <input type="checkbox" class="setting-toggle-input outside-click-toggle"${
+                this.closeOnOutsideClick ? " checked" : ""
+              }>
+              <span class="setting-toggle-switch" aria-hidden="true"></span>
+            </span>
+          </label>
         </div>
-        <label class="setting-toggle">
-          <span class="setting-toggle-copy">
-            <span class="setting-toggle-title">Close panel on outside click</span>
-            <span class="setting-toggle-description">Close the DevTools panel when clicking outside of it</span>
-          </span>
-          <input type="checkbox" class="setting-toggle-input outside-click-toggle"${
-            this.closeOnOutsideClick ? " checked" : ""
-          }>
-          <span class="setting-toggle-switch" aria-hidden="true"></span>
-        </label>
         <div class="section-label">Toolbar Entries</div>
-        <div class="setting-help">Manage visibility and order of toolbar entries. Hidden entries will not appear in the toolbar.</div>
         ${this.renderDockEntryManager()}
       </div>
       <div class="tab-content${this.settingsTab === "shortcuts" ? " active" : ""}" data-tab-content="shortcuts">
@@ -2672,12 +2906,13 @@ export class FloatingButton {
 
       html += `<div class="dock-entry-group" data-dock-group="${group.id}">`;
       html += '<div class="dock-entry-group-header">';
+      html += `<span class="dock-entry-group-title">${esc(group.label)}</span>`;
+      html += `<span class="dock-entry-group-count">(${visibleCount})</span>`;
       html += `<button class="dock-entry-group-toggle${groupPartial ? " is-partial" : ""}" type="button" data-dock-group-toggle="${group.id}"${
         hideable.length === 0 ? " disabled" : ""
       } aria-pressed="${groupAllVisible ? "true" : "false"}">${groupAllVisible ? "\u2713" : groupPartial ? "\u2013" : ""}</button>`;
-      html += `<span class="dock-entry-group-title">${esc(group.label)}</span>`;
-      html += `<span class="dock-entry-group-count">(${visibleCount})</span>`;
       html += "</div>";
+      html += '<div class="settings-list dock-entry-list">';
 
       for (let index = 0; index < entries.length; index++) {
         const entry = entries[index];
@@ -2685,16 +2920,16 @@ export class FloatingButton {
         const disableUp = index === 0;
         const disableDown = index === entries.length - 1;
 
-        html += `<div class="dock-entry-row" data-dock-entry-row="${entry.id}" data-dock-group="${group.id}">`;
+        html += `<div class="setting-row dock-entry-row" data-dock-entry-row="${entry.id}" data-dock-group="${group.id}">`;
+        html += `<span class="setting-row-icon dock-entry-icon">${entry.icon}</span>`;
+        html += `<span class="setting-row-copy dock-entry-label"><span class="setting-row-title dock-entry-label-text">${esc(entry.label)}</span>${
+          entry.badge ? `<span class="dock-entry-badge">${esc(entry.badge)}</span>` : ""
+        }</span>`;
+        html += '<span class="setting-row-control dock-entry-controls">';
         html += `<span class="dock-entry-drag" draggable="true" data-dock-entry-drag="${entry.id}" aria-label="Drag ${esc(entry.label)}" title="Drag to reorder">::</span>`;
         html += `<button class="dock-entry-check${visible ? "" : " is-hidden"}" type="button" data-dock-entry-toggle="${entry.id}" aria-pressed="${visible ? "true" : "false"}"${
           entry.locked ? " disabled" : ""
-        }>${visible ? "\u2713" : ""}</button>`;
-        html += `<span class="dock-entry-icon">${entry.icon}</span>`;
-        html += `<span class="dock-entry-label"><span class="dock-entry-label-text">${esc(entry.label)}</span>${
-          entry.badge ? `<span class="dock-entry-badge">${esc(entry.badge)}</span>` : ""
-        }</span>`;
-        html += '<span class="dock-entry-actions">';
+        } aria-label="${visible ? "Hide" : "Show"} ${esc(entry.label)}">${visible ? "\u2713" : ""}</button>`;
         if (entry.locked) {
           html += '<span class="dock-entry-lock">Locked</span>';
         }
@@ -2708,6 +2943,7 @@ export class FloatingButton {
         html += "</div>";
       }
 
+      html += "</div>";
       html += "</div>";
     }
 
@@ -3302,33 +3538,52 @@ export class FloatingButton {
 
   private renderLogsPanelContent(visible: CapturedLog[]): string {
     const counts = this.countsByLevel();
+    const totalCount = this.logEntries.length;
+    const visibleCount = visible.length;
+    const isCapturedEmpty = totalCount === 0;
+    const meta = isCapturedEmpty
+      ? "No entries yet"
+      : `${visibleCount} of ${totalCount} ${totalCount === 1 ? "entry" : "entries"}`;
     const pills = ALL_LOG_LEVELS.map((lvl) => {
       const active = this.filterLevels.has(lvl);
       return `<button class="logs-pill${active ? " active" : ""}" data-level="${lvl}" type="button">${lvl}<span class="count">${counts[lvl]}</span></button>`;
     }).join("");
 
-    let html = '<div class="logs-panel">';
+    let html = `<div class="logs-panel${isCapturedEmpty ? " is-empty" : ""}">`;
     html += '<div class="logs-header">';
+    html += '<span class="logs-panel-heading">';
     html += '<span class="logs-title">Console</span>';
+    html += `<span class="logs-panel-meta">${esc(meta)}</span>`;
+    html += "</span>";
     html += '<button class="logs-clear-btn" type="button">Clear</button>';
     html += "</div>";
+    html += '<div class="section-label logs-section-label">Levels</div>';
     html += `<div class="logs-filter-bar">${pills}</div>`;
-    html += `<input class="logs-search" type="text" placeholder="Filter messages…" value="${esc(this.searchTerm)}">`;
 
-    if (visible.length === 0) {
-      const empty =
-        this.logEntries.length === 0 ? "No logs captured" : "No logs match the current filter";
-      html += `<div class="logs-empty">${empty}</div></div>`;
+    if (isCapturedEmpty) {
+      html += '<div class="logs-empty-compact">No logs captured yet</div></div>';
       return html;
     }
 
+    html += '<div class="logs-search-row">';
+    html += `<input class="logs-search" type="text" placeholder="Filter messages…" value="${esc(this.searchTerm)}">`;
+    html += "</div>";
+
+    if (visible.length === 0) {
+      const empty = "No logs match the current filter";
+      html += `<div class="logs-list"><div class="logs-empty">${empty}</div></div></div>`;
+      return html;
+    }
+
+    html += '<div class="section-label logs-section-label">Entries</div>';
+    html += '<div class="logs-list">';
     for (let i = 0; i < visible.length; i++) {
       const log = visible[i];
       const time = new Date(log.timestamp).toLocaleTimeString();
       const msgTrunc = truncate(log.message, 120);
 
       html += `<div class="log-row" data-level="${log.level}" data-log-idx="${i}">`;
-      html += '<div class="log-row-header">';
+      html += '<button class="log-row-header" type="button">';
       html += `<span class="log-row-chevron" data-log-toggle="${i}">\u25B6</span>`;
       html += `<span class="log-row-level">${esc(log.level)}</span>`;
       if (log.source !== "console") {
@@ -3339,9 +3594,10 @@ export class FloatingButton {
         html += `<span class="log-row-count">\u00D7${log.count}</span>`;
       }
       html += `<span class="log-row-time">${esc(time)}</span>`;
-      html += "</div>";
+      html += "</button>";
 
       html += `<div class="log-row-details" data-log-details="${i}">`;
+      html += '<div class="log-row-detail-surface">';
       if (log.vueInfo) {
         html += `<div class="log-row-vue-info">Vue: ${esc(log.vueInfo)}</div>`;
       }
@@ -3356,10 +3612,12 @@ export class FloatingButton {
       }
       html += "</div>";
       html += "</div>";
+      html += "</div>";
 
       html += "</div>";
     }
 
+    html += "</div>";
     html += "</div>";
     return html;
   }
