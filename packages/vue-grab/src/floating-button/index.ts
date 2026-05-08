@@ -565,17 +565,18 @@ const STYLES = `
   }
 
   /* ── A11y panel ── */
-  .a11y-panel { padding: 12px 14px; }
+  .a11y-panel { padding: 14px; }
   .a11y-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 12px;
+    gap: 12px;
+    margin-bottom: 14px;
   }
   .a11y-title {
     font-size: 13px;
-    font-weight: 600;
-    color: #e0e0e0;
+    font-weight: 650;
+    color: #e8e8e8;
   }
   .a11y-rescan-btn {
     background: rgba(255,255,255,0.08);
@@ -591,121 +592,142 @@ const STYLES = `
     background: rgba(255,255,255,0.14);
     color: #fff;
   }
-  .a11y-summary {
+  .a11y-summary-strip {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 16px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(12,12,12,0.36);
+    color: #888;
     font-size: 12px;
-    color: #888;
-    margin-bottom: 12px;
-    padding: 6px 10px;
-    background: rgba(255,255,255,0.03);
-    border-radius: 6px;
+    line-height: 1.35;
   }
-  .a11y-summary-pass { color: #4ade80; font-weight: 600; }
-  .a11y-summary-fail { color: #ffcb6b; font-weight: 600; }
-  .a11y-group-title {
-    font-size: 11px;
-    color: #888;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin: 10px 0 6px;
+  .a11y-summary-count {
+    color: #e8e8e8;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .a11y-summary-count.pass { color: #4ade80; }
+  .a11y-summary-count.fail { color: #ffcb6b; }
+  .a11y-summary-count.neutral { color: #aaa; }
+  .a11y-summary-separator {
+    color: #555;
+    padding: 0 2px;
+  }
+  .a11y-audit-list {
+    margin-bottom: 16px;
+  }
+  .a11y-group-label {
     display: flex;
     align-items: center;
     gap: 6px;
   }
-  .a11y-group-count {
+  .a11y-group-count,
+  .a11y-row-count,
+  .a11y-status-chip {
     font-size: 10px;
-    background: rgba(255,255,255,0.08);
+    line-height: 1.2;
     border-radius: 10px;
-    padding: 1px 6px;
+    padding: 2px 7px;
+    background: rgba(255,255,255,0.08);
     color: #aaa;
+    font-variant-numeric: tabular-nums;
   }
   .a11y-row {
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
-    padding: 6px 10px;
-    border-radius: 6px;
-    margin-bottom: 2px;
-    transition: background 0.1s ease;
+    transition: background 0.12s ease;
     cursor: default;
   }
   .a11y-row:hover {
     background: rgba(255,255,255,0.04);
   }
-  .a11y-row-icon {
-    flex-shrink: 0;
-    width: 16px;
-    text-align: center;
-    padding-top: 1px;
-  }
   .a11y-row-icon.pass { color: #4ade80; }
   .a11y-row-icon.fail { color: #ffcb6b; }
-  .a11y-row-icon.neutral { color: #555; }
-  .a11y-row-body { flex: 1; min-width: 0; }
+  .a11y-row-icon.neutral { color: #6b6b6b; }
   .a11y-row-name {
-    font-size: 13px;
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     color: #7dd3fc;
   }
   .a11y-row-file {
-    font-size: 11px;
-    color: #666;
     word-break: break-all;
-    margin-top: 1px;
   }
   .a11y-row-detail {
-    font-size: 11px;
+    display: block;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     color: #999;
-    margin-top: 2px;
   }
   .a11y-row-detail.warning { color: #ffcb6b; }
-  .a11y-empty {
-    color: #555;
-    text-align: center;
-    padding: 20px;
-    font-size: 12px;
-  }
-  .a11y-rescan-btn--loading {
-    opacity: 0.6;
-    pointer-events: none;
+  .a11y-row-control {
+    align-self: stretch;
   }
   .a11y-row-toggle {
     cursor: pointer;
   }
+  .a11y-row-toggle .a11y-row {
+    cursor: pointer;
+  }
   .a11y-row-chevron {
-    display: inline-block;
-    transition: transform 0.15s ease;
-    font-size: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    margin-right: 4px;
     color: #666;
-    margin-right: 2px;
+    font-size: 10px;
+    transition: transform 0.15s ease;
   }
   .a11y-row-chevron.open {
     transform: rotate(90deg);
   }
   .a11y-row-count {
-    font-size: 10px;
-    background: rgba(255,203,107,0.15);
+    background: rgba(255,203,107,0.14);
     color: #ffcb6b;
-    border-radius: 8px;
-    padding: 0 5px;
-    margin-left: 6px;
+  }
+  .a11y-status-chip.pass {
+    background: rgba(74,222,128,0.12);
+    color: #4ade80;
+  }
+  .a11y-status-chip.fail {
+    background: rgba(255,203,107,0.14);
+    color: #ffcb6b;
+  }
+  .a11y-status-chip.neutral {
+    background: rgba(255,255,255,0.06);
+    color: #8a8a8a;
   }
   .a11y-child-details {
     display: none;
-    padding-left: 24px;
-    padding-bottom: 4px;
+    padding: 0 12px 12px 56px;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
   }
   .a11y-child-details.open {
     display: block;
   }
+  .a11y-audit-list > .a11y-row-toggle {
+    display: contents;
+  }
+  .a11y-audit-list > .a11y-row-toggle:last-child .a11y-row,
+  .a11y-audit-list > .a11y-row-toggle:last-child .a11y-child-details {
+    border-bottom: 0;
+  }
+  .a11y-child-surface {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px;
+    border-radius: 6px;
+    background: rgba(0,0,0,0.18);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06);
+  }
   .a11y-child-row {
     font-size: 11px;
-    padding: 4px 8px;
-    border-left: 2px solid rgba(255,255,255,0.08);
-    margin: 2px 0;
-    border-radius: 0 4px 4px 0;
-  }
-  .a11y-child-row:hover {
-    background: rgba(255,255,255,0.03);
+    padding: 5px 7px;
+    border-radius: 5px;
+    background: rgba(255,255,255,0.025);
   }
   .a11y-child-tag {
     color: #c792ea;
@@ -714,11 +736,31 @@ const STYLES = `
   }
   .a11y-child-msg {
     font-size: 11px;
-    margin-top: 1px;
+    line-height: 1.35;
+    margin-top: 2px;
   }
   .a11y-child-msg.warning { color: #ffcb6b; }
   .a11y-child-msg.pass { color: #4ade80; }
   .a11y-child-msg.neutral { color: #666; font-style: italic; }
+  .a11y-empty {
+    color: #777;
+    text-align: center;
+    padding: 24px;
+    font-size: 12px;
+  }
+  .a11y-rescan-btn--loading {
+    opacity: 0.6;
+    pointer-events: none;
+  }
+  @media (max-width: 520px) {
+    .a11y-row-control {
+      grid-column: 2;
+      justify-content: flex-start;
+    }
+    .a11y-child-details {
+      padding-left: 42px;
+    }
+  }
 
   /* ── Expand body (separate card below/above bar) ── */
   .expand-body {
@@ -3338,52 +3380,36 @@ export class FloatingButton {
     html += '<button class="a11y-rescan-btn">Re-scan</button>';
     html += "</div>";
 
-    // Summary
-    const passCount = passing.length;
-    const issueCount = issues.length;
-    html += '<div class="a11y-summary">';
-    html += `<span class="a11y-summary-pass">${passCount}</span> passing`;
-    if (issueCount > 0) {
-      html += ` · <span class="a11y-summary-fail">${issueCount}</span> with issues`;
-    }
-    if (neutral.length > 0) {
-      html += ` · ${neutral.length} no a11y attrs`;
-    }
-    html += ` · ${results.length} total`;
+    html += '<div class="section-label">Summary</div>';
+    html += '<div class="a11y-summary a11y-summary-strip">';
+    html += `<span><span class="a11y-summary-count pass">${passing.length}</span> passing</span>`;
+    html += '<span class="a11y-summary-separator"> &middot; </span>';
+    html += `<span><span class="a11y-summary-count fail">${issues.length}</span> with issues</span>`;
+    html += '<span class="a11y-summary-separator"> &middot; </span>';
+    html += `<span><span class="a11y-summary-count neutral">${neutral.length}</span> no a11y attrs</span>`;
+    html += '<span class="a11y-summary-separator"> &middot; </span>';
+    html += `<span><span class="a11y-summary-count">${results.length}</span> total</span>`;
     html += "</div>";
 
-    // Issues section
     let idx = 0;
-    if (issues.length > 0) {
-      html +=
-        '<div class="a11y-group-title">\u26A0 Issues <span class="a11y-group-count">' +
-        issues.length +
-        "</span></div>";
-      for (const item of issues) {
-        html += this.renderA11yRow(item, "fail", idx++);
-      }
-    }
+    const sections = [
+      { items: issues, label: "Issues", status: "fail" },
+      { items: neutral, label: "No Accessibility", status: "neutral" },
+      { items: passing, label: "Passing", status: "pass" },
+    ] satisfies Array<{
+      items: typeof results;
+      label: string;
+      status: "fail" | "neutral" | "pass";
+    }>;
 
-    // Neutral (no a11y)
-    if (neutral.length > 0) {
-      html +=
-        '<div class="a11y-group-title">\u2014 No accessibility <span class="a11y-group-count">' +
-        neutral.length +
-        "</span></div>";
-      for (const item of neutral) {
-        html += this.renderA11yRow(item, "neutral", idx++);
+    for (const { items, label, status } of sections) {
+      if (items.length === 0) continue;
+      html += `<div class="section-label a11y-group-label">${label} <span class="a11y-group-count">${items.length}</span></div>`;
+      html += '<div class="settings-list a11y-audit-list">';
+      for (const item of items) {
+        html += this.renderA11yRow(item, status, idx++);
       }
-    }
-
-    // Passing section
-    if (passing.length > 0) {
-      html +=
-        '<div class="a11y-group-title">\u2713 Passing <span class="a11y-group-count">' +
-        passing.length +
-        "</span></div>";
-      for (const item of passing) {
-        html += this.renderA11yRow(item, "pass", idx++);
-      }
+      html += "</div>";
     }
 
     html += "</div>";
@@ -3396,41 +3422,46 @@ export class FloatingButton {
     idx: number,
   ): string {
     const icon = status === "pass" ? "\u2713" : status === "fail" ? "\u26A0" : "\u2014";
+    const statusLabel = status === "pass" ? "Passing" : status === "fail" ? "Issue" : "No a11y";
     const hasChildren = item.childElements.length > 0;
-    const wrapClass = hasChildren ? "a11y-row-toggle" : "";
-    const dataAttr = hasChildren ? ` data-a11y-idx="${idx}"` : "";
 
-    let html = `<div class="${wrapClass}"${dataAttr}>`;
-    html += '<div class="a11y-row">';
-    html += `<div class="a11y-row-icon ${status}">${icon}</div>`;
-    html += '<div class="a11y-row-body">';
+    let html = hasChildren ? `<div class="a11y-row-toggle" data-a11y-idx="${idx}">` : "";
+    html += `<div class="setting-row a11y-row" data-a11y-row="${idx}" data-a11y-status="${status}">`;
+    html += `<span class="setting-row-icon a11y-row-icon ${status}" aria-hidden="true">${icon}</span>`;
+    html += '<span class="setting-row-copy">';
 
     // Component name with optional chevron and count
-    html += '<div class="a11y-row-name">';
+    html += '<span class="setting-row-title a11y-row-name">';
     if (hasChildren) {
       html += '<span class="a11y-row-chevron">\u25B6</span> ';
     }
     html += `&lt;${esc(item.componentName)}&gt;`;
-    if (hasChildren) {
-      html += `<span class="a11y-row-count">${item.childElements.length}</span>`;
-    }
-    html += "</div>";
+    html += "</span>";
 
     if (item.filePath) {
-      html += `<div class="a11y-row-file">${esc(toRelativePath(item.filePath))}</div>`;
+      html += `<span class="setting-row-description a11y-row-file">${esc(toRelativePath(item.filePath))}</span>`;
     }
 
     // Show attributes if passing
     if (status === "pass" && item.a11y.attributes.length > 0) {
       const attrNames = item.a11y.attributes.map((a) => a.name).join(", ");
-      html += `<div class="a11y-row-detail">${esc(attrNames)}</div>`;
+      html += `<span class="setting-row-description a11y-row-detail">${esc(attrNames)}</span>`;
     }
 
-    html += "</div></div>";
+    html += "</span>";
+    html += '<span class="setting-row-control a11y-row-control">';
+    if (hasChildren) {
+      html += `<span class="a11y-row-count">${item.childElements.length}</span>`;
+    } else {
+      html += `<span class="a11y-status-chip ${status}">${statusLabel}</span>`;
+    }
+    html += "</span>";
+    html += "</div>";
 
     // Child element details (hidden by default)
     if (hasChildren) {
       html += `<div class="a11y-child-details" data-a11y-details="${idx}">`;
+      html += '<div class="a11y-child-surface">';
       for (const child of item.childElements) {
         html += '<div class="a11y-child-row">';
         html += `<div class="a11y-child-tag">&lt;${esc(child.selector)}&gt;</div>`;
@@ -3447,9 +3478,10 @@ export class FloatingButton {
         html += "</div>";
       }
       html += "</div>";
+      html += "</div>";
     }
 
-    html += "</div>";
+    if (hasChildren) html += "</div>";
     return html;
   }
 
@@ -3463,11 +3495,11 @@ export class FloatingButton {
       if (Date.now() - this.lastA11yScanTime < 500) return;
       (rescanBtn as HTMLElement).textContent = "Scanning\u2026";
       rescanBtn.classList.add("a11y-rescan-btn--loading");
-      setTimeout(() => {
+      requestAnimationFrame(() => {
         if (!this.expandBodyEl || this.activePanel !== "accessibility") return;
         this.expandBodyEl.innerHTML = this.renderA11yPanelContent(true);
         this.wireA11yPanelEvents();
-      }, 0);
+      });
     });
 
     // Expand/collapse child details

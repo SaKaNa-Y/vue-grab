@@ -50,6 +50,21 @@ function makeGrabResult(overrides: Partial<GrabResult> = {}): GrabResult {
   };
 }
 
+function makeVueComponentRoot(
+  name: string,
+  root: HTMLElement,
+  filePath = `src/${name}.vue`,
+): HTMLElement {
+  root.setAttribute("data-testid", "grab-target");
+  const instance = {
+    type: { name, __file: filePath },
+    subTree: { el: root },
+  };
+  (root as any).__vueParentComponent = instance;
+  document.body.appendChild(root);
+  return root;
+}
+
 function createFab(overrides: Partial<typeof DEFAULT_FLOATING_BUTTON> = {}): FloatingButton {
   return new FloatingButton({ ...DEFAULT_FLOATING_BUTTON, enabled: true, ...overrides });
 }
@@ -1232,6 +1247,147 @@ describe("FloatingButton", () => {
 
       expect(spy).toHaveBeenCalledWith(expect.objectContaining({ measurer: ["Alt+Shift+M"] }));
       expect(getShadow()!.querySelector(".measurer-hotkey-kbd")!.textContent).toBe("Alt+Shift+M");
+    });
+  });
+
+  describe("accessibility panel", () => {
+    function getA11yBtn(): HTMLElement | null {
+      return getShadow()?.querySelector(".a11y-btn") ?? null;
+    }
+    function getA11yPanel(): HTMLElement | null {
+      return getShadow()?.querySelector(".a11y-panel") ?? null;
+    }
+    function createA11yFixtures(): void {
+      const issueRoot = document.createElement("section");
+      const unlabeledButton = document.createElement("button");
+      issueRoot.appendChild(unlabeledButton);
+      makeVueComponentRoot("IssuePanel", issueRoot, "src/IssuePanel.vue");
+
+      const neutralRoot = document.createElement("article");
+      neutralRoot.textContent = "Plain content";
+      makeVueComponentRoot("PlainPanel", neutralRoot, "src/PlainPanel.vue");
+
+      const passingRoot = document.createElement("nav");
+      passingRoot.setAttribute("aria-label", "Primary");
+      const passingButton = document.createElement("button");
+      passingButton.textContent = "Save";
+      passingRoot.appendChild(passingButton);
+      makeVueComponentRoot("PassingPanel", passingRoot, "src/PassingPanel.vue");
+    }
+
+    it("renders audit content with settings-style compact rows", () => {
+      createA11yFixtures();
+      fab = createFabWithAllToolbarEntries();
+      fab.mount();
+
+      getA11yBtn()!.click();
+
+      const panel = getA11yPanel()!;
+      expect(panel).not.toBeNull();
+      expect(panel.querySelector(".a11y-header")).not.toBeNull();
+      expect(panel.querySelector(".a11y-summary")!.classList.contains("a11y-summary-strip")).toBe(
+        true,
+      );
+      expect(panel.querySelector(".a11y-summary")!.classList.contains("setting-row")).toBe(false);
+      expect(panel.querySelector(".a11y-summary")!.closest(".settings-list")).toBeNull();
+      expect(panel.querySelectorAll(".a11y-audit-list")).toHaveLength(3);
+
+      const row = panel.querySelector<HTMLElement>('[data-a11y-status="fail"]')!;
+      expect(row.classList.contains("setting-row")).toBe(true);
+      expect(row.closest(".settings-list")).not.toBeNull();
+      expect(row.querySelector(".setting-row-icon")).not.toBeNull();
+      expect(row.querySelector(".setting-row-title")!.textContent).toContain("<IssuePanel>");
+      expect(row.querySelector(".setting-row-description")!.textContent).toBe("src/IssuePanel.vue");
+      expect(row.querySelector(".setting-row-control")).not.toBeNull();
+    });
+
+    it("keeps summary counts for passing, issues, neutral, and total", () => {
+      createA11yFixtures();
+      fab = createFabWithAllToolbarEntries();
+      fab.mount();
+
+      getA11yBtn()!.click();
+
+      const summaryText = getA11yPanel()!
+        .querySelector(".a11y-summary")!
+        .textContent!.replace(/\s+/g, " ")
+        .trim();
+      expect(summaryText).toBe(
+        "1 passing \u00B7 1 with issues \u00B7 1 no a11y attrs \u00B7 3 total",
+      );
+      expect(
+        Array.from(getA11yPanel()!.querySelectorAll<HTMLElement>(".a11y-summary-count")).map(
+          (item) => item.textContent,
+        ),
+      ).toEqual(["1", "1", "1", "3"]);
+      expect(
+        Array.from(getA11yPanel()!.querySelectorAll(".a11y-group-label")).map((label) =>
+          label.textContent?.trim(),
+        ),
+      ).toEqual(["Issues 1", "No Accessibility 1", "Passing 1"]);
+    });
+
+    it("re-scans with loading state and refreshes cached results", async () => {
+      const neutralRoot = document.createElement("article");
+      neutralRoot.textContent = "Plain content";
+      makeVueComponentRoot("PlainPanel", neutralRoot, "src/PlainPanel.vue");
+      fab = createFabWithAllToolbarEntries();
+      fab.mount();
+
+      getA11yBtn()!.click();
+      expect(getA11yPanel()!.querySelector(".a11y-summary")!.textContent).toContain("1 total");
+
+      const issueRoot = document.createElement("section");
+      const unlabeledButton = document.createElement("button");
+      issueRoot.appendChild(unlabeledButton);
+      makeVueComponentRoot("IssuePanel", issueRoot, "src/IssuePanel.vue");
+
+      await new Promise((resolve) => setTimeout(resolve, 510));
+      const rescan = getA11yPanel()!.querySelector<HTMLElement>(".a11y-rescan-btn")!;
+      rescan.click();
+
+      expect(rescan.textContent).toBe("Scanning\u2026");
+      expect(rescan.classList.contains("a11y-rescan-btn--loading")).toBe(true);
+
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+
+      const summary = Array.from(
+        getA11yPanel()!.querySelectorAll<HTMLElement>(".a11y-summary-count"),
+      ).map((item) => item.textContent);
+      expect(summary).toEqual(["0", "1", "1", "2"]);
+    });
+
+    it("toggles child detail drawers and chevron state", () => {
+      createA11yFixtures();
+      fab = createFabWithAllToolbarEntries();
+      fab.mount();
+
+      getA11yBtn()!.click();
+
+      const toggle = getA11yPanel()!.querySelector<HTMLElement>(".a11y-row-toggle")!;
+      const details = toggle.querySelector<HTMLElement>(".a11y-child-details")!;
+      const chevron = toggle.querySelector<HTMLElement>(".a11y-row-chevron")!;
+
+      expect(details.classList.contains("open")).toBe(false);
+      toggle.click();
+
+      expect(details.classList.contains("open")).toBe(true);
+      expect(chevron.classList.contains("open")).toBe(true);
+      expect(details.querySelector(".a11y-child-surface")).not.toBeNull();
+      expect(details.textContent).toContain("has no accessible name");
+    });
+
+    it("renders a compact empty state when no Vue components are found", () => {
+      fab = createFabWithAllToolbarEntries();
+      fab.mount();
+
+      getA11yBtn()!.click();
+
+      expect(getA11yPanel()).not.toBeNull();
+      expect(getA11yPanel()!.querySelector(".a11y-empty")!.textContent).toBe(
+        "No Vue components found on this page",
+      );
+      expect(getA11yPanel()!.querySelector(".settings-list")).toBeNull();
     });
   });
 
