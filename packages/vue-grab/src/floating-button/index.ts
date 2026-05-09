@@ -1910,6 +1910,308 @@ const STYLES = `
     line-height: 1.35;
   }
 
+  .logs-panel {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+    min-width: min(560px, 100%);
+    box-sizing: border-box;
+  }
+  .logs-panel .settings-list {
+    background: rgba(12,12,12,0.36);
+  }
+  .logs-panel .section-label:not(:first-child) {
+    margin-top: 16px;
+  }
+  .logs-overview-list,
+  .logs-level-list,
+  .logs-list {
+    margin-bottom: 0;
+  }
+  .logs-overview-row,
+  .logs-level-row {
+    min-height: 58px;
+  }
+  .logs-overview-icon,
+  .logs-level-icon {
+    color: #9a9a9a;
+  }
+  .logs-overview-icon svg,
+  .logs-level-icon svg {
+    width: 18px;
+    height: 18px;
+  }
+  .logs-overview-control,
+  .logs-level-controls {
+    flex-wrap: wrap;
+  }
+  .logs-stat-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-height: 24px;
+    padding: 0 8px;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.06);
+    color: #888;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+  .logs-stat-number {
+    color: #e8e8e8;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .logs-panel .logs-filter-bar {
+    margin: 0;
+    gap: 5px;
+  }
+  .logs-panel .logs-pill {
+    position: relative;
+    min-height: 24px;
+    padding: 0 8px 0 18px;
+    border-radius: 6px;
+    background: rgba(0,0,0,0.16);
+    border-color: rgba(255,255,255,0.08);
+    color: #929292;
+    box-shadow: none;
+    transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+  }
+  .logs-panel .logs-pill::before {
+    content: "";
+    position: absolute;
+    left: 8px;
+    top: 50%;
+    width: 5px;
+    height: 5px;
+    border-radius: 999px;
+    background: currentColor;
+    opacity: 0.45;
+    transform: translateY(-50%);
+  }
+  .logs-panel .logs-pill:hover {
+    background: rgba(255,255,255,0.06);
+    border-color: rgba(255,255,255,0.12);
+    color: #cfcfcf;
+  }
+  .logs-panel .logs-pill.active {
+    background: rgba(0,0,0,0.28);
+    color: #e5e5e5;
+    border-color: rgba(255,255,255,0.16);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.035);
+  }
+  .logs-panel .logs-pill.active::before {
+    background: var(--c);
+    opacity: 0.95;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 16%, transparent);
+  }
+  .logs-panel .logs-pill .count {
+    color: #9c9c9c;
+    font-weight: 650;
+  }
+  .logs-panel .logs-pill.active .count {
+    color: #c7c7c7;
+  }
+  .logs-entries-section {
+    display: flex;
+    flex: 1 1 auto;
+    min-height: 0;
+    flex-direction: column;
+  }
+  .logs-panel .logs-search-row {
+    flex: 0 0 auto;
+    margin-bottom: 8px;
+  }
+  .logs-panel .logs-search {
+    min-height: 34px;
+    padding: 7px 10px;
+    border-radius: 8px;
+    border-color: rgba(255,255,255,0.08);
+    background: rgba(12,12,12,0.36);
+  }
+  .logs-panel .logs-list {
+    flex: 0 0 auto;
+    border-radius: 8px;
+  }
+  .logs-panel .log-row {
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    background: transparent;
+  }
+  .logs-panel .log-row:last-child {
+    border-bottom: 0;
+  }
+  .logs-panel .log-row::before {
+    display: none;
+  }
+  .logs-panel .log-row:hover {
+    background: color-mix(in srgb, var(--c, #666) 5%, transparent);
+  }
+  .logs-panel .log-row-header.setting-row {
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr) minmax(150px, auto);
+    gap: 14px;
+    min-height: 54px;
+    padding: 10px 14px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    box-sizing: border-box;
+  }
+  .logs-panel .log-row-icon {
+    color: var(--c, #888);
+  }
+  .log-row-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 999px;
+    background: var(--c, #888);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--c, #888) 12%, transparent);
+  }
+  .logs-panel .log-row-copy {
+    min-width: 0;
+  }
+  .logs-panel .log-row-msg {
+    color: #e8e8e8;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.25;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .logs-panel .log-row-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    margin-top: 3px;
+  }
+  .logs-panel .log-row-level,
+  .logs-panel .log-row-source,
+  .logs-panel .log-row-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 20px;
+    padding: 0 7px;
+    border-radius: 999px;
+    font-size: 10px;
+    line-height: 1;
+    font-weight: 650;
+    flex: 0 0 auto;
+  }
+  .logs-panel .log-row-level {
+    min-width: 0;
+    color: var(--c, #aaa);
+    background: color-mix(in srgb, var(--c, #aaa) 12%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c, #aaa) 24%, transparent);
+  }
+  .logs-panel .log-row-source {
+    min-width: 0;
+    color: #aaa;
+    background: rgba(255,255,255,0.06);
+    text-transform: lowercase;
+  }
+  .logs-panel .log-row-control {
+    gap: 8px;
+    flex-wrap: nowrap;
+  }
+  .logs-panel .log-row-count {
+    color: var(--c, #aaa);
+    background: color-mix(in srgb, var(--c, #aaa) 12%, transparent);
+    font-variant-numeric: tabular-nums;
+  }
+  .logs-panel .log-row-time {
+    min-width: 74px;
+    color: #777;
+    font-size: 11px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .logs-panel .log-row-chevron {
+    width: 18px;
+    height: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 5px;
+    color: #777;
+  }
+  .logs-panel .log-row-header:hover .log-row-chevron {
+    background: rgba(255,255,255,0.07);
+    color: #ddd;
+  }
+  .logs-panel .log-row-details {
+    margin: 0;
+    padding: 0 14px 12px 56px;
+    border-top: 0;
+  }
+  .logs-panel .log-row-detail-surface {
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.07);
+    background: rgba(0,0,0,0.22);
+  }
+  .logs-panel .log-row-actions {
+    margin-top: 8px;
+    flex-wrap: wrap;
+  }
+  .logs-panel .log-action-btn {
+    min-height: 26px;
+    padding: 0 10px;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.07);
+    border-color: rgba(255,255,255,0.12);
+    font-size: 11px;
+  }
+  .logs-panel .log-action-btn.primary {
+    background: var(--grab-control-active-bg);
+    border-color: rgba(99,102,241,0.26);
+    color: #a5b4fc;
+  }
+  .logs-panel .logs-empty-list {
+    flex: 1 1 auto;
+    min-height: 180px;
+    justify-content: center;
+  }
+  .logs-panel .logs-empty,
+  .logs-panel .logs-empty-compact {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100%;
+    padding: 18px 14px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: #777;
+    text-align: center;
+    font-size: 12px;
+  }
+  @media (max-width: 520px) {
+    .logs-panel .logs-level-row,
+    .logs-panel .logs-overview-row,
+    .logs-panel .log-row-header.setting-row {
+      grid-template-columns: 28px minmax(0, 1fr);
+    }
+    .logs-panel .logs-overview-control,
+    .logs-panel .logs-level-controls,
+    .logs-panel .log-row-control {
+      grid-column: 2;
+      justify-content: flex-start;
+      flex-wrap: wrap;
+    }
+    .logs-panel .log-row-details {
+      padding-left: 42px;
+    }
+    .logs-panel .log-row-time {
+      min-width: 0;
+    }
+  }
+
   /* ── Network panel ── */
   .network-btn {
     position: relative;
@@ -3573,6 +3875,7 @@ export class FloatingButton {
     const totalCount = this.logEntries.length;
     const visibleCount = visible.length;
     const isCapturedEmpty = totalCount === 0;
+    const activeLevelCount = this.filterLevels.size;
     const meta = isCapturedEmpty
       ? "No entries yet"
       : `${visibleCount} of ${totalCount} ${totalCount === 1 ? "entry" : "entries"}`;
@@ -3582,50 +3885,78 @@ export class FloatingButton {
     }).join("");
 
     let html = `<div class="logs-panel${isCapturedEmpty ? " is-empty" : ""}">`;
-    html += '<div class="logs-header">';
-    html += '<span class="logs-panel-heading">';
-    html += '<span class="logs-title">Console</span>';
-    html += `<span class="logs-panel-meta">${esc(meta)}</span>`;
+    html += '<div class="section-label logs-section-label">Overview</div>';
+    html += '<div class="settings-list logs-overview-list">';
+    html += '<div class="setting-row logs-overview-row">';
+    html += `<span class="setting-row-icon logs-overview-icon">${LOGS_SVG}</span>`;
+    html += '<span class="setting-row-copy">';
+    html += '<span class="setting-row-title logs-title">Console</span>';
+    html += `<span class="setting-row-description logs-panel-meta">${esc(meta)}</span>`;
     html += "</span>";
+    html += '<span class="setting-row-control logs-overview-control">';
+    html += `<span class="logs-stat-chip"><span class="logs-stat-number">${visibleCount}</span> shown</span>`;
+    html += `<span class="logs-stat-chip"><span class="logs-stat-number">${totalCount}</span> total</span>`;
     html += '<button class="logs-clear-btn" type="button">Clear</button>';
+    html += "</span>";
+    html += "</div>";
     html += "</div>";
     html += '<div class="section-label logs-section-label">Levels</div>';
-    html += `<div class="logs-filter-bar">${pills}</div>`;
-
-    if (isCapturedEmpty) {
-      html += '<div class="logs-empty-compact">No logs captured yet</div></div>';
-      return html;
-    }
-
-    html += '<div class="logs-search-row">';
-    html += `<input class="logs-search" type="text" placeholder="Filter messages…" value="${esc(this.searchTerm)}">`;
+    html += '<div class="settings-list logs-level-list">';
+    html += '<div class="setting-row logs-level-row">';
+    html += `<span class="setting-row-icon logs-level-icon">${LOGS_SVG}</span>`;
+    html += '<span class="setting-row-copy">';
+    html += '<span class="setting-row-title">Captured levels</span>';
+    html += `<span class="setting-row-description">${activeLevelCount} of ${ALL_LOG_LEVELS.length} active</span>`;
+    html += "</span>";
+    html += `<span class="setting-row-control logs-filter-bar logs-level-controls">${pills}</span>`;
     html += "</div>";
+    html += "</div>";
+    html += '<div class="logs-entries-section">';
+    html += '<div class="section-label logs-section-label">Entries</div>';
+
+    if (!isCapturedEmpty) {
+      html += '<div class="logs-search-row">';
+      html += `<input class="logs-search" type="text" placeholder="Filter messages..." value="${esc(this.searchTerm)}">`;
+      html += "</div>";
+    }
 
     if (visible.length === 0) {
-      const empty = "No logs match the current filter";
-      html += `<div class="logs-list"><div class="logs-empty">${empty}</div></div></div>`;
+      const empty = isCapturedEmpty ? "No logs captured yet" : "No logs match the current filter";
+      const emptyClass = isCapturedEmpty ? "logs-empty-compact" : "logs-empty";
+      html += '<div class="settings-list logs-list logs-empty-list">';
+      html += `<div class="${emptyClass}">${empty}</div>`;
+      html += "</div>";
+      html += "</div>";
+      html += "</div>";
       return html;
     }
 
-    html += '<div class="section-label logs-section-label">Entries</div>';
-    html += '<div class="logs-list">';
+    html += '<div class="settings-list logs-list">';
     for (let i = 0; i < visible.length; i++) {
       const log = visible[i];
       const time = new Date(log.timestamp).toLocaleTimeString();
       const msgTrunc = truncate(log.message, 120);
 
       html += `<div class="log-row" data-level="${log.level}" data-log-idx="${i}">`;
-      html += '<button class="log-row-header" type="button">';
-      html += `<span class="log-row-chevron" data-log-toggle="${i}">\u25B6</span>`;
+      html += '<button class="log-row-header setting-row" type="button">';
+      html +=
+        '<span class="setting-row-icon log-row-icon" aria-hidden="true"><span class="log-row-dot"></span></span>';
+      html += '<span class="setting-row-copy log-row-copy">';
+      html += `<span class="setting-row-title log-row-msg" title="${esc(log.message)}">${esc(msgTrunc)}</span>`;
+      html += '<span class="setting-row-description log-row-meta">';
       html += `<span class="log-row-level">${esc(log.level)}</span>`;
       if (log.source !== "console") {
         html += `<span class="log-row-source">${esc(log.source)}</span>`;
       }
-      html += `<span class="log-row-msg" title="${esc(log.message)}">${esc(msgTrunc)}</span>`;
+      html += "</span>";
+      html += "</span>";
+      html += '<span class="setting-row-control log-row-control">';
       if (log.count > 1) {
         html += `<span class="log-row-count">\u00D7${log.count}</span>`;
       }
       html += `<span class="log-row-time">${esc(time)}</span>`;
+      html += `<span class="log-row-chevron" data-log-toggle="${i}">\u25B6</span>`;
+      html += "</span>";
       html += "</button>";
 
       html += `<div class="log-row-details" data-log-details="${i}">`;
@@ -3649,6 +3980,7 @@ export class FloatingButton {
       html += "</div>";
     }
 
+    html += "</div>";
     html += "</div>";
     html += "</div>";
     return html;
