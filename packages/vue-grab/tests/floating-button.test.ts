@@ -1422,7 +1422,12 @@ describe("FloatingButton", () => {
       expect(getLogsPanel()).not.toBeNull();
       expect(getPills()).toHaveLength(5);
       expect(getShadow()!.querySelector(".logs-panel-meta")!.textContent).toBe("No entries yet");
-      expect(getShadow()!.querySelectorAll(".logs-section-label")).toHaveLength(1);
+      expect(
+        Array.from(getShadow()!.querySelectorAll(".logs-section-label")).map((label) =>
+          label.textContent?.trim(),
+        ),
+      ).toEqual(["Overview", "Levels", "Entries"]);
+      expect(getShadow()!.querySelector(".logs-level-list")).not.toBeNull();
     });
 
     it("renders a compact empty state before any logs are captured", () => {
@@ -1431,9 +1436,19 @@ describe("FloatingButton", () => {
 
       getLogsBtn()!.click();
 
-      expect(getLogsPanel()!.classList.contains("is-empty")).toBe(true);
+      const panel = getLogsPanel()!;
+      const entriesSection = getShadow()!.querySelector<HTMLElement>(".logs-entries-section")!;
+      const emptyList = getShadow()!.querySelector<HTMLElement>(".logs-empty-list")!;
+
+      expect(panel.classList.contains("is-empty")).toBe(true);
+      expect(getComputedStyle(panel).display).toBe("flex");
+      expect(entriesSection).not.toBeNull();
+      expect(getComputedStyle(entriesSection).flexGrow).toBe("1");
       expect(getSearch()).toBeNull();
-      expect(getShadow()!.querySelector(".logs-list")).toBeNull();
+      expect(getShadow()!.querySelector(".logs-list")).not.toBeNull();
+      expect(emptyList.classList.contains("settings-list")).toBe(true);
+      expect(getComputedStyle(emptyList).flexGrow).toBe("1");
+      expect(Number.parseFloat(getComputedStyle(emptyList).minHeight)).toBeGreaterThan(100);
       expect(getShadow()!.querySelector(".logs-empty-compact")!.textContent).toBe(
         "No logs captured yet",
       );
@@ -1584,11 +1599,15 @@ describe("FloatingButton", () => {
       getLogsBtn()!.click();
 
       expect(getShadow()!.querySelector(".logs-list")).not.toBeNull();
-      expect(getShadow()!.querySelectorAll(".logs-section-label")).toHaveLength(2);
+      expect(getShadow()!.querySelectorAll(".logs-section-label")).toHaveLength(3);
       expect(getShadow()!.querySelector(".logs-panel-meta")!.textContent).toBe("1 of 1 entry");
+      expect(getShadow()!.querySelector(".logs-overview-list")).not.toBeNull();
+      expect(getShadow()!.querySelector(".logs-level-list")).not.toBeNull();
       const row = getShadow()!.querySelector<HTMLElement>(".log-row")!;
       expect(row.closest(".logs-list")).not.toBeNull();
       expect(row.querySelector(".log-row-header")!.tagName).toBe("BUTTON");
+      expect(row.querySelector(".log-row-header")!.classList.contains("setting-row")).toBe(true);
+      expect(row.querySelector(".log-row-dot")).not.toBeNull();
       expect(row.querySelector(".log-row-msg")!.textContent).toBe("settings aligned row");
       expect(row.querySelector(".log-row-count")!.textContent).toBe("×3");
     });
@@ -1633,6 +1652,8 @@ describe("FloatingButton", () => {
       expect(getNetworkPanel()!.querySelector(".logs-list")).toBeNull();
       expect(getNetworkPanel()!.querySelector(".logs-panel-meta")).toBeNull();
       expect(getNetworkPanel()!.querySelector(".logs-section-label")).toBeNull();
+      expect(getNetworkPanel()!.querySelector(".logs-overview-list")).toBeNull();
+      expect(getNetworkPanel()!.querySelector(".logs-level-list")).toBeNull();
       expect(getNetworkPanel()!.querySelector(".net-row")).not.toBeNull();
     });
   });
