@@ -1913,8 +1913,10 @@ const STYLES = `
   .logs-panel {
     display: flex;
     flex-direction: column;
-    min-height: 100%;
+    height: 100%;
+    min-height: 0;
     min-width: min(560px, 100%);
+    overflow: hidden;
     box-sizing: border-box;
   }
   .logs-panel .settings-list {
@@ -1922,6 +1924,11 @@ const STYLES = `
   }
   .logs-panel .section-label:not(:first-child) {
     margin-top: 16px;
+  }
+  .logs-section-label,
+  .logs-overview-list,
+  .logs-level-list {
+    flex: 0 0 auto;
   }
   .logs-overview-list,
   .logs-level-list,
@@ -1945,6 +1952,21 @@ const STYLES = `
   .logs-level-controls {
     flex-wrap: wrap;
   }
+  .logs-panel .logs-level-controls {
+    flex-wrap: nowrap;
+    height: 24px;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+  .logs-panel .logs-level-controls,
+  .network-panel .network-status-controls {
+    scrollbar-width: none;
+  }
+  .logs-panel .logs-level-controls::-webkit-scrollbar,
+  .network-panel .network-status-controls::-webkit-scrollbar {
+    display: none;
+  }
   .logs-stat-chip {
     display: inline-flex;
     align-items: center;
@@ -1967,8 +1989,10 @@ const STYLES = `
     gap: 5px;
   }
   .logs-panel .logs-pill {
+    flex: 0 0 auto;
     position: relative;
-    min-height: 24px;
+    height: 24px;
+    box-sizing: border-box;
     padding: 0 8px 0 18px;
     border-radius: 6px;
     background: rgba(0,0,0,0.16);
@@ -2017,6 +2041,7 @@ const STYLES = `
     flex: 1 1 auto;
     min-height: 0;
     flex-direction: column;
+    overflow: hidden;
   }
   .logs-panel .logs-search-row {
     flex: 0 0 auto;
@@ -2032,6 +2057,24 @@ const STYLES = `
   .logs-panel .logs-list {
     flex: 0 0 auto;
     border-radius: 8px;
+  }
+  .logs-panel .logs-list:not(.logs-empty-list) {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+  }
+  .logs-panel .logs-list::-webkit-scrollbar,
+  .network-panel .network-list::-webkit-scrollbar {
+    width: 6px;
+  }
+  .logs-panel .logs-list::-webkit-scrollbar-track,
+  .network-panel .network-list::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .logs-panel .logs-list::-webkit-scrollbar-thumb,
+  .network-panel .network-list::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.15);
+    border-radius: 3px;
   }
   .logs-panel .log-row {
     border-bottom: 1px solid rgba(255,255,255,0.07);
@@ -2198,11 +2241,17 @@ const STYLES = `
       grid-template-columns: 28px minmax(0, 1fr);
     }
     .logs-panel .logs-overview-control,
-    .logs-panel .logs-level-controls,
     .logs-panel .log-row-control {
       grid-column: 2;
       justify-content: flex-start;
       flex-wrap: wrap;
+    }
+    .logs-panel .logs-level-controls {
+      grid-column: 2;
+      justify-content: flex-start;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      overflow-y: hidden;
     }
     .logs-panel .log-row-details {
       padding-left: 42px;
@@ -2240,127 +2289,303 @@ const STYLES = `
   .network-badge.has-error {
     background: var(--lvl-error);
   }
-  .network-panel { padding: 12px 14px; min-width: 380px; }
+  .network-panel {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    min-width: min(560px, 100%);
+    overflow: hidden;
+    padding: 14px;
+    box-sizing: border-box;
+  }
+  .network-panel .settings-list {
+    background: rgba(12,12,12,0.36);
+  }
+  .network-panel .section-label:not(:first-child) {
+    margin-top: 16px;
+  }
+  .network-section-label,
+  .network-overview-list,
+  .network-status-list {
+    flex: 0 0 auto;
+  }
+  .network-overview-list,
+  .network-status-list,
+  .network-list {
+    margin-bottom: 0;
+  }
+  .network-overview-row,
+  .network-status-row {
+    min-height: 58px;
+  }
+  .network-overview-icon,
+  .network-status-icon {
+    color: #9a9a9a;
+  }
+  .network-overview-icon svg,
+  .network-status-icon svg {
+    width: 18px;
+    height: 18px;
+  }
+  .network-overview-control,
+  .network-status-controls {
+    flex-wrap: wrap;
+  }
+  .network-panel .network-status-controls {
+    flex-wrap: nowrap;
+    height: 24px;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+  .network-panel .logs-filter-bar {
+    margin: 0;
+    gap: 5px;
+  }
+  .network-panel .logs-clear-btn {
+    flex: 0 0 auto;
+    padding: 5px 11px;
+    border-color: rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.07);
+    color: #ccc;
+  }
+  .network-panel .logs-clear-btn:hover {
+    background: rgba(255,255,255,0.13);
+    color: #fff;
+  }
+  .network-panel-meta {
+    color: #7d7d7d;
+    font-size: 12px;
+    line-height: 1.3;
+  }
   .net-pill {
     display: inline-flex;
     align-items: center;
+    flex: 0 0 auto;
     gap: 4px;
     font-size: 10px;
     font-weight: 600;
-    padding: 3px 8px;
-    border-radius: 999px;
+    height: 24px;
+    box-sizing: border-box;
+    padding: 0 8px 0 18px;
+    border-radius: 6px;
     cursor: pointer;
     user-select: none;
-    border: 1px solid transparent;
-    background: rgba(255,255,255,0.04);
-    color: #888;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(0,0,0,0.16);
+    color: #929292;
     font-family: inherit;
     text-transform: uppercase;
-    letter-spacing: 0.03em;
+    letter-spacing: 0.02em;
+    position: relative;
+    box-shadow: none;
+    transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+  }
+  .net-pill::before {
+    content: "";
+    position: absolute;
+    left: 8px;
+    top: 50%;
+    width: 5px;
+    height: 5px;
+    border-radius: 999px;
+    background: currentColor;
+    opacity: 0.45;
+    transform: translateY(-50%);
   }
   .net-pill[data-status="2xx"]    { --c: var(--lvl-log); }
   .net-pill[data-status="3xx"]    { --c: var(--lvl-info); }
   .net-pill[data-status="4xx"]    { --c: var(--lvl-warn); }
   .net-pill[data-status="5xx"]    { --c: var(--lvl-error); }
   .net-pill[data-status="failed"] { --c: var(--lvl-error); }
+  .net-pill:hover {
+    background: rgba(255,255,255,0.06);
+    border-color: rgba(255,255,255,0.12);
+    color: #cfcfcf;
+  }
   .net-pill.active {
-    background: color-mix(in srgb, var(--c) 15%, transparent);
-    color: var(--c);
-    border-color: color-mix(in srgb, var(--c) 40%, transparent);
+    background: rgba(0,0,0,0.28);
+    color: #e5e5e5;
+    border-color: rgba(255,255,255,0.16);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.035);
+  }
+  .net-pill.active::before {
+    background: var(--c);
+    opacity: 0.95;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 16%, transparent);
   }
   .net-pill .count {
-    opacity: 0.8;
-    font-weight: 500;
+    color: #9c9c9c;
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+  }
+  .net-pill.active .count {
+    color: #c7c7c7;
+  }
+  .network-requests-section {
+    display: flex;
+    flex: 1 1 auto;
+    min-height: 0;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .net-search-row {
+    flex: 0 0 auto;
+    margin-bottom: 8px;
+  }
+  .network-panel .net-search {
+    width: 100%;
+    min-height: 34px;
+    padding: 7px 10px;
+    border-radius: 8px;
+    border-color: rgba(255,255,255,0.08);
+    background: rgba(12,12,12,0.36);
+    box-sizing: border-box;
   }
   .net-row {
-    padding: 8px 10px;
-    border-radius: 6px;
-    margin-bottom: 4px;
-    border-left: 3px solid var(--c, #666);
-    background: color-mix(in srgb, var(--c, #666) 5%, transparent);
-    transition: background 0.1s ease;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    background: transparent;
+  }
+  .network-panel .network-list:not(.network-empty-list) {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+  }
+  .net-row:last-child {
+    border-bottom: 0;
   }
   .net-row:hover {
-    background: color-mix(in srgb, var(--c, #666) 10%, transparent);
+    background: color-mix(in srgb, var(--c, #666) 5%, transparent);
   }
   .net-row[data-status="2xx"]    { --c: var(--lvl-log); }
   .net-row[data-status="3xx"]    { --c: var(--lvl-info); }
   .net-row[data-status="4xx"]    { --c: var(--lvl-warn); }
   .net-row[data-status="5xx"]    { --c: var(--lvl-error); }
   .net-row[data-status="failed"] { --c: var(--lvl-error); }
-  .net-row-header {
+  .net-row-header.setting-row {
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr) minmax(170px, auto);
+    gap: 14px;
+    min-height: 54px;
+    width: 100%;
+    padding: 10px 14px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    font: inherit;
+    text-align: left;
+    box-sizing: border-box;
+  }
+  .net-row-icon {
+    color: var(--c, #888);
+  }
+  .net-row-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 999px;
+    background: var(--c, #888);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--c, #888) 12%, transparent);
+  }
+  .net-row-copy {
+    min-width: 0;
+  }
+  .net-row-meta {
     display: flex;
     align-items: center;
     gap: 6px;
-    cursor: pointer;
+    min-width: 0;
+    margin-top: 3px;
+  }
+  .net-row-method,
+  .net-row-status,
+  .net-row-duration,
+  .net-row-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 20px;
+    padding: 0 7px;
+    border-radius: 999px;
+    font-size: 10px;
+    line-height: 1;
+    font-weight: 650;
+    flex: 0 0 auto;
   }
   .net-row-method {
-    font-size: 10px;
     background: rgba(255,255,255,0.1);
     color: #ddd;
-    border-radius: 4px;
-    padding: 1px 5px;
-    font-weight: 600;
-    flex-shrink: 0;
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   }
   .net-row-status {
-    font-size: 10px;
-    background: color-mix(in srgb, var(--c) 18%, transparent);
+    min-width: 0;
+    background: color-mix(in srgb, var(--c) 12%, transparent);
     color: var(--c);
-    border-radius: 4px;
-    padding: 1px 5px;
-    font-weight: 600;
-    flex-shrink: 0;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 24%, transparent);
     font-variant-numeric: tabular-nums;
   }
   .net-row-url {
-    font-size: 12px;
-    color: #e0e0e0;
+    color: #e8e8e8;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.25;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    flex: 1;
-    min-width: 0;
-    direction: rtl;
-    text-align: left;
   }
   .net-row-duration {
-    font-size: 10px;
     color: #888;
-    flex-shrink: 0;
+    background: rgba(255,255,255,0.06);
     font-variant-numeric: tabular-nums;
   }
   .net-row-count {
-    font-size: 10px;
     background: color-mix(in srgb, var(--c) 20%, transparent);
     color: var(--c);
-    border-radius: 8px;
-    padding: 0 5px;
-    font-weight: 600;
-    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+  }
+  .net-row-control {
+    gap: 8px;
+    flex-wrap: nowrap;
   }
   .net-row-time {
-    font-size: 10px;
-    color: #666;
-    flex-shrink: 0;
+    min-width: 74px;
+    color: #777;
+    font-size: 11px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
   }
   .net-row-chevron {
-    display: inline-block;
-    transition: transform 0.15s ease;
-    font-size: 10px;
-    color: #666;
-    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 5px;
+    color: #777;
+  }
+  .net-row-header:hover .net-row-chevron {
+    background: rgba(255,255,255,0.07);
+    color: #ddd;
   }
   .net-row-chevron.open {
     transform: rotate(90deg);
   }
   .net-row-details {
     display: none;
-    margin-top: 8px;
+    margin: 0;
+    padding: 0 14px 12px 56px;
+    border-top: 0;
   }
   .net-row-details.open {
     display: block;
+  }
+  .net-row-detail-surface {
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.07);
+    background: rgba(0,0,0,0.22);
   }
   .net-section-title {
     font-size: 10px;
@@ -2393,6 +2618,68 @@ const STYLES = `
     font-size: 11px;
     color: var(--lvl-error);
     margin-bottom: 6px;
+  }
+  .network-panel .log-row-actions {
+    margin-top: 8px;
+    flex-wrap: wrap;
+  }
+  .network-panel .log-action-btn {
+    min-height: 26px;
+    padding: 0 10px;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.07);
+    border-color: rgba(255,255,255,0.12);
+    font-size: 11px;
+  }
+  .network-panel .log-action-btn.primary {
+    background: var(--grab-control-active-bg);
+    border-color: rgba(99,102,241,0.26);
+    color: #a5b4fc;
+  }
+  .network-empty-list {
+    flex: 1 1 auto;
+    min-height: 180px;
+    justify-content: center;
+  }
+  .net-empty,
+  .net-empty-compact {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100%;
+    padding: 18px 14px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: #777;
+    text-align: center;
+    font-size: 12px;
+  }
+  @media (max-width: 520px) {
+    .network-panel .network-status-row,
+    .network-panel .network-overview-row,
+    .network-panel .net-row-header.setting-row {
+      grid-template-columns: 28px minmax(0, 1fr);
+    }
+    .network-panel .network-overview-control,
+    .network-panel .net-row-control {
+      grid-column: 2;
+      justify-content: flex-start;
+      flex-wrap: wrap;
+    }
+    .network-panel .network-status-controls {
+      grid-column: 2;
+      justify-content: flex-start;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      overflow-y: hidden;
+    }
+    .network-panel .net-row-details {
+      padding-left: 42px;
+    }
+    .network-panel .net-row-time {
+      min-width: 0;
+    }
   }
 `;
 
@@ -4156,28 +4443,68 @@ export class FloatingButton {
 
   private renderNetworkPanelContent(visible: CapturedRequest[]): string {
     const counts = this.countsByStatusClass();
+    const totalCount = this.networkEntries.length;
+    const visibleCount = visible.length;
+    const isCapturedEmpty = totalCount === 0;
+    const activeStatusCount = this.networkFilterStatus.size;
+    const meta = isCapturedEmpty
+      ? "No requests yet"
+      : `${visibleCount} of ${totalCount} ${totalCount === 1 ? "request" : "requests"}`;
     const pills = ALL_NETWORK_STATUS_CLASSES.map((cls) => {
       const active = this.networkFilterStatus.has(cls);
       return `<button class="net-pill${active ? " active" : ""}" data-status="${cls}" type="button">${cls}<span class="count">${counts[cls]}</span></button>`;
     }).join("");
 
-    let html = '<div class="network-panel">';
-    html += '<div class="logs-header">';
-    html += '<span class="logs-title">Network</span>';
+    let html = `<div class="network-panel${isCapturedEmpty ? " is-empty" : ""}">`;
+    html += '<div class="section-label network-section-label">Overview</div>';
+    html += '<div class="settings-list network-overview-list">';
+    html += '<div class="setting-row network-overview-row">';
+    html += `<span class="setting-row-icon network-overview-icon">${NETWORK_SVG}</span>`;
+    html += '<span class="setting-row-copy">';
+    html += '<span class="setting-row-title">Network</span>';
+    html += `<span class="setting-row-description network-panel-meta">${esc(meta)}</span>`;
+    html += "</span>";
+    html += '<span class="setting-row-control network-overview-control">';
+    html += `<span class="logs-stat-chip"><span class="logs-stat-number">${visibleCount}</span> shown</span>`;
+    html += `<span class="logs-stat-chip"><span class="logs-stat-number">${totalCount}</span> total</span>`;
     html += '<button class="logs-clear-btn net-clear-btn" type="button">Clear</button>';
+    html += "</span>";
     html += "</div>";
-    html += `<div class="logs-filter-bar">${pills}</div>`;
-    html += `<input class="logs-search net-search" type="text" placeholder="Filter by URL…" value="${esc(this.networkSearchTerm)}">`;
+    html += "</div>";
+    html += '<div class="section-label network-section-label">Status</div>';
+    html += '<div class="settings-list network-status-list">';
+    html += '<div class="setting-row network-status-row">';
+    html += `<span class="setting-row-icon network-status-icon">${NETWORK_SVG}</span>`;
+    html += '<span class="setting-row-copy">';
+    html += '<span class="setting-row-title">Captured statuses</span>';
+    html += `<span class="setting-row-description">${activeStatusCount} of ${ALL_NETWORK_STATUS_CLASSES.length} active</span>`;
+    html += "</span>";
+    html += `<span class="setting-row-control logs-filter-bar network-status-controls">${pills}</span>`;
+    html += "</div>";
+    html += "</div>";
+    html += '<div class="network-requests-section">';
+    html += '<div class="section-label network-section-label">Requests</div>';
+
+    if (!isCapturedEmpty) {
+      html += '<div class="net-search-row">';
+      html += `<input class="logs-search net-search" type="text" placeholder="Filter URLs..." value="${esc(this.networkSearchTerm)}">`;
+      html += "</div>";
+    }
 
     if (visible.length === 0) {
-      const empty =
-        this.networkEntries.length === 0
-          ? "No network activity captured"
-          : "No requests match the current filter";
-      html += `<div class="logs-empty">${empty}</div></div>`;
+      const empty = isCapturedEmpty
+        ? "No network activity captured"
+        : "No requests match the current filter";
+      const emptyClass = isCapturedEmpty ? "net-empty-compact" : "net-empty";
+      html += '<div class="settings-list network-list network-empty-list">';
+      html += `<div class="${emptyClass}">${empty}</div>`;
+      html += "</div>";
+      html += "</div>";
+      html += "</div>";
       return html;
     }
 
+    html += '<div class="settings-list network-list">';
     for (let i = 0; i < visible.length; i++) {
       const req = visible[i];
       const time = new Date(req.timestamp).toLocaleTimeString();
@@ -4186,19 +4513,28 @@ export class FloatingButton {
       const urlTrunc = truncate(req.url, 160);
 
       html += `<div class="net-row" data-status="${req.statusClass}" data-net-idx="${i}">`;
-      html += '<div class="net-row-header">';
-      html += `<span class="net-row-chevron" data-net-toggle="${i}">\u25B6</span>`;
+      html += '<button class="net-row-header setting-row" type="button">';
+      html +=
+        '<span class="setting-row-icon net-row-icon" aria-hidden="true"><span class="net-row-dot"></span></span>';
+      html += '<span class="setting-row-copy net-row-copy">';
+      html += `<span class="setting-row-title net-row-url" title="${esc(req.url)}">${esc(urlTrunc)}</span>`;
+      html += '<span class="setting-row-description net-row-meta">';
       html += `<span class="net-row-method">${esc(req.method)}</span>`;
       html += `<span class="net-row-status">${esc(statusLabel)}</span>`;
-      html += `<span class="net-row-url" title="${esc(req.url)}">${esc(urlTrunc)}</span>`;
+      html += "</span>";
+      html += "</span>";
+      html += '<span class="setting-row-control net-row-control">';
       if (req.count > 1) {
         html += `<span class="net-row-count">\u00D7${req.count}</span>`;
       }
       if (duration) html += `<span class="net-row-duration">${duration}</span>`;
       html += `<span class="net-row-time">${esc(time)}</span>`;
-      html += "</div>";
+      html += `<span class="net-row-chevron" data-net-toggle="${i}">\u25B6</span>`;
+      html += "</span>";
+      html += "</button>";
 
       html += `<div class="net-row-details" data-net-details="${i}">`;
+      html += '<div class="net-row-detail-surface">';
       if (req.error) {
         html += `<div class="net-row-error">Error: ${esc(req.error)}</div>`;
       }
@@ -4230,10 +4566,13 @@ export class FloatingButton {
       }
       html += "</div>";
       html += "</div>";
+      html += "</div>";
 
       html += "</div>";
     }
 
+    html += "</div>";
+    html += "</div>";
     html += "</div>";
     return html;
   }

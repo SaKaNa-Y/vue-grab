@@ -1404,6 +1404,18 @@ describe("FloatingButton", () => {
     function getNetworkPanel(): HTMLElement | null {
       return getShadow()?.querySelector(".network-panel") ?? null;
     }
+    function getNetworkBtn(): HTMLElement | null {
+      return getShadow()?.querySelector(".network-btn") ?? null;
+    }
+    function getNetworkPills(): NodeListOf<HTMLElement> {
+      return getShadow()!.querySelectorAll<HTMLElement>(".net-pill");
+    }
+    function getNetworkRows(): NodeListOf<HTMLElement> {
+      return getShadow()!.querySelectorAll<HTMLElement>(".net-row");
+    }
+    function getNetworkSearch(): HTMLInputElement | null {
+      return getShadow()?.querySelector<HTMLInputElement>(".net-search") ?? null;
+    }
     function getPills(): NodeListOf<HTMLElement> {
       return getShadow()!.querySelectorAll<HTMLElement>(".logs-pill");
     }
@@ -1641,20 +1653,298 @@ describe("FloatingButton", () => {
       expect(details.querySelector("[data-log-open]")).not.toBeNull();
     });
 
-    it("keeps the network panel isolated from redesigned logs-only structure", () => {
+    it("keeps large console log sets scrollable inside the entries list", () => {
+      fab = createFabWithAllToolbarEntries();
+      fab.mount();
+      fab.setLogs(
+        Array.from({ length: 28 }, (_, index) =>
+          makeLog(index % 2 === 0 ? "warn" : "error", `scrollable log ${index}`, {
+            id: index,
+            timestamp: Date.now() + index,
+          }),
+        ),
+      );
+
+      getLogsBtn()!.click();
+
+      const panel = getLogsPanel()!;
+      const entriesSection = getShadow()!.querySelector<HTMLElement>(".logs-entries-section")!;
+      const list = getShadow()!.querySelector<HTMLElement>(".logs-list")!;
+      const panelHeight = Number.parseFloat(getComputedStyle(panel).height);
+      const expandBodyHeight = Number.parseFloat(getComputedStyle(getExpandBody()!).height);
+
+      expect(getRows()).toHaveLength(28);
+      expect(panelHeight).toBeGreaterThan(0);
+      expect(panelHeight).toBeLessThanOrEqual(expandBodyHeight);
+      expect(getComputedStyle(panel).minHeight).toBe("0px");
+      expect(getComputedStyle(panel).overflowY).toBe("hidden");
+      expect(getComputedStyle(entriesSection).overflowY).toBe("hidden");
+      expect(getComputedStyle(entriesSection).minHeight).toBe("0px");
+      expect(getComputedStyle(list).overflowY).toBe("auto");
+      expect(getComputedStyle(list).flexGrow).toBe("1");
+      expect(getComputedStyle(list).minHeight).toBe("0px");
+      expect(list.classList.contains("logs-empty-list")).toBe(false);
+    });
+
+    it("expands only the selected console log row inside the scrollable list", () => {
+      fab = createFabWithAllToolbarEntries();
+      fab.mount();
+      fab.setLogs([
+        makeLog("error", "first expandable", { id: 1, stack: "Error: first" }),
+        makeLog("error", "second stays closed", { id: 2, stack: "Error: second" }),
+      ]);
+
+      getLogsBtn()!.click();
+
+      const rows = Array.from(getRows());
+      const firstHeader = rows[0].querySelector<HTMLElement>(".log-row-header")!;
+      const firstDetails = rows[0].querySelector<HTMLElement>(".log-row-details")!;
+      const secondDetails = rows[1].querySelector<HTMLElement>(".log-row-details")!;
+      const list = getShadow()!.querySelector<HTMLElement>(".logs-list")!;
+
+      expect(getComputedStyle(list).overflowY).toBe("auto");
+      expect(firstDetails.classList.contains("open")).toBe(false);
+      expect(secondDetails.classList.contains("open")).toBe(false);
+
+      firstHeader.click();
+
+      expect(firstDetails.classList.contains("open")).toBe(true);
+      expect(secondDetails.classList.contains("open")).toBe(false);
+      expect(getComputedStyle(list).overflowY).toBe("auto");
+      expect(getComputedStyle(getLogsPanel()!).overflowY).toBe("hidden");
+    });
+
+    it("renders the network panel with console-style sections", () => {
       fab = createFabWithAllToolbarEntries();
       fab.mount();
       fab.setNetwork([makeRequest()]);
 
-      getShadow()!.querySelector<HTMLElement>(".network-btn")!.click();
+      getNetworkBtn()!.click();
 
       expect(getNetworkPanel()).not.toBeNull();
-      expect(getNetworkPanel()!.querySelector(".logs-list")).toBeNull();
-      expect(getNetworkPanel()!.querySelector(".logs-panel-meta")).toBeNull();
-      expect(getNetworkPanel()!.querySelector(".logs-section-label")).toBeNull();
-      expect(getNetworkPanel()!.querySelector(".logs-overview-list")).toBeNull();
-      expect(getNetworkPanel()!.querySelector(".logs-level-list")).toBeNull();
+      expect(
+        Array.from(getShadow()!.querySelectorAll(".network-section-label")).map((label) =>
+          label.textContent?.trim(),
+        ),
+      ).toEqual(["Overview", "Status", "Requests"]);
+      expect(getNetworkPanel()!.querySelector(".network-overview-list")).not.toBeNull();
+      expect(getNetworkPanel()!.querySelector(".network-status-list")).not.toBeNull();
+      expect(getNetworkPanel()!.querySelector(".network-list")).not.toBeNull();
+      expect(getNetworkPanel()!.querySelector(".network-panel-meta")!.textContent).toBe(
+        "1 of 1 request",
+      );
+      expect(getNetworkPills()).toHaveLength(5);
       expect(getNetworkPanel()!.querySelector(".net-row")).not.toBeNull();
+    });
+
+    it("renders a compact empty network state before any requests are captured", () => {
+      fab = createFabWithAllToolbarEntries();
+      fab.mount();
+
+      getNetworkBtn()!.click();
+
+      const panel = getNetworkPanel()!;
+      const requestsSection = getShadow()!.querySelector<HTMLElement>(
+        ".network-requests-section",
+      )!;
+      const emptyList = getShadow()!.querySelector<HTMLElement>(".network-empty-list")!;
+
+      expect(panel.classList.contains("is-empty")).toBe(true);
+      expect(getComputedStyle(panel).display).toBe("flex");
+      expect(requestsSection).not.toBeNull();
+      expect(getComputedStyle(requestsSection).flexGrow).toBe("1");
+      expect(getNetworkSearch()).toBeNull();
+      expect(emptyList.classList.contains("settings-list")).toBe(true);
+      expect(getComputedStyle(emptyList).flexGrow).toBe("1");
+      expect(getShadow()!.querySelector(".net-empty-compact")!.textContent).toBe(
+        "No network activity captured",
+      );
+      expect(getShadow()!.querySelector(".network-panel-meta")!.textContent).toBe(
+        "No requests yet",
+      );
+    });
+
+    it("keeps large network request sets scrollable inside the request list", () => {
+      fab = createFabWithAllToolbarEntries();
+      fab.mount();
+      fab.setNetwork(
+        Array.from({ length: 24 }, (_, index) =>
+          makeRequest({
+            id: index,
+            timestamp: Date.now() + index,
+            url: `https://example.com/api/items/${index}`,
+          }),
+        ),
+      );
+
+      getNetworkBtn()!.click();
+
+      const panel = getNetworkPanel()!;
+      const requestsSection = getShadow()!.querySelector<HTMLElement>(
+        ".network-requests-section",
+      )!;
+      const list = getShadow()!.querySelector<HTMLElement>(".network-list")!;
+      const panelHeight = Number.parseFloat(getComputedStyle(panel).height);
+      const expandBodyHeight = Number.parseFloat(getComputedStyle(getExpandBody()!).height);
+
+      expect(getNetworkRows()).toHaveLength(24);
+      expect(panelHeight).toBeGreaterThan(0);
+      expect(panelHeight).toBeLessThanOrEqual(expandBodyHeight);
+      expect(getComputedStyle(panel).minHeight).toBe("0px");
+      expect(getComputedStyle(panel).overflowY).toBe("hidden");
+      expect(getComputedStyle(requestsSection).overflowY).toBe("hidden");
+      expect(getComputedStyle(requestsSection).minHeight).toBe("0px");
+      expect(getComputedStyle(list).overflowY).toBe("auto");
+      expect(getComputedStyle(list).flexGrow).toBe("1");
+      expect(getComputedStyle(list).minHeight).toBe("0px");
+      expect(list.classList.contains("network-empty-list")).toBe(false);
+    });
+
+    it("keeps the network status row stable when toggling active categories", () => {
+      fab = createFabWithAllToolbarEntries();
+      fab.mount();
+      fab.setNetwork([
+        makeRequest({ status: 200, statusClass: "2xx", url: "https://example.com/ok" }),
+        makeRequest({ status: 500, statusClass: "5xx", url: "https://example.com/failure" }),
+        makeRequest({
+          status: undefined,
+          statusClass: "failed",
+          url: "https://vg-unreachable.invalid/",
+        }),
+      ]);
+
+      getNetworkBtn()!.click();
+
+      const statusRow = getShadow()!.querySelector<HTMLElement>(".network-status-row")!;
+      const requestsLabel = getShadow()!.querySelector<HTMLElement>(
+        ".network-requests-section .network-section-label",
+      )!;
+      const initialHeight = statusRow.getBoundingClientRect().height;
+      const initialLabelTop = requestsLabel.getBoundingClientRect().top;
+      const initialPillHeights = Array.from(getNetworkPills()).map(
+        (pill) => pill.getBoundingClientRect().height,
+      );
+
+      getShadow()!.querySelector<HTMLElement>('.net-pill[data-status="2xx"]')!.click();
+
+      const updatedStatusRow = getShadow()!.querySelector<HTMLElement>(".network-status-row")!;
+      const updatedRequestsLabel = getShadow()!.querySelector<HTMLElement>(
+        ".network-requests-section .network-section-label",
+      )!;
+
+      expect(updatedStatusRow.getBoundingClientRect().height).toBe(initialHeight);
+      expect(updatedRequestsLabel.getBoundingClientRect().top).toBe(initialLabelTop);
+      expect(
+        Array.from(getNetworkPills()).map((pill) => pill.getBoundingClientRect().height),
+      ).toEqual(initialPillHeights);
+      expect(getComputedStyle(getNetworkPills()[0]).flexShrink).toBe("0");
+      expect(
+        getShadow()!.querySelector(".network-status-row .setting-row-description")!.textContent,
+      ).toBe("4 of 5 active");
+    });
+
+    it("status pills filter network rows and update overview meta", () => {
+      fab = createFabWithAllToolbarEntries();
+      fab.mount();
+      fab.setNetwork([
+        makeRequest({ status: 200, statusClass: "2xx", url: "https://example.com/ok" }),
+        makeRequest({ status: 404, statusClass: "4xx", url: "https://example.com/missing" }),
+        makeRequest({
+          status: 500,
+          statusClass: "5xx",
+          url: "https://example.com/failure",
+        }),
+      ]);
+
+      getNetworkBtn()!.click();
+      expect(getNetworkRows()).toHaveLength(3);
+
+      getShadow()!.querySelector<HTMLElement>('.net-pill[data-status="4xx"]')!.click();
+      expect(getNetworkRows()).toHaveLength(2);
+      expect(Array.from(getNetworkRows()).map((row) => row.dataset.status)).not.toContain("4xx");
+      expect(getShadow()!.querySelector(".network-panel-meta")!.textContent).toBe(
+        "2 of 3 requests",
+      );
+      expect(
+        getShadow()!.querySelector(".network-status-row .setting-row-description")!.textContent,
+      ).toBe("4 of 5 active");
+    });
+
+    it("search filters network rows by URL and stays visible for no matches", async () => {
+      fab = createFabWithAllToolbarEntries();
+      fab.mount();
+      fab.setNetwork([
+        makeRequest({ url: "https://example.com/api/users" }),
+        makeRequest({ url: "https://example.com/api/projects" }),
+      ]);
+
+      getNetworkBtn()!.click();
+      const search = getNetworkSearch()!;
+      search.value = "users";
+      search.dispatchEvent(new Event("input", { bubbles: true }));
+
+      await new Promise((r) => setTimeout(r, 150));
+
+      expect(getNetworkRows()).toHaveLength(1);
+      expect(getNetworkRows()[0].querySelector(".net-row-url")!.textContent).toContain("users");
+      expect(getShadow()!.querySelector(".network-panel-meta")!.textContent).toBe(
+        "1 of 2 requests",
+      );
+
+      const nextSearch = getNetworkSearch()!;
+      nextSearch.value = "missing";
+      nextSearch.dispatchEvent(new Event("input", { bubbles: true }));
+
+      await new Promise((r) => setTimeout(r, 150));
+
+      expect(getNetworkSearch()).not.toBeNull();
+      expect(getNetworkRows()).toHaveLength(0);
+      expect(getShadow()!.querySelector(".net-empty")!.textContent).toBe(
+        "No requests match the current filter",
+      );
+    });
+
+    it("renders URL-first network rows with expandable details and actions", () => {
+      fab = createFabWithAllToolbarEntries();
+      fab.mount();
+      fab.setNetwork([
+        makeRequest({
+          method: "POST",
+          url: "https://example.com/api/orders",
+          status: 201,
+          requestHeaders: { "content-type": "application/json" },
+          requestBody: '{"name":"desk"}',
+          responseBody: '{"ok":true}',
+          sourceFile: "/src/api.ts",
+          count: 2,
+        }),
+      ]);
+
+      getNetworkBtn()!.click();
+      const row = getNetworkRows()[0];
+      const header = row.querySelector<HTMLElement>(".net-row-header")!;
+      const details = row.querySelector<HTMLElement>(".net-row-details")!;
+      const chevron = row.querySelector<HTMLElement>(".net-row-chevron")!;
+
+      expect(row.closest(".network-list")).not.toBeNull();
+      expect(header.tagName).toBe("BUTTON");
+      expect(header.classList.contains("setting-row")).toBe(true);
+      expect(row.querySelector(".net-row-dot")).not.toBeNull();
+      expect(row.querySelector(".net-row-url")!.textContent).toContain("/api/orders");
+      expect(row.querySelector(".net-row-method")!.textContent).toBe("POST");
+      expect(row.querySelector(".net-row-count")!.textContent).toBe("×2");
+      expect(details.classList.contains("open")).toBe(false);
+
+      header.click();
+
+      expect(details.classList.contains("open")).toBe(true);
+      expect(chevron.classList.contains("open")).toBe(true);
+      expect(details.querySelector(".net-row-detail-surface")).not.toBeNull();
+      expect(details.textContent).toContain("Request headers");
+      expect(details.textContent).toContain("Response body");
+      expect(details.querySelector("[data-net-copy]")).not.toBeNull();
+      expect(details.querySelector("[data-net-claude]")).not.toBeNull();
+      expect(details.querySelector("[data-net-open]")).not.toBeNull();
     });
   });
 
