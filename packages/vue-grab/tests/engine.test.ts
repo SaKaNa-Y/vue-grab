@@ -1,8 +1,14 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { DEFAULT_CONFIG } from "@sakana-y/vue-grab-shared";
+import { DEFAULT_CONFIG, VUE_GRAB_ROOT_GLOBAL } from "@sakana-y/vue-grab-shared";
 import { GrabEngine } from "../src/core";
 import { OVERLAY_HOST_ID } from "../src/overlay";
-import { cleanupDOM, createTargetElement, fireClickAtCenter, fireKey } from "./helpers/setup";
+import {
+  cleanupDOM,
+  createTargetElement,
+  fireClickAtCenter,
+  fireKey,
+  fireMouseEvent,
+} from "./helpers/setup";
 
 function createEngine(config = DEFAULT_CONFIG): GrabEngine {
   return new GrabEngine({ ...config });
@@ -13,6 +19,7 @@ describe("GrabEngine", () => {
 
   afterEach(() => {
     engine?.destroy();
+    delete (globalThis as Record<string, unknown>)[VUE_GRAB_ROOT_GLOBAL];
     cleanupDOM();
   });
 
@@ -156,6 +163,26 @@ describe("GrabEngine", () => {
 
       expect(pdSpy).toHaveBeenCalled();
       expect(spSpy).toHaveBeenCalled();
+    });
+
+    it("uses project-relative component file paths in overlay labels", () => {
+      (globalThis as Record<string, unknown>)[VUE_GRAB_ROOT_GLOBAL] = "F:/toy_cc/vue-grab";
+      engine = createEngine();
+      engine.activate();
+
+      const target = createTargetElement("button");
+      (target as any).__vueParentComponent = {
+        type: {
+          name: "ActionButton",
+          __file: "F:\\toy_cc\\vue-grab\\src\\components\\ActionButton.vue",
+        },
+      };
+      fireMouseEvent("mousemove", target);
+
+      const label = document
+        .getElementById(OVERLAY_HOST_ID)!
+        .shadowRoot!.querySelector<HTMLElement>(".grab-label")!;
+      expect(label.textContent).toContain("<ActionButton> src/components/ActionButton.vue");
     });
   });
 

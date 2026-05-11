@@ -1,11 +1,16 @@
-import type { FloatingButtonShortcutCommandId, GrabConfig } from "@sakana-y/vue-grab-shared";
+import type { GrabConfig } from "@sakana-y/vue-grab-shared";
 import { DEFAULT_HOTKEY } from "@sakana-y/vue-grab-shared";
 import { GrabEngine } from "./core";
 import { HotkeyManager } from "./hotkeys";
 import { FloatingButton } from "./floating-button";
 import { MagnifierOverlay } from "./magnifier";
 import { MeasurerOverlay } from "./measurer";
-import { ConsoleCapture, NetworkCapture } from "./utils";
+import {
+  ConsoleCapture,
+  NetworkCapture,
+  destroyAll,
+  registerFloatingButtonShortcuts,
+} from "./utils";
 
 export interface GrabSession {
   engine: GrabEngine;
@@ -32,19 +37,6 @@ export function createGrabSession(config: GrabConfig): GrabSession {
   let consoleCapture: ConsoleCapture | null = null;
   let networkCapture: NetworkCapture | null = null;
 
-  const registerFabShortcuts = (targetFab: FloatingButton): void => {
-    hotkeys.destroy();
-    const shortcuts = targetFab.getShortcuts();
-    for (const [id, combos] of Object.entries(shortcuts) as [
-      FloatingButtonShortcutCommandId,
-      string[],
-    ][]) {
-      for (const combo of combos) {
-        hotkeys.register(combo, () => targetFab.triggerShortcut(id));
-      }
-    }
-  };
-
   if (config.consoleCapture.enabled) {
     consoleCapture = new ConsoleCapture(config.consoleCapture);
     consoleCapture.start();
@@ -67,8 +59,12 @@ export function createGrabSession(config: GrabConfig): GrabSession {
     const initialHotkey = localFab.getCurrentHotkey() || DEFAULT_HOTKEY;
     localFab.setHighlightColor(config.highlightColor);
     localFab.setCurrentHotkey(initialHotkey);
+    localFab.setMagnifierConfig({
+      loupeSize: config.magnifier.loupeSize,
+      zoomLevel: config.magnifier.zoomLevel,
+    });
     localFab.onToggle(() => engine.toggle());
-    localFab.onShortcutsChange(() => registerFabShortcuts(localFab));
+    localFab.onShortcutsChange(() => registerFloatingButtonShortcuts(hotkeys, localFab));
     engine.onStateChange((active) => {
       localFab.setActive(active);
       // Mutual exclusion: deactivate magnifier and measurer when grab activates
@@ -79,7 +75,7 @@ export function createGrabSession(config: GrabConfig): GrabSession {
     });
     engine.onGrab((result) => localFab.setLastResult(result));
     localFab.mount();
-    registerFabShortcuts(localFab);
+    registerFloatingButtonShortcuts(hotkeys, localFab);
   } else {
     hotkeys.register(DEFAULT_HOTKEY, () => engine.toggle());
   }
@@ -101,10 +97,6 @@ export function createGrabSession(config: GrabConfig): GrabSession {
 
     if (fab) {
       fab.onMagnifierToggle(() => localMagnifier.toggle());
-      fab.setMagnifierConfig({
-        loupeSize: config.magnifier.loupeSize,
-        zoomLevel: config.magnifier.zoomLevel,
-      });
       fab.onMagnifierConfigChange((changes) => localMagnifier.updateConfig(changes));
       localMagnifier.onStateChange((active) => {
         fab!.setMagnifierActive(active);
@@ -144,13 +136,7 @@ export function createGrabSession(config: GrabConfig): GrabSession {
     consoleCapture,
     networkCapture,
     destroy() {
-      engine.destroy();
-      hotkeys.destroy();
-      fab?.destroy();
-      magnifier?.destroy();
-      measurer?.destroy();
-      consoleCapture?.destroy();
-      networkCapture?.destroy();
+      destroyAll([engine, hotkeys, fab, magnifier, measurer, consoleCapture, networkCapture]);
     },
   };
 }

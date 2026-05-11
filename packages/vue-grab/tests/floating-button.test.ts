@@ -1099,6 +1099,22 @@ describe("FloatingButton", () => {
       expect(tools.querySelector(".magnifier-zoom-slider")).not.toBeNull();
     });
 
+    it("Tools tab initializes magnifier controls from injected runtime config", () => {
+      fab = createFab();
+      fab.setMagnifierConfig({ loupeSize: 250, zoomLevel: 2.5 });
+      fab.mount();
+
+      getGear()!.click();
+      getSettingsTab("Tools")!.click();
+
+      const size = getShadow()!.querySelector<HTMLInputElement>(".magnifier-size-slider")!;
+      const zoom = getShadow()!.querySelector<HTMLInputElement>(".magnifier-zoom-slider")!;
+      expect(size.value).toBe("250");
+      expect(zoom.value).toBe("2.5");
+      expect(size.parentElement!.querySelector(".slider-value")!.textContent).toBe("250px");
+      expect(zoom.parentElement!.querySelector(".slider-value")!.textContent).toBe("2.5x");
+    });
+
     it("Tools tab persists editor choice", () => {
       fab = createFab();
       fab.mount();
@@ -1188,6 +1204,32 @@ describe("FloatingButton", () => {
 
       getGear()!.click();
       expect(getExpandBody()!.classList.contains("open")).toBe(false);
+    });
+
+    it("cancels stale transition restoration frames when closing repeatedly", () => {
+      const originalRequestAnimationFrame = globalThis.requestAnimationFrame;
+      const originalCancelAnimationFrame = globalThis.cancelAnimationFrame;
+      let nextRafId = 0;
+      const requestSpy = vi.fn<(cb: FrameRequestCallback) => number>(() => ++nextRafId);
+      const cancelSpy = vi.fn<(handle: number) => void>();
+      vi.stubGlobal("requestAnimationFrame", requestSpy);
+      vi.stubGlobal("cancelAnimationFrame", cancelSpy);
+
+      try {
+        fab = createFab();
+        fab.mount();
+
+        getGear()!.click();
+        getGear()!.click();
+        getGear()!.click();
+        getGear()!.click();
+
+        expect(requestSpy).toHaveBeenCalledTimes(2);
+        expect(cancelSpy).toHaveBeenCalledWith(1);
+      } finally {
+        vi.stubGlobal("requestAnimationFrame", originalRequestAnimationFrame);
+        vi.stubGlobal("cancelAnimationFrame", originalCancelAnimationFrame);
+      }
     });
 
     it("hotkey recording adds modifier+key combo", () => {
@@ -1744,9 +1786,7 @@ describe("FloatingButton", () => {
       getNetworkBtn()!.click();
 
       const panel = getNetworkPanel()!;
-      const requestsSection = getShadow()!.querySelector<HTMLElement>(
-        ".network-requests-section",
-      )!;
+      const requestsSection = getShadow()!.querySelector<HTMLElement>(".network-requests-section")!;
       const emptyList = getShadow()!.querySelector<HTMLElement>(".network-empty-list")!;
 
       expect(panel.classList.contains("is-empty")).toBe(true);
@@ -1780,9 +1820,7 @@ describe("FloatingButton", () => {
       getNetworkBtn()!.click();
 
       const panel = getNetworkPanel()!;
-      const requestsSection = getShadow()!.querySelector<HTMLElement>(
-        ".network-requests-section",
-      )!;
+      const requestsSection = getShadow()!.querySelector<HTMLElement>(".network-requests-section")!;
       const list = getShadow()!.querySelector<HTMLElement>(".network-list")!;
       const panelHeight = Number.parseFloat(getComputedStyle(panel).height);
       const expandBodyHeight = Number.parseFloat(getComputedStyle(getExpandBody()!).height);

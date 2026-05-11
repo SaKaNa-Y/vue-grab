@@ -118,6 +118,30 @@ describe("createGrabSession", () => {
     expect(session.engine.isActive).toBe(true);
   });
 
+  it("passes magnifier config into the floating button Tools panel", () => {
+    session = createGrabSession({
+      ...DEFAULT_CONFIG,
+      floatingButton: {
+        ...DEFAULT_CONFIG.floatingButton,
+        enabled: true,
+      },
+      magnifier: {
+        ...DEFAULT_CONFIG.magnifier,
+        loupeSize: 250,
+        zoomLevel: 2.5,
+      },
+    });
+    const shadow = document.getElementById(FAB_HOST_ID)!.shadowRoot!;
+
+    shadow.querySelector<HTMLElement>(".gear-btn")!.click();
+    Array.from(shadow.querySelectorAll<HTMLElement>(".tab-btn"))
+      .find((btn) => btn.textContent === "Tools")!
+      .click();
+
+    expect(shadow.querySelector<HTMLInputElement>(".magnifier-size-slider")!.value).toBe("250");
+    expect(shadow.querySelector<HTMLInputElement>(".magnifier-zoom-slider")!.value).toBe("2.5");
+  });
+
   it("re-registers shortcuts after settings changes", () => {
     session = createGrabSession({
       ...DEFAULT_CONFIG,
