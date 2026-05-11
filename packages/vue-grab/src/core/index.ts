@@ -1,27 +1,10 @@
-import type {
-  GrabConfig,
-  GrabResult,
-  ComponentInfo,
-  GrabUserConfig,
-} from "@sakana-y/vue-grab-shared";
+import type { GrabConfig, GrabResult, GrabUserConfig } from "@sakana-y/vue-grab-shared";
 import { mergeConfig } from "@sakana-y/vue-grab-shared";
-import { GrabOverlay, OVERLAY_HOST_ID } from "../overlay";
-import { FAB_HOST_ID } from "../floating-button";
-import { MAGNIFIER_HOST_ID } from "../magnifier";
-import { MEASURER_HOST_ID } from "../measurer";
-import { hasA11yAttributes, extractA11yInfo, getComponentName } from "../utils";
-
-const shortPathCache = new WeakMap<object, string>();
-
-const COMMON_LAYOUT_NAMES = new Set([
-  "header",
-  "nav",
-  "footer",
-  "aside",
-  "main",
-  "layout",
-  "sidebar",
-]);
+import { GrabOverlay } from "../overlay";
+import { hasA11yAttributes } from "../utils";
+import { shouldIgnoreElement } from "./filter";
+import { createGrabResult } from "./result";
+import { getComponentLabelFromInstance, getVueComponent } from "./vue-component";
 
 export class GrabEngine {
   private config: GrabConfig;
@@ -62,10 +45,10 @@ export class GrabEngine {
         this.overlay?.clearHighlight();
         return;
       }
-      const instance = this.getVueComponent(el);
+      const instance = getVueComponent(el);
       this.overlay?.highlight(
         el,
-        this.getComponentLabelFromInstance(el, instance),
+        getComponentLabelFromInstance(el, instance),
         hasA11yAttributes(el),
       );
     };
@@ -78,18 +61,7 @@ export class GrabEngine {
       e.stopPropagation();
       e.stopImmediatePropagation();
 
-      let html = el.outerHTML;
-      if (this.config.maxHtmlLength > 0 && html.length > this.config.maxHtmlLength) {
-        html = html.slice(0, this.config.maxHtmlLength) + "<!-- truncated -->";
-      }
-
-      const result: GrabResult = {
-        element: el,
-        html,
-        componentStack: this.getComponentStack(el),
-        selector: this.generateSelector(el),
-        a11y: extractA11yInfo(el),
-      };
+      const result = createGrabResult(el, this.config);
 
       for (const enrich of this.enrichers) enrich(result);
       this.callbacks.forEach((cb) => cb(result));
@@ -166,113 +138,6 @@ export class GrabEngine {
   }
 
   private shouldIgnore(el: Element): boolean {
-    // Ignore our own overlay and floating button
-    if (
-      el.closest(
-        `#${OVERLAY_HOST_ID}, #${FAB_HOST_ID}, #${MAGNIFIER_HOST_ID}, #${MEASURER_HOST_ID}`,
-      )
-    )
-      return true;
-
-    const tag = el.tagName.toLowerCase();
-
-    // Check ignored tags
-    if (this.config.filter.ignoreTags.includes(tag)) return true;
-
-    // Check ignored selectors
-    for (const selector of this.config.filter.ignoreSelectors) {
-      try {
-        if (el.matches(selector)) return true;
-      } catch {
-        // Invalid selector, skip
-      }
-    }
-
-    // Check common layout components
-    if (this.config.filter.skipCommonComponents) {
-      const comp = this.getVueComponent(el);
-      if (comp) {
-        if (COMMON_LAYOUT_NAMES.has(getComponentName(comp).toLowerCase())) return true;
-      }
-    }
-
-    return false;
-  }
-
-  private getVueComponent(el: Element): any {
-    let node: Element | null = el;
-    while (node) {
-      const instance = (node as any).__vueParentComponent || (node as any).__vue_app__?._instance;
-      if (instance) return instance;
-      node = node.parentElement;
-    }
-    return null;
-  }
-
-  private getComponentLabelFromInstance(el: Element, instance: any): string {
-    const tag = getComponentName(instance, el.tagName.toLowerCase());
-    let label = `<${tag}>`;
-    if (instance) {
-      const type = instance.type;
-      if (type?.__file) {
-        if (!shortPathCache.has(type)) {
-          const normalized = type.__file.replace(/\\/g, "/");
-          const srcIndex = normalized.indexOf("src/");
-          shortPathCache.set(type, srcIndex >= 0 ? normalized.slice(srcIndex) : normalized);
-        }
-        label += ` ${shortPathCache.get(type)}`;
-      }
-    }
-    return label;
-  }
-
-  private getComponentStack(el: Element): ComponentInfo[] {
-    const stack: ComponentInfo[] = [];
-    let node: Element | null = el;
-
-    while (node) {
-      const instance = (node as any).__vueParentComponent || (node as any).__vue_app__?._instance;
-      if (instance) {
-        const name = getComponentName(instance, "Anonymous");
-        const filePath = instance.type?.__file;
-        const info: ComponentInfo = { name };
-        if (filePath) info.filePath = filePath;
-        stack.push(info);
-      }
-      node = node.parentElement;
-    }
-
-    return stack;
-  }
-
-  private generateSelector(el: Element): string {
-    if (el.id) return `#${CSS.escape(el.id)}`;
-
-    const parts: string[] = [];
-    let current: Element | null = el;
-
-    while (current && current !== document.body && current !== document.documentElement) {
-      let segment = current.tagName.toLowerCase();
-
-      if (current.id) {
-        parts.unshift(`#${CSS.escape(current.id)}`);
-        break;
-      }
-
-      if (current.className && typeof current.className === "string") {
-        const classes = current.className.trim().split(/\s+/).filter(Boolean);
-        if (classes.length > 0) {
-          segment += `.${classes
-            .slice(0, 2)
-            .map((c) => CSS.escape(c))
-            .join(".")}`;
-        }
-      }
-
-      parts.unshift(segment);
-      current = current.parentElement;
-    }
-
-    return parts.join(" > ");
+    return shouldIgnoreElement(el, this.config);
   }
 }

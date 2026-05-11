@@ -6,3 +6,5 @@ export { ConsoleCapture, resolveLogSource, truncate } from "./console-capture";
 export { NetworkCapture, resolveRequestSource, formatNetworkStatusLabel } from "./network-capture";
 export { buildLogPrompt, buildRequestPrompt } from "./prompt-builder";
 export { toRelativePath, normalizeRoot } from "./path";
+export { destroyAll, registerFloatingButtonShortcuts } from "./lifecycle";
+export type { Disposable, PanelRenderer, ToggleableTool } from "./lifecycle";

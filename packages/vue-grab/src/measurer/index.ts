@@ -2,65 +2,12 @@ import type { MeasurerConfig } from "@sakana-y/vue-grab-shared";
 import { FAB_HOST_ID } from "../floating-button";
 import { OVERLAY_HOST_ID } from "../overlay";
 import { MAGNIFIER_HOST_ID } from "../magnifier";
+import { computeGap, computeSharedMidX, computeSharedMidY, estimateTextWidth } from "./geometry";
+import { STYLES } from "./styles";
 
 export const MEASURER_HOST_ID = "vue-grab-measurer-host";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
-
-const STYLES = `
-  :host { all: initial; }
-
-  .measurer-container {
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    z-index: 2147483645;
-    display: none;
-  }
-  .measurer-container.active {
-    display: block;
-  }
-
-  svg {
-    width: 100%;
-    height: 100%;
-  }
-
-  .dim-rect {
-    fill: none;
-    stroke-dasharray: 4 3;
-  }
-  .dim-rect-selected {
-    fill: none;
-    stroke-dasharray: none;
-  }
-  .dim-label {
-    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
-    font-size: 11px;
-    pointer-events: none;
-  }
-  .dim-label-bg {
-    rx: 3;
-    ry: 3;
-  }
-  .spacing-line {
-    stroke-dasharray: none;
-  }
-  .spacing-label {
-    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
-    font-size: 11px;
-    font-weight: 600;
-    pointer-events: none;
-  }
-  .spacing-label-bg {
-    rx: 3;
-    ry: 3;
-  }
-  .guide-line {
-    stroke-dasharray: 6 4;
-    opacity: 0.6;
-  }
-`;
 
 export class MeasurerOverlay {
   private host: HTMLElement | null = null;
@@ -155,7 +102,7 @@ export class MeasurerOverlay {
       e.preventDefault();
 
       if (el === this.selectedElement) {
-        // Click same element → deselect
+        // Click same element 鈫?deselect
         this.selectedElement = null;
       } else {
         this.selectedElement = el;
@@ -228,7 +175,7 @@ export class MeasurerOverlay {
     this.stateListeners.clear();
   }
 
-  // ── Private ──
+  // 鈹€鈹€ Private 鈹€鈹€
 
   private notifyState(active: boolean): void {
     for (const cb of this.stateListeners) cb(active);
@@ -301,15 +248,15 @@ export class MeasurerOverlay {
     r.setAttribute("class", dashed ? "dim-rect" : "dim-rect-selected");
     this.svg.appendChild(r);
 
-    // Dimension label: "W × H"
-    const label = `${w} × ${h}`;
+    // Dimension label: "W 脳 H"
+    const label = `${w} 脳 ${h}`;
     const labelX = rect.left + rect.width / 2;
     // Position label below the element, or above if near bottom
     const labelBelow = rect.bottom + 20 < window.innerHeight;
     const labelY = labelBelow ? rect.bottom + 14 : rect.top - 8;
 
     // Background
-    const textMetrics = this.estimateTextWidth(label);
+    const textMetrics = estimateTextWidth(label);
     const bgPad = 4;
     const bg = this.createSvgEl("rect");
     bg.setAttribute("x", String(labelX - textMetrics / 2 - bgPad));
@@ -335,56 +282,19 @@ export class MeasurerOverlay {
     if (!this.svg) return;
 
     // Horizontal spacing
-    const hGap = this.computeGap(a.left, a.right, b.left, b.right);
+    const hGap = computeGap(a.left, a.right, b.left, b.right);
     if (hGap) {
-      const midY = this.computeSharedMidY(a, b);
+      const midY = computeSharedMidY(a, b);
       // Line from one edge to the other
       this.drawMeasurementLine(hGap.start, midY, hGap.end, midY, hGap.distance, color, lineWidth);
     }
 
     // Vertical spacing
-    const vGap = this.computeGap(a.top, a.bottom, b.top, b.bottom);
+    const vGap = computeGap(a.top, a.bottom, b.top, b.bottom);
     if (vGap) {
-      const midX = this.computeSharedMidX(a, b);
+      const midX = computeSharedMidX(a, b);
       this.drawMeasurementLine(midX, vGap.start, midX, vGap.end, vGap.distance, color, lineWidth);
     }
-  }
-
-  private computeGap(
-    aStart: number,
-    aEnd: number,
-    bStart: number,
-    bEnd: number,
-  ): { start: number; end: number; distance: number } | null {
-    // A is left/top of B
-    if (aEnd <= bStart) {
-      return { start: aEnd, end: bStart, distance: Math.round(bStart - aEnd) };
-    }
-    // B is left/top of A
-    if (bEnd <= aStart) {
-      return { start: bEnd, end: aStart, distance: Math.round(aStart - bEnd) };
-    }
-    // Overlapping — no gap to show
-    return null;
-  }
-
-  private computeSharedMidY(a: DOMRect, b: DOMRect): number {
-    // Use the overlap midpoint if they overlap vertically, otherwise average
-    const overlapTop = Math.max(a.top, b.top);
-    const overlapBottom = Math.min(a.bottom, b.bottom);
-    if (overlapTop < overlapBottom) {
-      return (overlapTop + overlapBottom) / 2;
-    }
-    return (a.top + a.bottom + b.top + b.bottom) / 4;
-  }
-
-  private computeSharedMidX(a: DOMRect, b: DOMRect): number {
-    const overlapLeft = Math.max(a.left, b.left);
-    const overlapRight = Math.min(a.right, b.right);
-    if (overlapLeft < overlapRight) {
-      return (overlapLeft + overlapRight) / 2;
-    }
-    return (a.left + a.right + b.left + b.right) / 4;
   }
 
   private drawMeasurementLine(
@@ -424,7 +334,7 @@ export class MeasurerOverlay {
     const midX = (x1 + x2) / 2;
     const midY = (y1 + y2) / 2;
     const label = `${distance}px`;
-    const textW = this.estimateTextWidth(label);
+    const textW = estimateTextWidth(label);
     const bgPad = 4;
 
     // Offset label to avoid overlapping the line
@@ -518,10 +428,5 @@ export class MeasurerOverlay {
 
   private createSvgEl(tag: string): SVGElement {
     return document.createElementNS(SVG_NS, tag);
-  }
-
-  private estimateTextWidth(text: string): number {
-    // Rough estimate: ~6.6px per character at 11px monospace
-    return text.length * 6.6;
   }
 }
