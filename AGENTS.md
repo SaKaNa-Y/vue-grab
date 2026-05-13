@@ -3,14 +3,14 @@
 ## Project Structure & Module Organization
 This repository is a `pnpm` monorepo managed with Turborepo. Core packages live under `packages/`:
 
-- `packages/vue-grab`: main Vue library source in `src/`, tests in `tests/`. It publishes two entry points: `@sakana-y/vue-grab` (core plugin/runtime APIs) and `@sakana-y/vue-grab/vite` (Vite dev server plugin with editor/style endpoints).
-- `packages/shared`: shared types, constants, protocol values, and `mergeConfig()`.
-- `packages/cli`: CLI entrypoint and commands, including `vue-grab init`.
+- `packages/vue-grab`: main Vue 3 library source in `src/`, tests in `tests/`. It publishes `@sakana-y/vue-grab` for core plugin/runtime APIs and `@sakana-y/vue-grab/vite` for the Vite dev server plugin with the open-in-editor endpoint and project-root wiring.
+- `packages/shared`: public `@sakana-y/vue-grab-shared` package for shared types, `DEFAULT_CONFIG`, protocol constants, editor allow-list values, and `mergeConfig()`.
+- `packages/cli`: public `@sakana-y/vue-grab-cli` package for the CAC-powered CLI entrypoint and commands, including `vue-grab init`.
 - `playground/`: private local demo app for manual testing.
 - `docs/`: private VitePress documentation site.
 - `.changeset/`: versioning and release metadata.
 
-Keep new code close to the package it belongs to. Export public APIs from each package's `src/index.ts`.
+Keep new code close to the package it belongs to. Export public core APIs from each package's `src/index.ts`; the Vue Grab Vite plugin is exported from `packages/vue-grab/src/vite.ts`.
 
 ## Build, Test, and Development Commands
 Use Node `>=22.0.0` and pnpm `>=10.0.0`; the repo pins `pnpm@10.24.0`.
@@ -26,6 +26,8 @@ Use Node `>=22.0.0` and pnpm `>=10.0.0`; the repo pins `pnpm@10.24.0`.
 - `pnpm lint:fix`: run `oxlint` with auto-fixes.
 - `pnpm format`: auto-format with `oxfmt`.
 - `pnpm format:check`: check formatting for CI.
+- `pnpm version-packages`: run Changesets versioning through `.env`.
+- `pnpm release`: publish packages with Changesets.
 
 For package-only work, use filters such as:
 
@@ -38,6 +40,8 @@ pnpm --filter @sakana-y/vue-grab-shared test
 Write TypeScript and Vue 3 with ES modules. Prefer `<script setup lang="ts">` in `.vue` files. The codebase uses semicolons, double quotes, and 2-space indentation. Keep filenames lowercase and descriptive; use `index.ts` for package entrypoints and `*.test.ts` for tests.
 
 `GrabConfig` has nested objects (`filter`, `floatingButton`, `consoleCapture`, `networkCapture`, `magnifier`, `measurer`), so always use `mergeConfig()` from `@sakana-y/vue-grab-shared` for config overrides instead of object spread. Array fields such as `consoleCapture.levels`, `networkCapture.redactHeaders`, and `networkCapture.urlDenyList` are replaced wholesale.
+
+For floating button config, `floatingButton.dockEntries` controls toolbar order/visibility, `floatingButton.shortcuts` is the current multi-feature shortcut map, and `floatingButton.hotkeyStorageKey` plus `floatingButton.measurerHotkeyStorageKey` remain for legacy hotkey migration. Position, dock mode, dock entries, shortcuts, editor choice, and outside-click close behavior each have their own localStorage keys. `networkCapture.grabSnapshot` controls recent network entries attached to `GrabResult.network`.
 
 Run `pnpm lint`, `pnpm format:check`, and the relevant tests before opening a PR.
 
