@@ -5,7 +5,9 @@ import type {
   LogLevel,
   LogSource,
 } from "@sakana-y/vue-grab-shared";
+
 import { VUE_ERROR_EVENT } from "@sakana-y/vue-grab-shared";
+
 import { stringifyCircularSafe } from "./serialize";
 import { extractSource, normalizeSourceFile } from "./stack";
 

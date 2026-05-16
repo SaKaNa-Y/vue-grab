@@ -1,5 +1,7 @@
 import type { Plugin } from "vite";
+
 import { OPEN_IN_EDITOR_ENDPOINT, VUE_GRAB_ROOT_GLOBAL } from "@sakana-y/vue-grab-shared";
+
 import { normalizeRoot } from "./utils/path";
 import { createOpenInEditorMiddleware } from "./vite/open-in-editor-middleware";
 

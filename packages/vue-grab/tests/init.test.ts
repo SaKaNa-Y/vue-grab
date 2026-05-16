@@ -1,4 +1,5 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
+
 import { init } from "../src/init";
 import { OVERLAY_HOST_ID } from "../src/overlay";
 import { cleanupDOM, createTargetElement, fireClickAtCenter } from "./helpers/setup";

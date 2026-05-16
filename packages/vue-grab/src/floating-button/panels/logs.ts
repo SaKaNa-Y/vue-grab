@@ -1,10 +1,13 @@
 import type { CapturedLog, LogLevel } from "@sakana-y/vue-grab-shared";
+
 import { ALL_LOG_LEVELS } from "@sakana-y/vue-grab-shared";
-import { openInClaudeCode, openInEditor } from "../../editor";
+
 import type { PanelRenderer } from "../../utils/lifecycle";
+import type { PanelId } from "../types";
+
+import { openInClaudeCode, openInEditor } from "../../editor";
 import { buildLogPrompt, esc, resolveLogSource, truncate } from "../../utils";
 import { LOGS_SVG } from "../icons";
-import type { PanelId } from "../types";
 
 export interface FloatingButtonLogsPanelOptions {
   getActivePanel: () => PanelId | null;

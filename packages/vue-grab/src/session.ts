@@ -1,8 +1,10 @@
 import type { GrabConfig } from "@sakana-y/vue-grab-shared";
+
 import { DEFAULT_HOTKEY } from "@sakana-y/vue-grab-shared";
+
 import { GrabEngine } from "./core";
-import { HotkeyManager } from "./hotkeys";
 import { FloatingButton } from "./floating-button";
+import { HotkeyManager } from "./hotkeys";
 import { MagnifierOverlay } from "./magnifier";
 import { MeasurerOverlay } from "./measurer";
 import { RenderScanCollector, RenderScanOverlay } from "./render-scan";

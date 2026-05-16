@@ -1,6 +1,8 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { DEFAULT_MEASURER } from "@sakana-y/vue-grab-shared";
+
 import type { MeasurerConfig } from "@sakana-y/vue-grab-shared";
+
+import { DEFAULT_MEASURER } from "@sakana-y/vue-grab-shared";
 
 // Import magnifier first to resolve circular dependency initialization
 // (magnifier imports MEASURER_HOST_ID from measurer, and measurer imports MAGNIFIER_HOST_ID from magnifier)

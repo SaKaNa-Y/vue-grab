@@ -7,17 +7,20 @@ import type {
   FloatingButtonShortcutsConfig,
   GrabResult,
 } from "@sakana-y/vue-grab-shared";
+
 import type { RenderScanRecord } from "../render-scan";
+import type { PanelId } from "./types";
+
 import { FloatingButtonDockEntriesController } from "./dock-entries";
-import { STYLES } from "./styles";
-import { createFloatingButtonState, type FloatingButtonRuntimeState } from "./state";
-import { FloatingButtonShortcutsController } from "./shortcuts";
-import { FloatingButtonSettingsPanel } from "./settings-panel";
-import { FloatingButtonRenderScanPanel } from "./panels/render-scan";
+import { createHostStyle, FloatingButtonLayoutController } from "./layout";
 import { FloatingButtonA11yPanel } from "./panels/a11y";
 import { FloatingButtonLogsPanel } from "./panels/logs";
 import { FloatingButtonNetworkPanel } from "./panels/network";
-import { createHostStyle, FloatingButtonLayoutController } from "./layout";
+import { FloatingButtonRenderScanPanel } from "./panels/render-scan";
+import { FloatingButtonSettingsPanel } from "./settings-panel";
+import { FloatingButtonShortcutsController } from "./shortcuts";
+import { createFloatingButtonState, type FloatingButtonRuntimeState } from "./state";
+import { STYLES } from "./styles";
 import {
   createDockEntryButton,
   getDockEntryElement,
@@ -25,7 +28,6 @@ import {
   updatePanelButtonStates,
   type FloatingButtonToolbarElements,
 } from "./toolbar";
-import type { PanelId } from "./types";
 
 export const FAB_HOST_ID = "vue-grab-fab-host";
 

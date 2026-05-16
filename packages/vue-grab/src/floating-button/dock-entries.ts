@@ -3,6 +3,9 @@ import type {
   FloatingButtonDockEntriesConfig,
   FloatingButtonDockEntryId,
 } from "@sakana-y/vue-grab-shared";
+
+import type { DockEntryDropPlacement, DockEntryGroupId } from "./types";
+
 import { DOCK_ENTRY_DEFINITION_BY_ID, isDockEntryId } from "./definitions";
 import { renderDockEntryManager } from "./render-dock";
 import {
@@ -11,7 +14,6 @@ import {
   tryReadDockEntries,
   trySaveDockEntries,
 } from "./storage";
-import type { DockEntryDropPlacement, DockEntryGroupId } from "./types";
 
 export class FloatingButtonDockEntriesController {
   private entries: FloatingButtonDockEntriesConfig;

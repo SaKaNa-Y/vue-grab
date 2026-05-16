@@ -3,6 +3,7 @@ import type {
   NetworkCaptureConfig,
   NetworkStatusClass,
 } from "@sakana-y/vue-grab-shared";
+
 import { truncate } from "./console-capture";
 import { stringifyCircularSafe } from "./serialize";
 import { extractSource, firstFrameFile, normalizeSourceFile } from "./stack";

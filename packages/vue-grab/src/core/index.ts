@@ -1,5 +1,7 @@
 import type { GrabConfig, GrabResult, GrabUserConfig } from "@sakana-y/vue-grab-shared";
+
 import { mergeConfig } from "@sakana-y/vue-grab-shared";
+
 import { GrabOverlay } from "../overlay";
 import { hasA11yAttributes } from "../utils";
 import { shouldIgnoreElement } from "./filter";

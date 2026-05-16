@@ -1,4 +1,5 @@
 import type { MagnifierConfig } from "@sakana-y/vue-grab-shared";
+
 import { FAB_HOST_ID } from "../floating-button";
 import { OVERLAY_HOST_ID } from "../overlay";
 import { buildCloneTransform, removeVueGrabHosts } from "./clone";

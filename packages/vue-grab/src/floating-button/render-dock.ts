@@ -1,7 +1,9 @@
 import type { FloatingButtonDockEntriesConfig } from "@sakana-y/vue-grab-shared";
+
+import type { DockEntryDefinition } from "./types";
+
 import { esc } from "../utils";
 import { DOCK_ENTRY_DEFINITION_BY_ID, DOCK_ENTRY_GROUPS } from "./definitions";
-import type { DockEntryDefinition } from "./types";
 
 export function renderDockEntryManager(dockEntries: FloatingButtonDockEntriesConfig): string {
   const hidden = new Set(dockEntries.hidden);

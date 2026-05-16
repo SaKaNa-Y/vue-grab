@@ -1,7 +1,7 @@
-import { OVERLAY_HOST_ID } from "../../src/overlay";
 import { FAB_HOST_ID } from "../../src/floating-button";
 import { MAGNIFIER_HOST_ID } from "../../src/magnifier";
 import { MEASURER_HOST_ID } from "../../src/measurer";
+import { OVERLAY_HOST_ID } from "../../src/overlay";
 
 const TARGET_ATTR = "data-testid";
 const TARGET_VALUE = "grab-target";

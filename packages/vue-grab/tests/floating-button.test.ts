@@ -1,10 +1,14 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
+
 import type { CapturedLog, CapturedRequest, GrabResult, LogLevel } from "@sakana-y/vue-grab-shared";
+
 import {
   DEFAULT_FLOATING_BUTTON,
   DEFAULT_FLOATING_BUTTON_DOCK_ENTRY_ORDER,
 } from "@sakana-y/vue-grab-shared";
+
 import type { RenderScanRecord } from "../src/render-scan";
+
 import { FloatingButton, FAB_HOST_ID } from "../src/floating-button";
 import { cleanupDOM } from "./helpers/setup";
 

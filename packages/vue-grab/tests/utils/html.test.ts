@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+
 import { esc } from "../../src/utils/html";
 
 describe("esc", () => {

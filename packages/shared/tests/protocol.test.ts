@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import {
   DEFAULT_URL_DENY_LIST,
   OPEN_IN_EDITOR_ALLOWED_EDITORS,

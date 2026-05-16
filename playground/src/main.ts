@@ -1,5 +1,7 @@
 import { createApp } from "vue";
+
 import { createVueGrab } from "@sakana-y/vue-grab";
+
 import App from "./App.vue";
 import "./style.css";
 

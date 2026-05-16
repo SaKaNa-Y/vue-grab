@@ -1,4 +1,5 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
+
 import { HotkeyManager } from "../src/hotkeys";
 
 describe("HotkeyManager", () => {

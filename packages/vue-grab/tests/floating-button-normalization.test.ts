@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
+
 import { DEFAULT_FLOATING_BUTTON_DOCK_ENTRY_ORDER } from "@sakana-y/vue-grab-shared";
+
+import { cloneShortcuts, normalizeShortcutsWithLegacy } from "../src/floating-button/shortcuts";
 import {
   normalizeDockEntries,
   normalizeShortcutCombo,
@@ -8,7 +11,6 @@ import {
   tryReadHotkey,
   tryReadString,
 } from "../src/floating-button/storage";
-import { cloneShortcuts, normalizeShortcutsWithLegacy } from "../src/floating-button/shortcuts";
 import { visibleDockEntryIds } from "../src/floating-button/toolbar";
 
 describe("floating button normalization", () => {

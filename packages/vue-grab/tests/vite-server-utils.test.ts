@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
+
 import { OPEN_IN_EDITOR_CONTENT_TYPE } from "@sakana-y/vue-grab-shared";
+
 import {
   hasEditorContentType,
   isSameOriginRequest,

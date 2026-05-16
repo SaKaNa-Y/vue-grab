@@ -1,4 +1,5 @@
 import type { CapturedLog, CapturedRequest } from "@sakana-y/vue-grab-shared";
+
 import { toRelativePath } from "./path";
 
 export function buildLogPrompt(log: CapturedLog): string {

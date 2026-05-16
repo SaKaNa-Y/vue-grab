@@ -5,6 +5,7 @@ import type {
   ComponentA11ySummary,
   ElementA11yDetail,
 } from "@sakana-y/vue-grab-shared";
+
 import { getComponentName } from "./component";
 
 const A11Y_ATTRIBUTES = [

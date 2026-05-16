@@ -1,8 +1,9 @@
 import type { RenderScanRecord } from "../../render-scan";
+import type { PanelId } from "../types";
+
 import { openInEditor } from "../../editor";
 import { esc, toRelativePath, truncate } from "../../utils";
 import { RENDER_SCAN_SVG } from "../icons";
-import type { PanelId } from "../types";
 
 export interface FloatingButtonRenderScanPanelOptions {
   getActivePanel: () => PanelId | null;

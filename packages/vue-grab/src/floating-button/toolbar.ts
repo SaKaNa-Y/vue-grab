@@ -2,8 +2,10 @@ import type {
   FloatingButtonDockEntriesConfig,
   FloatingButtonDockEntryId,
 } from "@sakana-y/vue-grab-shared";
-import { DOCK_ENTRY_DEFINITION_BY_ID } from "./definitions";
+
 import type { DockEntryGroupId, PanelId } from "./types";
+
+import { DOCK_ENTRY_DEFINITION_BY_ID } from "./definitions";
 
 export interface FloatingButtonToolbarElements {
   grab: HTMLElement | null;

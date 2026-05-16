@@ -1,6 +1,9 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
+
 import type { ConsoleCaptureConfig } from "@sakana-y/vue-grab-shared";
+
 import { ALL_LOG_LEVELS, VUE_ERROR_EVENT } from "@sakana-y/vue-grab-shared";
+
 import { ConsoleCapture, resolveLogSource } from "../../src/utils/console-capture";
 
 const ALL_LEVELS = ALL_LOG_LEVELS;

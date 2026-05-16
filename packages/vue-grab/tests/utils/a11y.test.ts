@@ -1,4 +1,5 @@
 import { describe, it, expect, afterEach } from "vitest";
+
 import { hasA11yAttributes, extractA11yInfo, scanPageA11y } from "../../src/utils/a11y";
 
 function el(tag: string, attrs: Record<string, string> = {}): HTMLElement {

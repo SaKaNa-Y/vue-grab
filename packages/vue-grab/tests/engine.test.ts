@@ -1,5 +1,7 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
+
 import { DEFAULT_CONFIG, VUE_GRAB_ROOT_GLOBAL } from "@sakana-y/vue-grab-shared";
+
 import { GrabEngine } from "../src/core";
 import { OVERLAY_HOST_ID } from "../src/overlay";
 import {

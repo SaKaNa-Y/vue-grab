@@ -1,4 +1,5 @@
 import type { FloatingButtonShortcutCommandId } from "@sakana-y/vue-grab-shared";
+
 import type { FloatingButton } from "../floating-button";
 import type { HotkeyManager } from "../hotkeys";
 

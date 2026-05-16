@@ -1,5 +1,7 @@
 import { OPEN_IN_EDITOR_CONTENT_TYPE } from "@sakana-y/vue-grab-shared";
+
 import type { VueGrabPluginOptions } from "../vite";
+
 import {
   hasEditorContentType,
   isSameOriginRequest,

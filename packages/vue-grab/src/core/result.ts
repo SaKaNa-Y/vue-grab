@@ -1,4 +1,5 @@
 import type { GrabConfig, GrabResult } from "@sakana-y/vue-grab-shared";
+
 import { extractA11yInfo } from "../utils";
 import { generateSelector } from "./selector";
 import { getComponentStack } from "./vue-component";

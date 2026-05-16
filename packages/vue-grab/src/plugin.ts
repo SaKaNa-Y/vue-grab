@@ -1,8 +1,12 @@
 import { readonly, ref, type App, type DeepReadonly, type InjectionKey, type Ref } from "vue";
+
 import type { GrabConfig, GrabResult, GrabUserConfig } from "@sakana-y/vue-grab-shared";
+
 import { DEFAULT_CONFIG, mergeConfig, VUE_ERROR_EVENT } from "@sakana-y/vue-grab-shared";
-import { createGrabSession, type GrabSession } from "./session";
+
 import type { RenderScanCollector, RenderScanOverlay } from "./render-scan";
+
+import { createGrabSession, type GrabSession } from "./session";
 
 export const VUE_GRAB_CONFIG_KEY: InjectionKey<GrabConfig> = Symbol("vue-grab-config");
 
