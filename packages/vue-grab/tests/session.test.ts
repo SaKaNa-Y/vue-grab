@@ -1,10 +1,12 @@
 import { describe, it, expect, afterEach } from "vitest";
+
 import { DEFAULT_CONFIG } from "@sakana-y/vue-grab-shared";
-import { createGrabSession } from "../src/session";
-import { OVERLAY_HOST_ID } from "../src/overlay";
+
 import { FAB_HOST_ID } from "../src/floating-button";
 import { MAGNIFIER_HOST_ID } from "../src/magnifier";
 import { MEASURER_HOST_ID } from "../src/measurer";
+import { OVERLAY_HOST_ID } from "../src/overlay";
+import { createGrabSession } from "../src/session";
 import { cleanupDOM, fireKey } from "./helpers/setup";
 
 describe("createGrabSession", () => {

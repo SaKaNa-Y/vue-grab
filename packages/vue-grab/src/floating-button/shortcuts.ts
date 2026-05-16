@@ -3,10 +3,14 @@ import type {
   FloatingButtonShortcutCommandId,
   FloatingButtonShortcutsConfig,
 } from "@sakana-y/vue-grab-shared";
+
 import {
   DEFAULT_FLOATING_BUTTON,
   DEFAULT_FLOATING_BUTTON_DOCK_ENTRY_ORDER,
 } from "@sakana-y/vue-grab-shared";
+
+import type { PanelId, TabId } from "./types";
+
 import { buildCombo } from "../hotkeys";
 import { esc } from "../utils";
 import { SHORTCUT_COMMAND_DEFINITIONS, isDockEntryId } from "./definitions";
@@ -18,7 +22,6 @@ import {
   tryReadShortcuts,
   trySaveShortcuts,
 } from "./storage";
-import type { PanelId, TabId } from "./types";
 
 export interface FloatingButtonShortcutsControllerOptions {
   getActivePanel: () => PanelId | null;

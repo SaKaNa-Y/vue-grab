@@ -1,4 +1,5 @@
 import type { GrabConfig } from "@sakana-y/vue-grab-shared";
+
 import { FAB_HOST_ID } from "../floating-button";
 import { MAGNIFIER_HOST_ID } from "../magnifier";
 import { MEASURER_HOST_ID } from "../measurer";

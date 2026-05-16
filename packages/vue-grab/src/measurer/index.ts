@@ -1,7 +1,8 @@
 import type { MeasurerConfig } from "@sakana-y/vue-grab-shared";
+
 import { FAB_HOST_ID } from "../floating-button";
-import { OVERLAY_HOST_ID } from "../overlay";
 import { MAGNIFIER_HOST_ID } from "../magnifier";
+import { OVERLAY_HOST_ID } from "../overlay";
 import { computeGap, computeSharedMidX, computeSharedMidY, estimateTextWidth } from "./geometry";
 import { STYLES } from "./styles";
 

@@ -4,10 +4,12 @@ import type {
   FloatingButtonDockMode,
   FloatingButtonShortcutsConfig,
 } from "@sakana-y/vue-grab-shared";
+
 import { DEFAULT_FLOATING_BUTTON_DOCK_ENTRY_ORDER } from "@sakana-y/vue-grab-shared";
+
 import { tryReadStorage, trySaveStorage } from "../utils";
-import { isDockMode } from "./geometry";
 import { isDockEntryId } from "./definitions";
+import { isDockMode } from "./geometry";
 
 export const DEFAULT_DOCK_ENTRIES_STORAGE_KEY = "vue-grab-dock-entries";
 export const DEFAULT_SHORTCUTS_STORAGE_KEY = "vue-grab-shortcuts";

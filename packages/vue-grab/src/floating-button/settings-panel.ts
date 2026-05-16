@@ -1,13 +1,15 @@
 import type { FloatingButtonConfig, FloatingButtonDockMode } from "@sakana-y/vue-grab-shared";
-import { openInEditor } from "../editor";
-import { esc, toRelativePath } from "../utils";
-import { CROSSHAIR_SVG, GEAR_SVG, LOGS_SVG, MAGNIFIER_SVG } from "./icons";
-import { DOCK_MODE_OPTIONS, EDITOR_PRESETS } from "./definitions";
-import { trySaveBoolean, trySaveEditor } from "./storage";
+
 import type { FloatingButtonDockEntriesController } from "./dock-entries";
 import type { FloatingButtonShortcutsController } from "./shortcuts";
 import type { FloatingButtonRuntimeState } from "./state";
 import type { TabId } from "./types";
+
+import { openInEditor } from "../editor";
+import { esc, toRelativePath } from "../utils";
+import { DOCK_MODE_OPTIONS, EDITOR_PRESETS } from "./definitions";
+import { CROSSHAIR_SVG, GEAR_SVG, LOGS_SVG, MAGNIFIER_SVG } from "./icons";
+import { trySaveBoolean, trySaveEditor } from "./storage";
 
 export interface FloatingButtonSettingsPanelOptions {
   config: FloatingButtonConfig;

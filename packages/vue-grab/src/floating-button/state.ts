@@ -1,6 +1,9 @@
 import type { FloatingButtonConfig, GrabResult } from "@sakana-y/vue-grab-shared";
+
 import { DEFAULT_MAGNIFIER } from "@sakana-y/vue-grab-shared";
+
 import type { PanelId, TabId } from "./types";
+
 import { tryReadBoolean, tryReadEditor } from "./storage";
 
 export interface FloatingButtonStateOptions {

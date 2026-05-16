@@ -1,6 +1,9 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { DEFAULT_MAGNIFIER } from "@sakana-y/vue-grab-shared";
+
 import type { MagnifierConfig } from "@sakana-y/vue-grab-shared";
+
+import { DEFAULT_MAGNIFIER } from "@sakana-y/vue-grab-shared";
+
 import { MagnifierOverlay, MAGNIFIER_HOST_ID } from "../src/magnifier";
 
 function createMagnifier(overrides: Partial<MagnifierConfig> = {}): MagnifierOverlay {

@@ -1,6 +1,9 @@
 import { getCurrentInstance, inject, onUnmounted, type DeepReadonly, type Ref } from "vue";
+
 import type { GrabConfig, GrabResult } from "@sakana-y/vue-grab-shared";
+
 import { DEFAULT_CONFIG, mergeConfig } from "@sakana-y/vue-grab-shared";
+
 import { createVueGrabContext, VUE_GRAB_CONTEXT_KEY, type VueGrabContext } from "../plugin";
 
 export interface UseGrabReturn {

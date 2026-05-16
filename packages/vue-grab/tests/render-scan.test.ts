@@ -1,4 +1,5 @@
 import { describe, expect, it, afterEach, vi } from "vitest";
+
 import { RENDER_SCAN_HOST_ID, RenderScanCollector, RenderScanOverlay } from "../src/render-scan";
 import { cleanupDOM } from "./helpers/setup";
 

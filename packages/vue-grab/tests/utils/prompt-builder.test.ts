@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
+
 import type { CapturedLog } from "@sakana-y/vue-grab-shared";
+
 import { buildLogPrompt } from "../../src/utils/prompt-builder";
 
 function makeLog(overrides: Partial<CapturedLog> = {}): CapturedLog {

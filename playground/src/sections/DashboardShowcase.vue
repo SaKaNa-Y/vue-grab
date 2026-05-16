@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import StatCard from "./StatCard.vue";
 import BarChart from "./BarChart.vue";
+import StatCard from "./StatCard.vue";
 </script>
 
 <template>

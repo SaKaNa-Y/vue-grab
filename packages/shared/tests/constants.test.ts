@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+
 import {
   DEFAULT_CONFIG,
   DEFAULT_FLOATING_BUTTON_DOCK_ENTRY_ORDER,

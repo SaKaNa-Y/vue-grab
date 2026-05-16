@@ -1,13 +1,17 @@
+import { mount } from "@vue/test-utils";
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { defineComponent, inject, nextTick, onUnmounted, ref } from "vue";
-import { mount } from "@vue/test-utils";
-import { DEFAULT_CONFIG, DEFAULT_HIGHLIGHT_COLOR } from "@sakana-y/vue-grab-shared";
-import { createVueGrab, VUE_GRAB_CONFIG_KEY, VUE_GRAB_CONTEXT_KEY } from "../src";
+
 import type { GrabConfig } from "@sakana-y/vue-grab-shared";
-import { FAB_HOST_ID } from "../src/floating-button";
-import { ConsoleCapture } from "../src/utils";
-import { RenderScanCollector } from "../src/render-scan";
+
+import { DEFAULT_CONFIG, DEFAULT_HIGHLIGHT_COLOR } from "@sakana-y/vue-grab-shared";
+
 import type { VueGrabContext } from "../src/plugin";
+
+import { createVueGrab, VUE_GRAB_CONFIG_KEY, VUE_GRAB_CONTEXT_KEY } from "../src";
+import { FAB_HOST_ID } from "../src/floating-button";
+import { RenderScanCollector } from "../src/render-scan";
+import { ConsoleCapture } from "../src/utils";
 import { cleanupDOM } from "./helpers/setup";
 
 function mountAndInject(pluginOptions = {}): GrabConfig | undefined {

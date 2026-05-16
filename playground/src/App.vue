@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import Toolbar from "./sections/Toolbar.vue";
-import RenderScanShowcase from "./sections/RenderScanShowcase.vue";
-import FormShowcase from "./sections/FormShowcase.vue";
 import DashboardShowcase from "./sections/DashboardShowcase.vue";
+import FormShowcase from "./sections/FormShowcase.vue";
 import ListShowcase from "./sections/ListShowcase.vue";
 import NestedComponents from "./sections/NestedComponents.vue";
+import RenderScanShowcase from "./sections/RenderScanShowcase.vue";
 import ResultPanel from "./sections/ResultPanel.vue";
+import Toolbar from "./sections/Toolbar.vue";
 </script>
 
 <template>

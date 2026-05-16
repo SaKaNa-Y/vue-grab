@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+
 import type { NetworkCaptureConfig } from "@sakana-y/vue-grab-shared";
+
 import { DEFAULT_NETWORK_CAPTURE } from "@sakana-y/vue-grab-shared";
+
 import { NetworkCapture } from "../../src/utils/network-capture";
 
 function makeConfig(overrides: Partial<NetworkCaptureConfig> = {}): NetworkCaptureConfig {

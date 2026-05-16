@@ -1,4 +1,5 @@
 import type { OpenInEditorRequest } from "@sakana-y/vue-grab-shared";
+
 import { OPEN_IN_EDITOR_CONTENT_TYPE, OPEN_IN_EDITOR_ENDPOINT } from "@sakana-y/vue-grab-shared";
 
 /**

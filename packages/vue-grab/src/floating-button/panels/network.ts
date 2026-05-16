@@ -1,9 +1,13 @@
 import type { CapturedRequest, NetworkStatusClass } from "@sakana-y/vue-grab-shared";
+
 import {
   ALL_NETWORK_STATUS_CLASSES,
   NETWORK_ERROR_CLASSES,
   NETWORK_WARN_CLASSES,
 } from "@sakana-y/vue-grab-shared";
+
+import type { PanelId } from "../types";
+
 import { openInClaudeCode, openInEditor } from "../../editor";
 import {
   buildRequestPrompt,
@@ -13,7 +17,6 @@ import {
   truncate,
 } from "../../utils";
 import { NETWORK_SVG } from "../icons";
-import type { PanelId } from "../types";
 
 export interface FloatingButtonNetworkPanelOptions {
   getActivePanel: () => PanelId | null;

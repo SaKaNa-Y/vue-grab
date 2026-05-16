@@ -1,5 +1,6 @@
-import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
+import { defineConfig } from "vite";
+
 import { vueGrabPlugin } from "@sakana-y/vue-grab/vite";
 
 // Vite 8 SPA-fallbacks every unknown path to 200 index.html, so we need

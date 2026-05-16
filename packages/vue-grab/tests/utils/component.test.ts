@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+
 import { getComponentName } from "../../src/utils/component";
 
 describe("getComponentName", () => {

@@ -11,6 +11,7 @@ import type {
   NetworkStatusClass,
   RenderScanConfig,
 } from "./types";
+
 import { OPEN_IN_EDITOR_ENDPOINT } from "./protocol";
 
 export const DEFAULT_HIGHLIGHT_COLOR = "#4f46e5";

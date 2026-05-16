@@ -1,5 +1,7 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
+
 import { OPEN_IN_EDITOR_CONTENT_TYPE, OPEN_IN_EDITOR_ENDPOINT } from "@sakana-y/vue-grab-shared";
+
 import { openInEditor, openInClaudeCode } from "../src/editor";
 
 describe("openInEditor", () => {

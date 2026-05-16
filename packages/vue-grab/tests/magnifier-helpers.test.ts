@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import { buildCloneTransform } from "../src/magnifier/clone";
 import { buildCompactTag } from "../src/magnifier/html-label";
 

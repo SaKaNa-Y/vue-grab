@@ -1,4 +1,5 @@
 import { describe, it, expect, afterEach } from "vitest";
+
 import { toRelativePath, normalizeRoot } from "../../src/utils/path";
 
 type GlobalWithRoot = { __VUE_GRAB_ROOT__?: string };

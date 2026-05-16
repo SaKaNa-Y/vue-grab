@@ -1,4 +1,5 @@
 import type { ComponentInfo } from "@sakana-y/vue-grab-shared";
+
 import { getComponentName, toRelativePath } from "../utils";
 
 export type VueComponentInstance = any;

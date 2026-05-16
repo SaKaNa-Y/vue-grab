@@ -1,4 +1,5 @@
 import type { RenderScanConfig } from "@sakana-y/vue-grab-shared";
+
 import { esc, getComponentName } from "../utils";
 
 export const RENDER_SCAN_HOST_ID = "vue-grab-render-scan-host";

@@ -1,4 +1,7 @@
 import type { FloatingButtonConfig, FloatingButtonDockMode } from "@sakana-y/vue-grab-shared";
+
+import type { DockEdge, PanelId, ToolbarAnchorRect } from "./types";
+
 import {
   DRAG_THRESHOLD,
   EDGE_MARGIN,
@@ -11,7 +14,6 @@ import {
   isDockMode,
 } from "./geometry";
 import { tryReadDockMode, tryReadPosition, trySaveDockMode, trySavePosition } from "./storage";
-import type { DockEdge, PanelId, ToolbarAnchorRect } from "./types";
 
 export interface FloatingButtonLayoutElements {
   host: HTMLElement | null;

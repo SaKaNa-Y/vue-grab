@@ -1,4 +1,5 @@
 import type { GrabConfig } from "@sakana-y/vue-grab-shared";
+
 import { A11Y_ICON_SVG } from "../utils";
 
 const OVERLAY_HOST_ID = "vue-grab-overlay-host";

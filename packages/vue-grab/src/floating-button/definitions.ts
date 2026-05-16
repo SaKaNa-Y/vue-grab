@@ -1,10 +1,13 @@
 import type { FloatingButtonDockEntryId, FloatingButtonDockMode } from "@sakana-y/vue-grab-shared";
+
 import { DEFAULT_FLOATING_BUTTON_DOCK_ENTRY_ORDER } from "@sakana-y/vue-grab-shared";
+
 import type {
   DockEntryDefinition,
   DockEntryGroupDefinition,
   ShortcutCommandDefinition,
 } from "./types";
+
 import {
   A11Y_ICON_SVG,
   CROSSHAIR_SVG,
