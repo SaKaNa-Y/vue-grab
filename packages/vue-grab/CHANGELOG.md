@@ -1,5 +1,18 @@
 # @sakana-y/vue-grab
 
+## 0.1.3
+
+### Patch Changes
+
+- [#42](https://github.com/SaKaNa-Y/vue-grab/pull/42) [`5bc128e`](https://github.com/SaKaNa-Y/vue-grab/commit/5bc128e6506ef13de89a5d015a9af0ee23c6c6a5) Thanks [@SaKaNa-Y](https://github.com/SaKaNa-Y)! - Redesign the Accessibility Audit panel with compact Settings-aligned rows and summary sections.
+
+- [#40](https://github.com/SaKaNa-Y/vue-grab/pull/40) [`ca8a9d3`](https://github.com/SaKaNa-Y/vue-grab/commit/ca8a9d3f6f9e45c34b8339c5a3ae977467606dc5) Thanks [@SaKaNa-Y](https://github.com/SaKaNa-Y)! - Redesign the Logs panel with denser Settings-aligned rows, filters, and expandable details.
+
+- [#47](https://github.com/SaKaNa-Y/vue-grab/pull/47) [`0166627`](https://github.com/SaKaNa-Y/vue-grab/commit/01666270a74247c7d81d689a153d49c3a85b8c7e) Thanks [@SaKaNa-Y](https://github.com/SaKaNa-Y)! - Add Render Scan, a beta local Vue component update heatmap with a floating activity panel, shared configuration defaults, public composable state for toggling it, and a dedicated playground example.
+
+- Updated dependencies [[`0166627`](https://github.com/SaKaNa-Y/vue-grab/commit/01666270a74247c7d81d689a153d49c3a85b8c7e)]:
+  - @sakana-y/vue-grab-shared@0.1.3
+
 ## 0.1.2
 
 ### Patch Changes

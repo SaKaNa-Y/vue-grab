@@ -1,6 +1,6 @@
 {
   "name": "@sakana-y/vue-grab",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "private": false,
   "description": "Grab UI context from Vue apps for AI coding agents.",
   "keywords": [

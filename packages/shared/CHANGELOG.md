@@ -1,5 +1,11 @@
 # @sakana-y/vue-grab-shared
 
+## 0.1.3
+
+### Patch Changes
+
+- [#47](https://github.com/SaKaNa-Y/vue-grab/pull/47) [`0166627`](https://github.com/SaKaNa-Y/vue-grab/commit/01666270a74247c7d81d689a153d49c3a85b8c7e) Thanks [@SaKaNa-Y](https://github.com/SaKaNa-Y)! - Add Render Scan, a beta local Vue component update heatmap with a floating activity panel, shared configuration defaults, public composable state for toggling it, and a dedicated playground example.
+
 ## 0.1.2
 
 ### Patch Changes

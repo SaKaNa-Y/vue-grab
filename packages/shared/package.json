@@ -1,6 +1,6 @@
 {
   "name": "@sakana-y/vue-grab-shared",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "private": false,
   "description": "Shared types, defaults, config merging, and protocol constants for Vue Grab integrations.",
   "keywords": [
