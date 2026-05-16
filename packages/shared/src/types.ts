@@ -2,6 +2,7 @@ export type FloatingButtonDockMode = "float" | "edge";
 
 export type FloatingButtonDockEntryId =
   | "grab"
+  | "render-scan"
   | "settings"
   | "magnifier"
   | "measurer"
@@ -74,6 +75,8 @@ export interface GrabConfig {
   magnifier: MagnifierConfig;
   /** Measurer configuration */
   measurer: MeasurerConfig;
+  /** Render update heatmap configuration */
+  renderScan: RenderScanConfig;
 }
 
 export type DeepPartial<T> = {
@@ -294,4 +297,19 @@ export interface MeasurerConfig {
   showAlignmentGuides: boolean;
   /** Alignment snap tolerance in pixels. Default: 3 */
   alignmentTolerance: number;
+}
+
+export interface RenderScanConfig {
+  /** Enable render scan instrumentation for Vue plugin installs. Default: true */
+  enabled: boolean;
+  /** Rolling window used to count component updates. Default: 2000 */
+  windowMs: number;
+  /** Updates within windowMs that produce a warning highlight. Default: 8 */
+  warningThreshold: number;
+  /** Updates within windowMs that produce a danger highlight. Default: 20 */
+  dangerThreshold: number;
+  /** How long a render scan flash remains visible. Default: 700 */
+  flashDurationMs: number;
+  /** Max component records kept in memory. Default: 200 */
+  maxRecords: number;
 }

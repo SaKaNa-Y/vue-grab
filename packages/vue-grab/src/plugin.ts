@@ -2,6 +2,7 @@ import { readonly, ref, type App, type DeepReadonly, type InjectionKey, type Ref
 import type { GrabConfig, GrabResult, GrabUserConfig } from "@sakana-y/vue-grab-shared";
 import { DEFAULT_CONFIG, mergeConfig, VUE_ERROR_EVENT } from "@sakana-y/vue-grab-shared";
 import { createGrabSession, type GrabSession } from "./session";
+import type { RenderScanCollector, RenderScanOverlay } from "./render-scan";
 
 export const VUE_GRAB_CONFIG_KEY: InjectionKey<GrabConfig> = Symbol("vue-grab-config");
 
@@ -10,11 +11,13 @@ export interface VueGrabContext {
   isActive: Readonly<Ref<boolean>>;
   lastResult: DeepReadonly<Ref<GrabResult | null>>;
   isMeasurerActive: Readonly<Ref<boolean>>;
+  isRenderScanActive: Readonly<Ref<boolean>>;
   ensureSession: () => GrabSession | null;
   activate: () => void;
   deactivate: () => void;
   toggle: () => void;
   toggleMeasurer: () => void;
+  toggleRenderScan: () => void;
   destroy: () => void;
 }
 
@@ -28,6 +31,7 @@ export function createVueGrabContext(config: GrabConfig): VueGrabContext {
   const isActive = ref(false);
   const lastResult = ref<GrabResult | null>(null);
   const isMeasurerActive = ref(false);
+  const isRenderScanActive = ref(false);
   let session: GrabSession | null = null;
   let cleanups: Array<() => void> = [];
 
@@ -35,7 +39,7 @@ export function createVueGrabContext(config: GrabConfig): VueGrabContext {
     if (session) return session;
     if (!canUseDOM()) return null;
 
-    session = createGrabSession(config);
+    session = createGrabSession(config, { enableRenderScan: true });
     cleanups = [
       session.engine.onGrab((result) => {
         lastResult.value = result;
@@ -51,8 +55,16 @@ export function createVueGrabContext(config: GrabConfig): VueGrabContext {
         }),
       );
     }
+    if (session.renderScanOverlay) {
+      cleanups.push(
+        session.renderScanOverlay.onStateChange((active) => {
+          isRenderScanActive.value = active;
+        }),
+      );
+    }
     isActive.value = session.engine.isActive;
     isMeasurerActive.value = session.measurer?.isActive ?? false;
+    isRenderScanActive.value = session.renderScanOverlay?.isActive ?? false;
     return session;
   };
 
@@ -63,6 +75,7 @@ export function createVueGrabContext(config: GrabConfig): VueGrabContext {
     session = null;
     isActive.value = false;
     isMeasurerActive.value = false;
+    isRenderScanActive.value = false;
   };
 
   return {
@@ -70,18 +83,48 @@ export function createVueGrabContext(config: GrabConfig): VueGrabContext {
     isActive: readonly(isActive),
     lastResult: readonly(lastResult),
     isMeasurerActive: readonly(isMeasurerActive),
+    isRenderScanActive: readonly(isRenderScanActive),
     ensureSession,
     activate: () => ensureSession()?.engine.activate(),
     deactivate: () => ensureSession()?.engine.deactivate(),
     toggle: () => ensureSession()?.engine.toggle(),
     toggleMeasurer: () => ensureSession()?.measurer?.toggle(),
+    toggleRenderScan: () => ensureSession()?.renderScanOverlay?.toggle(),
     destroy,
   };
 }
 
 export function createVueGrab(options: GrabUserConfig = {}) {
   const config = mergeConfig(DEFAULT_CONFIG, options);
-  const context = createVueGrabContext(config);
+  const baseContext = createVueGrabContext(config);
+  let renderScanCollector: RenderScanCollector | null = null;
+  let renderScanOverlay: RenderScanOverlay | null = null;
+
+  const clearRenderScanRefs = (): void => {
+    renderScanCollector = null;
+    renderScanOverlay = null;
+  };
+
+  const ensureCachedSession = (): GrabSession | null => {
+    const session = baseContext.ensureSession();
+    renderScanCollector = session?.renderScanCollector ?? null;
+    renderScanOverlay = session?.renderScanOverlay ?? null;
+    return session;
+  };
+
+  const context: VueGrabContext = {
+    ...baseContext,
+    ensureSession: ensureCachedSession,
+    activate: () => ensureCachedSession()?.engine.activate(),
+    deactivate: () => ensureCachedSession()?.engine.deactivate(),
+    toggle: () => ensureCachedSession()?.engine.toggle(),
+    toggleMeasurer: () => ensureCachedSession()?.measurer?.toggle(),
+    toggleRenderScan: () => ensureCachedSession()?.renderScanOverlay?.toggle(),
+    destroy() {
+      clearRenderScanRefs();
+      baseContext.destroy();
+    },
+  };
 
   return {
     install(app: App) {
@@ -94,6 +137,7 @@ export function createVueGrab(options: GrabUserConfig = {}) {
         try {
           return originalMount(...args);
         } catch (err) {
+          clearRenderScanRefs();
           context.destroy();
           throw err;
         }
@@ -104,6 +148,7 @@ export function createVueGrab(options: GrabUserConfig = {}) {
         try {
           originalUnmount();
         } finally {
+          clearRenderScanRefs();
           context.destroy();
         }
       };
@@ -120,6 +165,22 @@ export function createVueGrab(options: GrabUserConfig = {}) {
           }
           prev?.(err, instance, info);
         };
+      }
+
+      if (config.renderScan.enabled) {
+        app.mixin({
+          updated() {
+            const instance = (this as { $?: unknown }).$;
+            if (!context.isRenderScanActive.value || !renderScanCollector || !renderScanOverlay)
+              return;
+            const snapshot = renderScanCollector?.record(instance);
+            if (snapshot) renderScanOverlay.flash(snapshot);
+          },
+          unmounted() {
+            const instance = (this as { $?: unknown }).$;
+            renderScanCollector?.remove(instance);
+          },
+        });
       }
     },
   };

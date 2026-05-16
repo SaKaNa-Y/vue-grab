@@ -8,10 +8,12 @@ export interface UseGrabReturn {
   isActive: Readonly<Ref<boolean>>;
   lastResult: DeepReadonly<Ref<GrabResult | null>>;
   isMeasurerActive: Readonly<Ref<boolean>>;
+  isRenderScanActive: Readonly<Ref<boolean>>;
   activate: () => void;
   deactivate: () => void;
   toggle: () => void;
   toggleMeasurer: () => void;
+  toggleRenderScan: () => void;
 }
 
 let fallbackContext: VueGrabContext | null = null;
@@ -45,9 +47,11 @@ export function useGrab(): UseGrabReturn {
     isActive: context.isActive,
     lastResult: context.lastResult,
     isMeasurerActive: context.isMeasurerActive,
+    isRenderScanActive: context.isRenderScanActive,
     activate: context.activate,
     deactivate: context.deactivate,
     toggle: context.toggle,
     toggleMeasurer: context.toggleMeasurer,
+    toggleRenderScan: context.toggleRenderScan,
   };
 }

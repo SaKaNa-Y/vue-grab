@@ -10,7 +10,7 @@ export type ToolbarAnchorRect = Pick<
 >;
 
 export type TabId = "dock" | "shortcuts" | "tools";
-export type PanelId = "settings" | "accessibility" | "logs" | "network";
+export type PanelId = "settings" | "render-scan" | "accessibility" | "logs" | "network";
 export type DockEntryGroupId = "capture" | "inspection" | "diagnostics" | "system";
 export type DockEntryDropPlacement = "before" | "after";
 
@@ -43,6 +43,7 @@ export interface FloatingButtonState {
   activePanel: PanelId | null;
   settingsTab: TabId;
   isGrabActive: boolean;
+  isRenderScanActive: boolean;
   isMagnifierActive: boolean;
   isMeasurerActive: boolean;
 }

@@ -9,6 +9,7 @@ import type {
   MeasurerConfig,
   NetworkCaptureConfig,
   NetworkStatusClass,
+  RenderScanConfig,
 } from "./types";
 import { OPEN_IN_EDITOR_ENDPOINT } from "./protocol";
 
@@ -18,6 +19,7 @@ export const DEFAULT_HOTKEY = "Alt+Shift+G";
 
 export const DEFAULT_FLOATING_BUTTON_DOCK_ENTRY_ORDER: readonly FloatingButtonDockEntryId[] = [
   "grab",
+  "render-scan",
   "settings",
   "magnifier",
   "measurer",
@@ -114,6 +116,15 @@ export const DEFAULT_MEASURER: MeasurerConfig = {
   alignmentTolerance: 3,
 };
 
+export const DEFAULT_RENDER_SCAN: RenderScanConfig = {
+  enabled: true,
+  windowMs: 2000,
+  warningThreshold: 8,
+  dangerThreshold: 20,
+  flashDurationMs: 700,
+  maxRecords: 200,
+};
+
 export const DEFAULT_CONFIG: GrabConfig = {
   highlightColor: DEFAULT_HIGHLIGHT_COLOR,
   labelTextColor: DEFAULT_LABEL_TEXT_COLOR,
@@ -129,14 +140,23 @@ export const DEFAULT_CONFIG: GrabConfig = {
   networkCapture: DEFAULT_NETWORK_CAPTURE,
   magnifier: DEFAULT_MAGNIFIER,
   measurer: DEFAULT_MEASURER,
+  renderScan: DEFAULT_RENDER_SCAN,
 };
 
 /**
  * Deep-merge user config with defaults, properly handling nested objects.
  */
 export function mergeConfig(defaults: GrabConfig, options: GrabUserConfig): GrabConfig {
-  const { filter, floatingButton, consoleCapture, networkCapture, magnifier, measurer, ...rest } =
-    options;
+  const {
+    filter,
+    floatingButton,
+    consoleCapture,
+    networkCapture,
+    magnifier,
+    measurer,
+    renderScan,
+    ...rest
+  } = options;
   return {
     ...defaults,
     ...rest,
@@ -186,6 +206,10 @@ export function mergeConfig(defaults: GrabConfig, options: GrabUserConfig): Grab
     measurer: {
       ...defaults.measurer,
       ...measurer,
+    },
+    renderScan: {
+      ...defaults.renderScan,
+      ...renderScan,
     },
   };
 }

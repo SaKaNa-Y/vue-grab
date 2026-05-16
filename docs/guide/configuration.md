@@ -11,6 +11,7 @@ createVueGrab({
   floatingButton: { enabled: true },
   consoleCapture: { maxEntries: 500 },
   networkCapture: { captureBodies: false },
+  renderScan: { warningThreshold: 8 },
   filter: { ignoreTags: ["script", "style"] },
 });
 ```
@@ -27,6 +28,7 @@ createVueGrab({
 | `floatingButton` | `FloatingButtonConfig` | disabled    | Optional toolbar with panels and settings.     |
 | `consoleCapture` | `ConsoleCaptureConfig` | enabled     | Ring-buffered console + runtime error capture. |
 | `networkCapture` | `NetworkCaptureConfig` | enabled     | Ring-buffered fetch/XHR metadata capture.      |
+| `renderScan`     | `RenderScanConfig`     | enabled     | Vue component update heatmap.                  |
 | `magnifier`      | `MagnifierConfig`      | enabled     | Loupe overlay that appears while grabbing.     |
 | `measurer`       | `MeasurerConfig`       | enabled     | Element-to-element spacing inspector.          |
 
@@ -57,14 +59,23 @@ createVueGrab({
 
 ### `floatingButton.dockEntries`
 
-`order` accepts toolbar entry ids: `"grab"`, `"settings"`, `"magnifier"`, `"measurer"`, `"accessibility"`, `"logs"`, and `"network"`. Unknown ids are ignored and missing ids are appended in the default order. `hidden` removes entries from the toolbar only; `"settings"` is always forced visible. Magnifier, Logs, and Network are hidden by default while they are beta, but users can re-enable them from Settings > Dock. Users can reorder entries within each Dock feature group from Settings.
+`order` accepts toolbar entry ids: `"grab"`, `"render-scan"`, `"settings"`, `"magnifier"`, `"measurer"`, `"accessibility"`, `"logs"`, and `"network"`. Unknown ids are ignored and missing ids are appended in the default order. `hidden` removes entries from the toolbar only; `"settings"` is always forced visible. Render Scan, Magnifier, Logs, and Network are labeled Beta in Settings. Magnifier, Logs, and Network are hidden by default while they are beta, but users can re-enable them from Settings > Dock. Users can reorder entries within each Dock feature group from Settings.
 
 ```ts
 createVueGrab({
   floatingButton: {
     enabled: true,
     dockEntries: {
-      order: ["grab", "settings", "logs", "network", "magnifier", "measurer", "accessibility"],
+      order: [
+        "grab",
+        "render-scan",
+        "settings",
+        "logs",
+        "network",
+        "magnifier",
+        "measurer",
+        "accessibility",
+      ],
       hidden: ["network"],
     },
   },
@@ -98,6 +109,19 @@ See [Console Capture](../features/console-capture) for behavior details.
 | `grabSnapshot`  | `NetworkGrabSnapshotConfig` | `{ enabled: true, maxEntries: 20, windowMs: 10000 }` | Recent network entries attached to each `GrabResult`.  |
 
 See [Network Capture](../features/network-capture) for body capture, redaction, and snapshot behavior.
+
+## `renderScan`
+
+| Field              | Type      | Default | Description                                             |
+| ------------------ | --------- | ------- | ------------------------------------------------------- |
+| `enabled`          | `boolean` | `true`  | Enable Vue plugin update instrumentation.               |
+| `windowMs`         | `number`  | `2000`  | Rolling window used to count component updates.         |
+| `warningThreshold` | `number`  | `8`     | Updates in the window that produce a warning highlight. |
+| `dangerThreshold`  | `number`  | `20`    | Updates in the window that produce a danger highlight.  |
+| `flashDurationMs`  | `number`  | `700`   | How long each update flash remains visible.             |
+| `maxRecords`       | `number`  | `200`   | Maximum component records kept in memory.               |
+
+See [Render Scan](../features/render-scan) for behavior details.
 
 ## `magnifier`
 

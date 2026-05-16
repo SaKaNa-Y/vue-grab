@@ -142,6 +142,43 @@ describe("createGrabSession", () => {
     expect(shadow.querySelector<HTMLInputElement>(".magnifier-zoom-slider")!.value).toBe("2.5");
   });
 
+  it("keeps render scan unavailable for standalone sessions", () => {
+    session = createGrabSession({
+      ...DEFAULT_CONFIG,
+      floatingButton: {
+        ...DEFAULT_CONFIG.floatingButton,
+        enabled: true,
+      },
+    });
+    const shadow = document.getElementById(FAB_HOST_ID)!.shadowRoot!;
+
+    expect(session.renderScanCollector).toBeNull();
+    expect(session.renderScanOverlay).toBeNull();
+    expect(shadow.querySelector(".render-scan-btn")!.classList.contains("disabled")).toBe(true);
+  });
+
+  it("registered shortcuts toggle render scan when Vue instrumentation is enabled", () => {
+    session = createGrabSession(
+      {
+        ...DEFAULT_CONFIG,
+        floatingButton: {
+          ...DEFAULT_CONFIG.floatingButton,
+          enabled: true,
+          shortcuts: {
+            "render-scan": ["Ctrl+Shift+R"],
+          },
+        },
+      },
+      { enableRenderScan: true },
+    );
+    const shadow = document.getElementById(FAB_HOST_ID)!.shadowRoot!;
+
+    fireKey("r", { ctrlKey: true, shiftKey: true });
+
+    expect(session.renderScanOverlay?.isActive).toBe(true);
+    expect(shadow.querySelector(".render-scan-btn")!.classList.contains("active")).toBe(true);
+  });
+
   it("re-registers shortcuts after settings changes", () => {
     session = createGrabSession({
       ...DEFAULT_CONFIG,

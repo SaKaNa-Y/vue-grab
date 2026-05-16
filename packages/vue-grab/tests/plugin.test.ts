@@ -1,11 +1,13 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { defineComponent, inject, onUnmounted } from "vue";
+import { defineComponent, inject, nextTick, onUnmounted, ref } from "vue";
 import { mount } from "@vue/test-utils";
 import { DEFAULT_CONFIG, DEFAULT_HIGHLIGHT_COLOR } from "@sakana-y/vue-grab-shared";
-import { createVueGrab, VUE_GRAB_CONFIG_KEY } from "../src";
+import { createVueGrab, VUE_GRAB_CONFIG_KEY, VUE_GRAB_CONTEXT_KEY } from "../src";
 import type { GrabConfig } from "@sakana-y/vue-grab-shared";
 import { FAB_HOST_ID } from "../src/floating-button";
 import { ConsoleCapture } from "../src/utils";
+import { RenderScanCollector } from "../src/render-scan";
+import type { VueGrabContext } from "../src/plugin";
 import { cleanupDOM } from "./helpers/setup";
 
 function mountAndInject(pluginOptions = {}): GrabConfig | undefined {
@@ -131,5 +133,116 @@ describe("createVueGrab", () => {
       expect.any(String),
       undefined,
     );
+  });
+
+  it("records component updates through the render scan mixin", async () => {
+    const record = vi.spyOn(RenderScanCollector.prototype, "record");
+    let toggleRenderScan!: () => void;
+
+    const Comp = defineComponent({
+      setup() {
+        const count = ref(0);
+        toggleRenderScan = inject(VUE_GRAB_CONTEXT_KEY)!.toggleRenderScan;
+        return { count, increment: () => (count.value += 1) };
+      },
+      render() {
+        return this.count;
+      },
+    });
+
+    const wrapper = mount(Comp, {
+      attachTo: document.body,
+      global: {
+        plugins: [
+          createVueGrab({
+            renderScan: { enabled: true },
+            networkCapture: { enabled: false },
+            magnifier: { enabled: false },
+            measurer: { enabled: false },
+          }),
+        ],
+      },
+    });
+
+    toggleRenderScan();
+    (wrapper.vm as unknown as { increment: () => void }).increment();
+    await nextTick();
+
+    expect(record).toHaveBeenCalled();
+    wrapper.unmount();
+  });
+
+  it("uses cached render scan references in the update mixin hot path", async () => {
+    const record = vi.spyOn(RenderScanCollector.prototype, "record");
+    let context!: VueGrabContext;
+
+    const Comp = defineComponent({
+      setup() {
+        const count = ref(0);
+        context = inject(VUE_GRAB_CONTEXT_KEY)!;
+        return { count, increment: () => (count.value += 1) };
+      },
+      render() {
+        return this.count;
+      },
+    });
+
+    const wrapper = mount(Comp, {
+      attachTo: document.body,
+      global: {
+        plugins: [
+          createVueGrab({
+            renderScan: { enabled: true },
+            networkCapture: { enabled: false },
+            magnifier: { enabled: false },
+            measurer: { enabled: false },
+          }),
+        ],
+      },
+    });
+    const ensureSession = vi.spyOn(context, "ensureSession");
+
+    context.toggleRenderScan();
+    ensureSession.mockClear();
+
+    (wrapper.vm as unknown as { increment: () => void }).increment();
+    await nextTick();
+
+    expect(record).toHaveBeenCalled();
+    expect(ensureSession).not.toHaveBeenCalled();
+    wrapper.unmount();
+  });
+
+  it("does not record render scan updates when disabled", async () => {
+    const record = vi.spyOn(RenderScanCollector.prototype, "record");
+
+    const Comp = defineComponent({
+      setup() {
+        const count = ref(0);
+        return { count, increment: () => (count.value += 1) };
+      },
+      render() {
+        return this.count;
+      },
+    });
+
+    const wrapper = mount(Comp, {
+      global: {
+        plugins: [
+          createVueGrab({
+            renderScan: { enabled: false },
+            networkCapture: { enabled: false },
+            magnifier: { enabled: false },
+            measurer: { enabled: false },
+          }),
+        ],
+      },
+    });
+
+    (wrapper.vm as unknown as { increment: () => void }).increment();
+    await nextTick();
+
+    expect(record).not.toHaveBeenCalled();
+    wrapper.unmount();
   });
 });

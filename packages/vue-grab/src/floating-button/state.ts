@@ -14,6 +14,7 @@ export interface FloatingButtonRuntimeState {
   activePanel: PanelId | null;
   settingsTab: TabId;
   isGrabActive: boolean;
+  isRenderScanActive: boolean;
   isMagnifierActive: boolean;
   isMeasurerActive: boolean;
   closeOnOutsideClick: boolean;
@@ -32,6 +33,7 @@ export function createFloatingButtonState(
     activePanel: null,
     settingsTab: "dock",
     isGrabActive: false,
+    isRenderScanActive: false,
     isMagnifierActive: false,
     isMeasurerActive: false,
     closeOnOutsideClick:
