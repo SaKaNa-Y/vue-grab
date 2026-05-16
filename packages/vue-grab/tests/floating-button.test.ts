@@ -4,6 +4,7 @@ import {
   DEFAULT_FLOATING_BUTTON,
   DEFAULT_FLOATING_BUTTON_DOCK_ENTRY_ORDER,
 } from "@sakana-y/vue-grab-shared";
+import type { RenderScanRecord } from "../src/render-scan";
 import { FloatingButton, FAB_HOST_ID } from "../src/floating-button";
 import { cleanupDOM } from "./helpers/setup";
 
@@ -46,6 +47,22 @@ function makeGrabResult(overrides: Partial<GrabResult> = {}): GrabResult {
     componentStack: [],
     selector: "button",
     a11y: { attributes: [], audit: [], hasA11y: false },
+    ...overrides,
+  };
+}
+
+function makeRenderScanRecord(overrides: Partial<RenderScanRecord> = {}): RenderScanRecord {
+  const id = overrides.id ?? Math.floor(Math.random() * 1000);
+  return {
+    id,
+    instance: {},
+    name: `RenderCard${id}`,
+    filePath: `src/RenderCard${id}.vue`,
+    element: document.createElement("section"),
+    timestamps: [100, 200],
+    count: 2,
+    severity: "normal",
+    updatedAt: 200,
     ...overrides,
   };
 }
@@ -99,6 +116,10 @@ function getButton(): HTMLElement | null {
 
 function getGear(): HTMLElement | null {
   return getShadow()?.querySelector(".gear-btn") ?? null;
+}
+
+function getRenderScanBtn(): HTMLElement | null {
+  return getShadow()?.querySelector(".render-scan-btn") ?? null;
 }
 
 function getToolbarRow(): HTMLElement | null {
@@ -234,6 +255,7 @@ describe("FloatingButton", () => {
 
   afterEach(() => {
     fab?.destroy();
+    vi.useRealTimers();
     vi.restoreAllMocks();
     cleanupDOM();
     localStorage.clear();
@@ -292,7 +314,13 @@ describe("FloatingButton", () => {
       fab = createFab();
       fab.mount();
 
-      expect(getDockEntryButtonIds()).toEqual(["grab", "settings", "measurer", "accessibility"]);
+      expect(getDockEntryButtonIds()).toEqual([
+        "grab",
+        "render-scan",
+        "settings",
+        "measurer",
+        "accessibility",
+      ]);
     });
 
     it("gear button is always visible in toolbar", () => {
@@ -310,6 +338,116 @@ describe("FloatingButton", () => {
 
       const divider = getShadow()!.querySelector(".toolbar-divider");
       expect(divider).not.toBeNull();
+    });
+
+    it("starts render scan and opens the activity panel", () => {
+      fab = createFab();
+      const spy = vi.fn<() => void>();
+      fab.onRenderScanToggle(spy);
+      fab.mount();
+
+      getRenderScanBtn()!.click();
+      fab.setRenderScanActive(true);
+
+      expect(spy).toHaveBeenCalledOnce();
+      expect(getRenderScanBtn()!.classList.contains("active")).toBe(true);
+      expect(getExpandBody()!.classList.contains("open")).toBe(true);
+      expect(getShadow()!.querySelector(".render-scan-panel")).not.toBeNull();
+    });
+
+    it("reopens an active render scan panel after panel close", () => {
+      fab = createFab();
+      const spy = vi.fn<() => void>();
+      fab.onRenderScanToggle(spy);
+      fab.mount();
+
+      getRenderScanBtn()!.click();
+      fab.setRenderScanActive(true);
+      getGear()!.click();
+      getRenderScanBtn()!.click();
+
+      expect(spy).toHaveBeenCalledOnce();
+      expect(getExpandBody()!.classList.contains("open")).toBe(true);
+      expect(getShadow()!.querySelector(".render-scan-panel")).not.toBeNull();
+    });
+
+    it("stops render scan when clicking the open active panel button", () => {
+      fab = createFab();
+      const spy = vi.fn<() => void>();
+      fab.onRenderScanToggle(spy);
+      fab.mount();
+
+      getRenderScanBtn()!.click();
+      fab.setRenderScanActive(true);
+      getRenderScanBtn()!.click();
+
+      expect(spy).toHaveBeenCalledTimes(2);
+      expect(getExpandBody()!.classList.contains("open")).toBe(false);
+    });
+
+    it("does not trigger render scan when disabled", () => {
+      fab = createFab();
+      const spy = vi.fn<() => void>();
+      fab.onRenderScanToggle(spy);
+      fab.mount();
+      fab.setRenderScanDisabled(true);
+
+      getRenderScanBtn()!.click();
+
+      expect(spy).not.toHaveBeenCalled();
+      expect(getRenderScanBtn()!.classList.contains("disabled")).toBe(true);
+      expect(getExpandBody()!.classList.contains("open")).toBe(false);
+    });
+
+    it("renders render scan entries with search, selection, and reset controls", () => {
+      vi.useFakeTimers();
+      fab = createFab();
+      const clearSpy = vi.fn<() => void>();
+      fab.onRenderScanClear(clearSpy);
+      fab.mount();
+
+      getRenderScanBtn()!.click();
+      fab.setRenderScanActive(true);
+      fab.setRenderScanEntries([
+        makeRenderScanRecord({
+          id: 1,
+          name: "TodoInput",
+          filePath: "src/TodoInput.vue",
+          count: 58,
+          severity: "danger",
+          updatedAt: 300,
+        }),
+        makeRenderScanRecord({
+          id: 2,
+          name: "TodoList",
+          filePath: "src/TodoList.vue",
+          count: 8,
+          severity: "warning",
+          updatedAt: 250,
+        }),
+      ]);
+      vi.runAllTimers();
+
+      expect(getShadow()!.querySelector(".render-scan-detail-title")?.textContent).toBe(
+        "TodoInput",
+      );
+      const rows = getShadow()!.querySelectorAll(".render-scan-row");
+      expect(rows).toHaveLength(2);
+      expect(rows[0].textContent).toContain("×58");
+
+      (rows[1] as HTMLElement).click();
+      expect(getShadow()!.querySelector(".render-scan-detail-title")?.textContent).toBe("TodoList");
+
+      const search = getShadow()!.querySelector<HTMLInputElement>(".render-scan-search")!;
+      search.value = "input";
+      search.dispatchEvent(new Event("input"));
+      vi.runAllTimers();
+
+      expect(getShadow()!.querySelectorAll(".render-scan-row")).toHaveLength(1);
+      expect(getShadow()!.querySelector(".render-scan-row")?.textContent).toContain("TodoInput");
+
+      getShadow()!.querySelector<HTMLElement>(".render-scan-clear")!.click();
+      expect(clearSpy).toHaveBeenCalledOnce();
     });
   });
 
@@ -733,22 +871,33 @@ describe("FloatingButton", () => {
       expect(getDockEntryButtonIds()).toContain("settings");
     });
 
-    it("renders beta labels for hidden beta dock entries", () => {
+    it("renders beta labels for beta dock entries", () => {
       fab = createFab();
       fab.mount();
 
       getGear()!.click();
 
-      const expectedBetaIds = DEFAULT_FLOATING_BUTTON.dockEntries.hidden;
+      const expectedBetaIds = ["magnifier", "render-scan", "logs", "network"];
       const betaRows = Array.from(
         getShadow()!.querySelectorAll<HTMLElement>(".dock-entry-row:has(.dock-entry-badge)"),
       );
-      expect(getDockEntryButtonIds()).toEqual(["grab", "settings", "measurer", "accessibility"]);
+      expect(getDockEntryButtonIds()).toEqual([
+        "grab",
+        "render-scan",
+        "settings",
+        "measurer",
+        "accessibility",
+      ]);
       expect(betaRows.map((row) => row.dataset.dockEntryRow)).toEqual(expectedBetaIds);
       for (const id of expectedBetaIds) {
         const row = getDockEntryRow(id)!;
         expect(row).not.toBeNull();
-        expect(getDockEntryToggle(id)!.getAttribute("aria-pressed")).toBe("false");
+        const hiddenByDefault = DEFAULT_FLOATING_BUTTON.dockEntries.hidden.some(
+          (hiddenId) => hiddenId === id,
+        );
+        expect(getDockEntryToggle(id)!.getAttribute("aria-pressed")).toBe(
+          hiddenByDefault ? "false" : "true",
+        );
         expect(row.querySelector(".dock-entry-badge")?.textContent).toBe("Beta");
       }
     });
@@ -784,6 +933,7 @@ describe("FloatingButton", () => {
         "logs",
         "settings",
         "grab",
+        "render-scan",
         "magnifier",
         "measurer",
         "accessibility",
@@ -835,6 +985,7 @@ describe("FloatingButton", () => {
 
       expect(getDockEntryButtonIds()).toEqual([
         "grab",
+        "render-scan",
         "settings",
         "magnifier",
         "measurer",
@@ -844,6 +995,7 @@ describe("FloatingButton", () => {
       ]);
       expect(JSON.parse(localStorage.getItem("vue-grab-dock-entries")!).order).toEqual([
         "grab",
+        "render-scan",
         "settings",
         "magnifier",
         "measurer",
@@ -866,6 +1018,7 @@ describe("FloatingButton", () => {
 
       expect(getDockEntryButtonIds()).toEqual([
         "grab",
+        "render-scan",
         "settings",
         "magnifier",
         "measurer",
@@ -875,6 +1028,7 @@ describe("FloatingButton", () => {
       ]);
       expect(JSON.parse(localStorage.getItem("vue-grab-dock-entries")!).order).toEqual([
         "grab",
+        "render-scan",
         "settings",
         "magnifier",
         "measurer",
@@ -897,6 +1051,7 @@ describe("FloatingButton", () => {
 
       expect(getDockEntryButtonIds()).toEqual([
         "grab",
+        "render-scan",
         "settings",
         "magnifier",
         "measurer",
@@ -990,7 +1145,7 @@ describe("FloatingButton", () => {
       getSettingsTab("Shortcuts")!.click();
 
       const shortcuts = getShadow()!.querySelector('[data-tab-content="shortcuts"]')!;
-      expect(shortcuts.querySelectorAll(".shortcut-row")).toHaveLength(7);
+      expect(shortcuts.querySelectorAll(".shortcut-row")).toHaveLength(8);
       expect(
         Array.from(shortcuts.querySelectorAll<HTMLElement>(".setting-row-title")).map((el) =>
           el.textContent?.trim(),
@@ -998,6 +1153,7 @@ describe("FloatingButton", () => {
       ).toEqual([
         "Grab element",
         "Open settings",
+        "Render Scan",
         "Magnifier",
         "Measure spacing",
         "Accessibility",

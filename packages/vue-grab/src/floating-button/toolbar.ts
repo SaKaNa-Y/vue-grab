@@ -7,6 +7,7 @@ import type { DockEntryGroupId, PanelId } from "./types";
 
 export interface FloatingButtonToolbarElements {
   grab: HTMLElement | null;
+  "render-scan": HTMLElement | null;
   settings: HTMLElement | null;
   magnifier: HTMLElement | null;
   measurer: HTMLElement | null;
@@ -68,6 +69,7 @@ export function updatePanelButtonStates(
   activePanel: PanelId | null,
 ): void {
   elements.settings?.classList.toggle("active", activePanel === "settings");
+  elements["render-scan"]?.classList.toggle("panel-open", activePanel === "render-scan");
   elements.accessibility?.classList.toggle("active", activePanel === "accessibility");
   elements.logs?.classList.toggle("active", activePanel === "logs");
   elements.network?.classList.toggle("active", activePanel === "network");

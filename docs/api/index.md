@@ -29,23 +29,27 @@ const {
   isActive,
   lastResult,
   isMeasurerActive,
+  isRenderScanActive,
   activate,
   deactivate,
   toggle,
   toggleMeasurer,
+  toggleRenderScan,
 } = useGrab();
 ```
 
-| Property           | Type                                    | Description                     |
-| ------------------ | --------------------------------------- | ------------------------------- |
-| `config`           | `GrabConfig`                            | Resolved configuration          |
-| `isActive`         | `Readonly<Ref<boolean>>`                | Whether grab mode is active     |
-| `lastResult`       | `DeepReadonly<Ref<GrabResult \| null>>` | Last captured result            |
-| `isMeasurerActive` | `Readonly<Ref<boolean>>`                | Whether measurer mode is active |
-| `activate()`       | `() => void`                            | Enter grab mode                 |
-| `deactivate()`     | `() => void`                            | Exit grab mode                  |
-| `toggle()`         | `() => void`                            | Toggle grab mode                |
-| `toggleMeasurer()` | `() => void`                            | Toggle the element measurer     |
+| Property             | Type                                    | Description                      |
+| -------------------- | --------------------------------------- | -------------------------------- |
+| `config`             | `GrabConfig`                            | Resolved configuration           |
+| `isActive`           | `Readonly<Ref<boolean>>`                | Whether grab mode is active      |
+| `lastResult`         | `DeepReadonly<Ref<GrabResult \| null>>` | Last captured result             |
+| `isMeasurerActive`   | `Readonly<Ref<boolean>>`                | Whether measurer mode is active  |
+| `isRenderScanActive` | `Readonly<Ref<boolean>>`                | Whether render scan is active    |
+| `activate()`         | `() => void`                            | Enter grab mode                  |
+| `deactivate()`       | `() => void`                            | Exit grab mode                   |
+| `toggle()`           | `() => void`                            | Toggle grab mode                 |
+| `toggleMeasurer()`   | `() => void`                            | Toggle the element measurer      |
+| `toggleRenderScan()` | `() => void`                            | Toggle the render update heatmap |
 
 ## `init(options?)`
 

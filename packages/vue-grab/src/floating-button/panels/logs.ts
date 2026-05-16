@@ -4,9 +4,10 @@ import { openInClaudeCode, openInEditor } from "../../editor";
 import type { PanelRenderer } from "../../utils/lifecycle";
 import { buildLogPrompt, esc, resolveLogSource, truncate } from "../../utils";
 import { LOGS_SVG } from "../icons";
+import type { PanelId } from "../types";
 
 export interface FloatingButtonLogsPanelOptions {
-  getActivePanel: () => "settings" | "accessibility" | "logs" | "network" | null;
+  getActivePanel: () => PanelId | null;
   renderExpandBody: () => void;
   getEditorChoice: () => string;
 }

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import Toolbar from "./sections/Toolbar.vue";
+import RenderScanShowcase from "./sections/RenderScanShowcase.vue";
 import FormShowcase from "./sections/FormShowcase.vue";
 import DashboardShowcase from "./sections/DashboardShowcase.vue";
 import ListShowcase from "./sections/ListShowcase.vue";
@@ -12,12 +13,15 @@ import ResultPanel from "./sections/ResultPanel.vue";
     <header class="app-header">
       <div>
         <h1>Vue Grab Playground</h1>
-        <p>A showcase surface for every feature — grab, measure, console capture, a11y audit.</p>
+        <p>
+          A showcase surface for every feature: grab, render scan, measure, logs, network, and a11y.
+        </p>
       </div>
     </header>
 
     <nav class="anchor-nav" aria-label="Section navigation">
       <a href="#toolbar">Toolbar</a>
+      <a href="#render-scan">Render Scan</a>
       <a href="#forms">Forms &amp; a11y</a>
       <a href="#dashboard">Dashboard</a>
       <a href="#list">Event log</a>
@@ -26,6 +30,7 @@ import ResultPanel from "./sections/ResultPanel.vue";
     </nav>
 
     <Toolbar />
+    <RenderScanShowcase />
     <FormShowcase />
     <DashboardShowcase />
     <ListShowcase />

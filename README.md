@@ -17,6 +17,7 @@ Point at any element, click, and capture its HTML, CSS selector, Vue component h
 - **Accessibility audit** - extracts ARIA/a11y attributes on every grab and provides a page-wide scan from the floating button.
 - **Console capture** - records console output, runtime errors, promise rejections, and Vue errors in a searchable ring buffer.
 - **Network capture** - records `fetch`/XHR metadata, redacts sensitive headers, optionally captures bodies, and attaches recent requests to grab results.
+- **Render Scan** - locally flashes frequently updating Vue components directly on the page.
 - **Floating action button** - optional draggable toolbar with Float and Edge dock modes, settings, logs, network, a11y, magnifier, and measurer controls.
 - **Magnifier and measurer** - inspect zoomed HTML context and measure distances between elements while iterating on UI.
 - **Vite editor integration** - open captured file paths in your editor through the companion dev-server plugin.
@@ -159,6 +160,14 @@ createVueGrab({
       windowMs: 10000,
     },
   },
+  renderScan: {
+    enabled: true,
+    windowMs: 2000,
+    warningThreshold: 8,
+    dangerThreshold: 20,
+    flashDurationMs: 700,
+    maxRecords: 200,
+  },
   magnifier: {
     enabled: true,
     loupeSize: 400,
@@ -181,16 +190,18 @@ Nested options are deep-merged with `DEFAULT_CONFIG` by `mergeConfig()` from `@s
 
 ## `useGrab()` API
 
-| Property             | Type                                    | Description                       |
-| -------------------- | --------------------------------------- | --------------------------------- |
-| `config`             | `GrabConfig`                            | Resolved configuration            |
-| `isActive`           | `Readonly<Ref<boolean>>`                | Whether grab mode is active       |
-| `lastResult`         | `DeepReadonly<Ref<GrabResult \| null>>` | Last captured result              |
-| `isMeasurerActive`   | `Readonly<Ref<boolean>>`                | Whether measurer mode is active   |
-| `activate()`         | `() => void`                            | Enter grab mode                   |
-| `deactivate()`       | `() => void`                            | Exit grab mode                    |
-| `toggle()`           | `() => void`                            | Toggle grab mode                  |
-| `toggleMeasurer()`   | `() => void`                            | Toggle the element measurer       |
+| Property             | Type                                    | Description                      |
+| -------------------- | --------------------------------------- | -------------------------------- |
+| `config`             | `GrabConfig`                            | Resolved configuration           |
+| `isActive`           | `Readonly<Ref<boolean>>`                | Whether grab mode is active      |
+| `lastResult`         | `DeepReadonly<Ref<GrabResult \| null>>` | Last captured result             |
+| `isMeasurerActive`   | `Readonly<Ref<boolean>>`                | Whether measurer mode is active  |
+| `isRenderScanActive` | `Readonly<Ref<boolean>>`                | Whether render scan is active    |
+| `activate()`         | `() => void`                            | Enter grab mode                  |
+| `deactivate()`       | `() => void`                            | Exit grab mode                   |
+| `toggle()`           | `() => void`                            | Toggle grab mode                 |
+| `toggleMeasurer()`   | `() => void`                            | Toggle the element measurer      |
+| `toggleRenderScan()` | `() => void`                            | Toggle the render update heatmap |
 
 ### `GrabResult`
 

@@ -13,6 +13,7 @@ import {
   MAGNIFIER_SVG,
   MEASURER_SVG,
   NETWORK_SVG,
+  RENDER_SCAN_SVG,
 } from "./icons";
 
 export const EDITOR_PRESETS = [
@@ -67,6 +68,15 @@ export const DOCK_ENTRY_DEFINITIONS: readonly DockEntryDefinition[] = [
     buttonClass: "gear-btn",
     icon: GEAR_SVG,
     locked: true,
+  },
+  {
+    id: "render-scan",
+    label: "Render Scan",
+    title: "Render update heatmap",
+    group: "diagnostics",
+    buttonClass: "render-scan-btn",
+    icon: RENDER_SCAN_SVG,
+    badge: BETA_BADGE,
   },
   {
     id: "magnifier",
@@ -127,6 +137,12 @@ export const SHORTCUT_COMMAND_DEFINITIONS: readonly ShortcutCommandDefinition[] 
     label: "Open settings",
     description: "Toggle the Settings panel.",
     icon: GEAR_SVG,
+  },
+  {
+    id: "render-scan",
+    label: "Render Scan",
+    description: "Toggle the Vue component update heatmap.",
+    icon: RENDER_SCAN_SVG,
   },
   {
     id: "magnifier",

@@ -7,11 +7,13 @@ import type {
   FloatingButtonShortcutsConfig,
   GrabResult,
 } from "@sakana-y/vue-grab-shared";
+import type { RenderScanRecord } from "../render-scan";
 import { FloatingButtonDockEntriesController } from "./dock-entries";
 import { STYLES } from "./styles";
 import { createFloatingButtonState, type FloatingButtonRuntimeState } from "./state";
 import { FloatingButtonShortcutsController } from "./shortcuts";
 import { FloatingButtonSettingsPanel } from "./settings-panel";
+import { FloatingButtonRenderScanPanel } from "./panels/render-scan";
 import { FloatingButtonA11yPanel } from "./panels/a11y";
 import { FloatingButtonLogsPanel } from "./panels/logs";
 import { FloatingButtonNetworkPanel } from "./panels/network";
@@ -37,6 +39,7 @@ export class FloatingButton {
   private btnEl: HTMLElement | null = null;
   private gearEl: HTMLElement | null = null;
   private a11yIndicatorEl: HTMLElement | null = null;
+  private renderScanBtnEl: HTMLElement | null = null;
   private logsBtnEl: HTMLElement | null = null;
   private logsBadgeEl: HTMLElement | null = null;
   private networkBtnEl: HTMLElement | null = null;
@@ -48,12 +51,15 @@ export class FloatingButton {
   private readonly dockEntries: FloatingButtonDockEntriesController;
   private readonly shortcuts: FloatingButtonShortcutsController;
   private readonly settingsPanel: FloatingButtonSettingsPanel;
+  private readonly renderScanPanel: FloatingButtonRenderScanPanel;
   private readonly a11yPanel: FloatingButtonA11yPanel;
   private readonly logsPanel: FloatingButtonLogsPanel;
   private readonly networkPanel: FloatingButtonNetworkPanel;
   private readonly layout: FloatingButtonLayoutController;
 
   private toggleCb: (() => void) | null = null;
+  private renderScanToggleCb: (() => void) | null = null;
+  private renderScanClearCb: (() => void) | null = null;
   private magnifierToggleCb: (() => void) | null = null;
   private measurerToggleCb: (() => void) | null = null;
   private magnifierConfigChangeCb:
@@ -96,6 +102,14 @@ export class FloatingButton {
       getDockMode: () => this.layout.mode,
       setDockMode: (mode, persist) => this.setDockMode(mode, persist),
       onMagnifierConfigChange: (changes) => this.magnifierConfigChangeCb?.(changes),
+    });
+    this.renderScanPanel = new FloatingButtonRenderScanPanel({
+      getActivePanel: () => this.state.activePanel,
+      isScanActive: () => this.state.isRenderScanActive,
+      renderExpandBody: () => this.renderExpandBody(),
+      toggleScan: () => this.renderScanToggleCb?.(),
+      clearEntries: () => this.renderScanClearCb?.(),
+      getEditorChoice: () => this.getEditorChoice(),
     });
     this.a11yPanel = new FloatingButtonA11yPanel({
       isActive: () => this.state.activePanel === "accessibility",
@@ -188,6 +202,7 @@ export class FloatingButton {
 
     this.shortcuts.destroy();
     this.layout.destroy();
+    this.renderScanPanel.destroy();
     this.logsPanel.destroy();
     this.networkPanel.destroy();
 
@@ -200,6 +215,7 @@ export class FloatingButton {
       this.toolbarRowEl = null;
       this.expandBodyEl = null;
       this.btnEl = null;
+      this.renderScanBtnEl = null;
       this.gearEl = null;
       this.a11yIndicatorEl = null;
       this.logsBtnEl = null;
@@ -216,6 +232,20 @@ export class FloatingButton {
     this.btnEl?.classList.toggle("active", active);
   }
 
+  setRenderScanActive(active: boolean): void {
+    this.state.isRenderScanActive = active;
+    this.renderScanBtnEl?.classList.toggle("active", active);
+    if (this.state.activePanel === "render-scan") this.renderExpandBody();
+  }
+
+  setRenderScanDisabled(disabled: boolean): void {
+    if (!this.renderScanBtnEl) return;
+    this.renderScanBtnEl.classList.toggle("disabled", disabled);
+    this.renderScanBtnEl.title = disabled
+      ? "Render Scan requires createVueGrab() in a Vue app"
+      : "Render update heatmap";
+  }
+
   setHighlightColor(color: string): void {
     this.host?.style.setProperty("--grab-color", color);
   }
@@ -226,6 +256,18 @@ export class FloatingButton {
 
   onToggle(cb: () => void): void {
     this.toggleCb = cb;
+  }
+
+  onRenderScanToggle(cb: () => void): void {
+    this.renderScanToggleCb = cb;
+  }
+
+  onRenderScanClear(cb: () => void): void {
+    this.renderScanClearCb = cb;
+  }
+
+  setRenderScanEntries(entries: RenderScanRecord[]): void {
+    this.renderScanPanel.setEntries(entries);
   }
 
   onHotkeyChange(cb: (combo: string) => void): void {
@@ -301,6 +343,7 @@ export class FloatingButton {
 
   private createToolbarButtons(): void {
     this.btnEl = createDockEntryButton("grab");
+    this.renderScanBtnEl = createDockEntryButton("render-scan");
     this.gearEl = createDockEntryButton("settings");
     this.magnifierBtnEl = createDockEntryButton("magnifier");
     this.measurerBtnEl = createDockEntryButton("measurer");
@@ -323,6 +366,7 @@ export class FloatingButton {
     if (
       !this.toolbarEl ||
       !this.btnEl ||
+      !this.renderScanBtnEl ||
       !this.gearEl ||
       !this.a11yIndicatorEl ||
       !this.logsBtnEl ||
@@ -348,6 +392,7 @@ export class FloatingButton {
         return;
       }
       if (this.state.isMagnifierActive || this.state.isMeasurerActive) return;
+      if (this.state.isRenderScanActive) this.renderScanToggleCb?.();
       if (this.state.activePanel) {
         this.deactivatePanel();
         return;
@@ -365,6 +410,32 @@ export class FloatingButton {
       e.stopPropagation();
       if (this.layout.wasToolbarDragged || !this.canActivatePanel()) return;
       this.activatePanel("accessibility");
+    });
+
+    this.renderScanBtnEl.addEventListener("click", (e: MouseEvent) => {
+      e.stopPropagation();
+      if (this.layout.wasToolbarDragged) return;
+      if (this.renderScanBtnEl?.classList.contains("disabled")) return;
+      if (
+        !this.state.isRenderScanActive &&
+        (this.state.isGrabActive || this.state.isMagnifierActive || this.state.isMeasurerActive)
+      )
+        return;
+      if (!this.state.isRenderScanActive) {
+        if (this.state.activePanel && this.state.activePanel !== "render-scan") {
+          this.deactivatePanel();
+        }
+        this.renderScanToggleCb?.();
+        this.activatePanel("render-scan");
+        return;
+      }
+      if (this.state.activePanel === "render-scan") {
+        this.renderScanToggleCb?.();
+        this.deactivatePanel();
+        return;
+      }
+      if (this.state.activePanel) this.deactivatePanel();
+      this.activatePanel("render-scan");
     });
 
     this.logsBtnEl.addEventListener("click", (e: MouseEvent) => {
@@ -388,6 +459,7 @@ export class FloatingButton {
         return;
       }
       if (this.state.isGrabActive || this.state.isMeasurerActive) return;
+      if (this.state.isRenderScanActive) this.renderScanToggleCb?.();
       if (this.state.activePanel) this.deactivatePanel();
       this.magnifierToggleCb?.();
     });
@@ -397,6 +469,8 @@ export class FloatingButton {
       if (this.layout.wasToolbarDragged) return;
       if (!this.state.isMeasurerActive && (this.state.isGrabActive || this.state.isMagnifierActive))
         return;
+      if (!this.state.isMeasurerActive && this.state.isRenderScanActive)
+        this.renderScanToggleCb?.();
       if (this.state.activePanel) this.deactivatePanel();
       this.measurerToggleCb?.();
     });
@@ -464,6 +538,10 @@ export class FloatingButton {
     if (this.state.activePanel === "settings") {
       this.expandBodyEl.innerHTML = this.settingsPanel.render();
       this.settingsPanel.wire(this.expandBodyEl);
+    } else if (this.state.activePanel === "render-scan") {
+      const visible = this.renderScanPanel.visible();
+      this.expandBodyEl.innerHTML = this.renderScanPanel.render(visible);
+      this.renderScanPanel.wire(this.expandBodyEl, visible);
     } else if (this.state.activePanel === "accessibility") {
       this.renderA11yPanel();
     } else if (this.state.activePanel === "logs") {
@@ -507,6 +585,7 @@ export class FloatingButton {
   private getToolbarElements(): FloatingButtonToolbarElements {
     return {
       grab: this.btnEl,
+      "render-scan": this.renderScanBtnEl,
       settings: this.gearEl,
       magnifier: this.magnifierBtnEl,
       measurer: this.measurerBtnEl,

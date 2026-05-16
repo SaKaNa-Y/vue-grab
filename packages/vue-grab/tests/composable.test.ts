@@ -58,15 +58,19 @@ describe("useGrab", () => {
     cleanupDOM();
   });
 
-  it("returns config, isActive, lastResult, activate, deactivate, toggle", () => {
+  it("returns config, state, and controls", () => {
     const result = mountWithGrab();
     wrapper = result.wrapper;
     expect(result.grab.config).toBeDefined();
     expect(result.grab.isActive).toBeDefined();
     expect(result.grab.lastResult).toBeDefined();
+    expect(result.grab.isMeasurerActive).toBeDefined();
+    expect(result.grab.isRenderScanActive).toBeDefined();
     expect(typeof result.grab.activate).toBe("function");
     expect(typeof result.grab.deactivate).toBe("function");
     expect(typeof result.grab.toggle).toBe("function");
+    expect(typeof result.grab.toggleMeasurer).toBe("function");
+    expect(typeof result.grab.toggleRenderScan).toBe("function");
   });
 
   it("isActive is initially false", () => {

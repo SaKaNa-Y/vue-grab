@@ -31,6 +31,7 @@ export default defineConfig({
             { text: "Element Measurer", link: "/features/measurer" },
             { text: "Console Capture", link: "/features/console-capture" },
             { text: "Network Capture", link: "/features/network-capture" },
+            { text: "Render Scan", link: "/features/render-scan" },
             { text: "Accessibility Audit", link: "/features/a11y" },
             { text: "Floating Button", link: "/features/floating-button" },
             { text: "Vite Integration", link: "/features/vite-integration" },

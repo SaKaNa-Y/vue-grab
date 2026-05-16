@@ -36,6 +36,11 @@ features:
     details: Capture fetch/XHR metadata, redact sensitive headers, opt into body capture, and attach recent request snapshots to grab results.
     link: /features/network-capture
     linkText: Learn more
+  - icon: Render
+    title: Render Scan
+    details: Toggle a local Vue update heatmap with an activity panel for frequently updating component roots.
+    link: /features/render-scan
+    linkText: Learn more
   - icon: ♿
     title: Accessibility Audit
     details: Page-wide scan with built-in rules surfaces missing labels, alt text, ARIA issues, and per-element a11y context on every grab.

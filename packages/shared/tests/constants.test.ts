@@ -12,9 +12,18 @@ describe("constants", () => {
     expect(DEFAULT_CONFIG.showTagHint).toBe(true);
     expect(DEFAULT_CONFIG.filter.ignoreSelectors).toEqual([]);
     expect(DEFAULT_CONFIG.networkCapture.captureBodies).toBe(false);
+    expect(DEFAULT_CONFIG.renderScan).toEqual({
+      enabled: true,
+      windowMs: 2000,
+      warningThreshold: 8,
+      dangerThreshold: 20,
+      flashDurationMs: 700,
+      maxRecords: 200,
+    });
     expect(DEFAULT_CONFIG.floatingButton.dockEntries.order).toEqual(
       DEFAULT_FLOATING_BUTTON_DOCK_ENTRY_ORDER,
     );
+    expect(DEFAULT_FLOATING_BUTTON_DOCK_ENTRY_ORDER).toContain("render-scan");
     expect(DEFAULT_CONFIG.floatingButton.dockEntries.hidden).toEqual([
       "magnifier",
       "logs",
@@ -175,6 +184,15 @@ describe("mergeConfig", () => {
     });
     expect(result.measurer.lineColor).toBe("#000000");
     expect(result.measurer.guideColor).toBe(DEFAULT_CONFIG.measurer.guideColor);
+  });
+
+  it("deep-merges renderScan", () => {
+    const result = mergeConfig(DEFAULT_CONFIG, {
+      renderScan: { warningThreshold: 4 },
+    });
+    expect(result.renderScan.warningThreshold).toBe(4);
+    expect(result.renderScan.enabled).toBe(DEFAULT_CONFIG.renderScan.enabled);
+    expect(result.renderScan.dangerThreshold).toBe(DEFAULT_CONFIG.renderScan.dangerThreshold);
   });
 
   it("does not mutate the defaults object", () => {
