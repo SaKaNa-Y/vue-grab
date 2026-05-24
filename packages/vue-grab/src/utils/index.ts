@@ -4,7 +4,7 @@ export { tryReadStorage, trySaveStorage } from "./storage";
 export { hasA11yAttributes, extractA11yInfo, scanPageA11y, A11Y_ICON_SVG } from "./a11y";
 export { ConsoleCapture, resolveLogSource, truncate } from "./console-capture";
 export { NetworkCapture, resolveRequestSource, formatNetworkStatusLabel } from "./network-capture";
-export { buildLogPrompt, buildRequestPrompt } from "./prompt-builder";
+export { buildContextPrompt, buildLogPrompt, buildRequestPrompt } from "./prompt-builder";
 export { toRelativePath, normalizeRoot } from "./path";
 export { destroyAll, registerFloatingButtonShortcuts } from "./lifecycle";
 export type { Disposable, PanelRenderer, ToggleableTool } from "./lifecycle";

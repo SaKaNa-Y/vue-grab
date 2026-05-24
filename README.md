@@ -6,7 +6,7 @@
 
 Grab UI context from Vue apps for AI coding agents.
 
-Point at any element, click, and capture its HTML, CSS selector, Vue component hierarchy, accessibility context, and recent network activity so you can hand useful UI evidence to Cursor, Claude Code, or any AI chat.
+Point at any element, click, and capture its HTML, CSS selector, Vue component hierarchy, accessibility context, console output, and recent network activity so you can hand useful UI evidence to Cursor, Claude Code, or any AI chat.
 
 ## Features
 
@@ -17,8 +17,9 @@ Point at any element, click, and capture its HTML, CSS selector, Vue component h
 - **Accessibility audit** - extracts ARIA/a11y attributes on every grab and provides a page-wide scan from the floating button.
 - **Console capture** - records console output, runtime errors, promise rejections, and Vue errors in a searchable ring buffer.
 - **Network capture** - records `fetch`/XHR metadata, redacts sensitive headers, optionally captures bodies, and attaches recent requests to grab results.
+- **Context packet** - copies or opens a compact Claude Code handoff with the last grab, console summary, and recent network summary so a fresh or compacted chat can recover quickly.
 - **Render Scan** - locally flashes frequently updating Vue components directly on the page.
-- **Floating action button** - optional draggable toolbar with Float and Edge dock modes, settings, logs, network, a11y, magnifier, and measurer controls.
+- **Floating action button** - optional draggable toolbar with Float and Edge dock modes, context, settings, logs, network, a11y, magnifier, and measurer controls.
 - **Magnifier and measurer** - inspect zoomed HTML context and measure distances between elements while iterating on UI.
 - **Vite editor integration** - open captured file paths in your editor through the companion dev-server plugin.
 - **Shadow DOM isolation** - overlay and toolbar styles stay isolated from your app.

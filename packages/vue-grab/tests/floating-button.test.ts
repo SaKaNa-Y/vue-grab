@@ -118,6 +118,14 @@ function getButton(): HTMLElement | null {
   return getShadow()?.querySelector(".grab-btn") ?? null;
 }
 
+function getContextBtn(): HTMLElement | null {
+  return getShadow()?.querySelector(".context-btn") ?? null;
+}
+
+function getContextPanel(): HTMLElement | null {
+  return getShadow()?.querySelector(".context-panel") ?? null;
+}
+
 function getGear(): HTMLElement | null {
   return getShadow()?.querySelector(".gear-btn") ?? null;
 }
@@ -320,10 +328,11 @@ describe("FloatingButton", () => {
 
       expect(getDockEntryButtonIds()).toEqual([
         "grab",
-        "render-scan",
-        "settings",
+        "context",
         "measurer",
         "accessibility",
+        "render-scan",
+        "settings",
       ]);
     });
 
@@ -849,6 +858,9 @@ describe("FloatingButton", () => {
       expect(getDockEntryRow("grab")!.querySelector(".setting-row-title")!.textContent).toBe(
         "Grab",
       );
+      expect(getDockEntryRow("context")!.querySelector(".setting-row-title")!.textContent).toBe(
+        "Context",
+      );
       expect(getDockEntryRow("grab")!.querySelector("[data-dock-entry-drag]")).not.toBeNull();
       expect(getDockEntryRow("grab")!.querySelector("[data-dock-entry-toggle]")).not.toBeNull();
       expect(
@@ -881,16 +893,17 @@ describe("FloatingButton", () => {
 
       getGear()!.click();
 
-      const expectedBetaIds = ["magnifier", "render-scan", "logs", "network"];
+      const expectedBetaIds = ["context", "magnifier", "render-scan", "logs", "network"];
       const betaRows = Array.from(
         getShadow()!.querySelectorAll<HTMLElement>(".dock-entry-row:has(.dock-entry-badge)"),
       );
       expect(getDockEntryButtonIds()).toEqual([
         "grab",
-        "render-scan",
-        "settings",
+        "context",
         "measurer",
         "accessibility",
+        "render-scan",
+        "settings",
       ]);
       expect(betaRows.map((row) => row.dataset.dockEntryRow)).toEqual(expectedBetaIds);
       for (const id of expectedBetaIds) {
@@ -930,17 +943,18 @@ describe("FloatingButton", () => {
       fab = createFab();
       fab.mount();
 
-      expect(getDockEntryButtonIds()[0]).toBe("logs");
+      expect(getDockEntryButtonIds()[0]).toBe("grab");
       expect(getDockEntryButtonIds()).toContain("settings");
       expect(getDockEntryButtonIds()).not.toContain("network");
       expect(getDockEntryButtonIds()).toEqual([
-        "logs",
-        "settings",
         "grab",
-        "render-scan",
+        "context",
         "magnifier",
         "measurer",
         "accessibility",
+        "logs",
+        "render-scan",
+        "settings",
       ]);
     });
 
@@ -989,23 +1003,25 @@ describe("FloatingButton", () => {
 
       expect(getDockEntryButtonIds()).toEqual([
         "grab",
-        "render-scan",
-        "settings",
+        "context",
         "magnifier",
         "measurer",
         "accessibility",
+        "render-scan",
         "network",
         "logs",
+        "settings",
       ]);
       expect(JSON.parse(localStorage.getItem("vue-grab-dock-entries")!).order).toEqual([
         "grab",
-        "render-scan",
-        "settings",
+        "context",
         "magnifier",
         "measurer",
         "accessibility",
+        "render-scan",
         "network",
         "logs",
+        "settings",
       ]);
     });
 
@@ -1022,23 +1038,25 @@ describe("FloatingButton", () => {
 
       expect(getDockEntryButtonIds()).toEqual([
         "grab",
-        "render-scan",
-        "settings",
+        "context",
         "magnifier",
         "measurer",
         "accessibility",
+        "render-scan",
         "network",
         "logs",
+        "settings",
       ]);
       expect(JSON.parse(localStorage.getItem("vue-grab-dock-entries")!).order).toEqual([
         "grab",
-        "render-scan",
-        "settings",
+        "context",
         "magnifier",
         "measurer",
         "accessibility",
+        "render-scan",
         "network",
         "logs",
+        "settings",
       ]);
     });
 
@@ -1055,13 +1073,14 @@ describe("FloatingButton", () => {
 
       expect(getDockEntryButtonIds()).toEqual([
         "grab",
-        "render-scan",
-        "settings",
+        "context",
         "magnifier",
         "measurer",
         "accessibility",
+        "render-scan",
         "logs",
         "network",
+        "settings",
       ]);
       expect(localStorage.getItem("vue-grab-dock-entries")).toBeNull();
     });
@@ -1149,13 +1168,14 @@ describe("FloatingButton", () => {
       getSettingsTab("Shortcuts")!.click();
 
       const shortcuts = getShadow()!.querySelector('[data-tab-content="shortcuts"]')!;
-      expect(shortcuts.querySelectorAll(".shortcut-row")).toHaveLength(8);
+      expect(shortcuts.querySelectorAll(".shortcut-row")).toHaveLength(9);
       expect(
         Array.from(shortcuts.querySelectorAll<HTMLElement>(".setting-row-title")).map((el) =>
           el.textContent?.trim(),
         ),
       ).toEqual([
         "Grab element",
+        "Context packet",
         "Open settings",
         "Render Scan",
         "Magnifier",
@@ -1590,6 +1610,88 @@ describe("FloatingButton", () => {
         "No Vue components found on this page",
       );
       expect(getA11yPanel()!.querySelector(".settings-list")).toBeNull();
+    });
+  });
+
+  describe("context panel", () => {
+    it("opens an empty diagnostics-only packet before any grab", () => {
+      fab = createFab();
+      fab.mount();
+
+      getContextBtn()!.click();
+
+      expect(getContextPanel()).not.toBeNull();
+      expect(getContextPanel()!.classList.contains("is-empty")).toBe(true);
+      expect(getShadow()!.querySelector(".context-panel-meta")!.textContent).toBe(
+        "Diagnostics only",
+      );
+      expect(getContextPanel()!.textContent).toContain("No element grabbed");
+      expect(getShadow()!.querySelector(".context-preview")!.textContent).toContain(
+        "No element has been grabbed yet",
+      );
+    });
+
+    it("renders last grab, logs, and network counts in the packet preview", () => {
+      fab = createFab();
+      fab.mount();
+      fab.setLastResult(
+        makeGrabResult({
+          selector: "button.save",
+          componentStack: [{ name: "SaveButton", filePath: "src/SaveButton.vue", line: 12 }],
+          a11y: {
+            attributes: [{ name: "aria-label", value: "Save" }],
+            audit: [],
+            hasA11y: true,
+          },
+        }),
+      );
+      fab.setLogs([makeLog("error", "context log")]);
+      fab.setNetwork([makeRequest({ url: "/api/context" })]);
+
+      getContextBtn()!.click();
+
+      expect(getShadow()!.querySelector(".context-panel-meta")!.textContent).toBe(
+        "Grab + diagnostics ready",
+      );
+      expect(getContextPanel()!.textContent).toContain("button.save");
+      expect(getContextPanel()!.textContent).toContain("SaveButton");
+      expect(getContextPanel()!.textContent).toContain("1 logs");
+      expect(getContextPanel()!.textContent).toContain("1 net");
+      const preview = getShadow()!.querySelector(".context-preview")!.textContent!;
+      expect(preview).toContain("# Vue Grab Context Packet");
+      expect(preview).toContain("- [error] context log");
+      expect(preview).toContain("/api/context");
+    });
+
+    it("copy action writes the context packet to clipboard", async () => {
+      const writeText = vi.fn<() => Promise<void>>().mockResolvedValue(undefined);
+      vi.spyOn(navigator.clipboard, "writeText").mockImplementation(writeText);
+      fab = createFab();
+      fab.mount();
+      fab.setLastResult(makeGrabResult({ selector: "button.copy" }));
+
+      getContextBtn()!.click();
+      getShadow()!.querySelector<HTMLElement>("[data-context-copy]")!.click();
+      await Promise.resolve();
+
+      expect(writeText).toHaveBeenCalledOnce();
+      expect(writeText.mock.calls[0][0]).toContain("button.copy");
+    });
+
+    it("Claude Code action opens a VS Code URI with the context packet", () => {
+      vi.spyOn(navigator.clipboard, "writeText").mockResolvedValue(undefined);
+      const openSpy = vi.spyOn(window, "open").mockReturnValue({} as Window);
+      fab = createFab();
+      fab.mount();
+      fab.setLastResult(makeGrabResult({ selector: "button.claude" }));
+
+      getContextBtn()!.click();
+      getShadow()!.querySelector<HTMLElement>("[data-context-claude]")!.click();
+
+      expect(openSpy).toHaveBeenCalledOnce();
+      const uri = openSpy.mock.calls[0][0] as string;
+      expect(uri).toContain("vscode://anthropic.claude-code/open?prompt=");
+      expect(decodeURIComponent(uri)).toContain("button.claude");
     });
   });
 

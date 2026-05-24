@@ -109,6 +109,7 @@ describe("createVueGrab", () => {
     const captureVueError = vi.spyOn(ConsoleCapture.prototype, "captureVueError");
 
     const Comp = defineComponent({
+      name: "BoomOnUnmount",
       setup() {
         onUnmounted(() => {
           throw new Error("unmount boom");
@@ -135,7 +136,7 @@ describe("createVueGrab", () => {
     expect(captureVueError).toHaveBeenCalledWith(
       expect.objectContaining({ message: "unmount boom" }),
       expect.any(String),
-      undefined,
+      expect.arrayContaining([expect.objectContaining({ name: "BoomOnUnmount" })]),
     );
   });
 

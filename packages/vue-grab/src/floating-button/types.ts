@@ -10,7 +10,7 @@ export type ToolbarAnchorRect = Pick<
 >;
 
 export type TabId = "dock" | "shortcuts" | "tools";
-export type PanelId = "settings" | "render-scan" | "accessibility" | "logs" | "network";
+export type PanelId = "settings" | "context" | "render-scan" | "accessibility" | "logs" | "network";
 export type DockEntryGroupId = "capture" | "inspection" | "diagnostics" | "system";
 export type DockEntryDropPlacement = "before" | "after";
 

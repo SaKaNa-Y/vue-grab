@@ -14,6 +14,7 @@ import type { PanelId } from "./types";
 import { FloatingButtonDockEntriesController } from "./dock-entries";
 import { createHostStyle, FloatingButtonLayoutController } from "./layout";
 import { FloatingButtonA11yPanel } from "./panels/a11y";
+import { FloatingButtonContextPanel } from "./panels/context";
 import { FloatingButtonLogsPanel } from "./panels/logs";
 import { FloatingButtonNetworkPanel } from "./panels/network";
 import { FloatingButtonRenderScanPanel } from "./panels/render-scan";
@@ -39,6 +40,7 @@ export class FloatingButton {
   private toolbarRowEl: HTMLElement | null = null;
   private expandBodyEl: HTMLElement | null = null;
   private btnEl: HTMLElement | null = null;
+  private contextBtnEl: HTMLElement | null = null;
   private gearEl: HTMLElement | null = null;
   private a11yIndicatorEl: HTMLElement | null = null;
   private renderScanBtnEl: HTMLElement | null = null;
@@ -53,6 +55,7 @@ export class FloatingButton {
   private readonly dockEntries: FloatingButtonDockEntriesController;
   private readonly shortcuts: FloatingButtonShortcutsController;
   private readonly settingsPanel: FloatingButtonSettingsPanel;
+  private readonly contextPanel: FloatingButtonContextPanel;
   private readonly renderScanPanel: FloatingButtonRenderScanPanel;
   private readonly a11yPanel: FloatingButtonA11yPanel;
   private readonly logsPanel: FloatingButtonLogsPanel;
@@ -105,6 +108,11 @@ export class FloatingButton {
       setDockMode: (mode, persist) => this.setDockMode(mode, persist),
       onMagnifierConfigChange: (changes) => this.magnifierConfigChangeCb?.(changes),
     });
+    this.contextPanel = new FloatingButtonContextPanel({
+      getActivePanel: () => this.state.activePanel,
+      getLastResult: () => this.state.lastGrabResult,
+      renderExpandBody: () => this.renderExpandBody(),
+    });
     this.renderScanPanel = new FloatingButtonRenderScanPanel({
       getActivePanel: () => this.state.activePanel,
       isScanActive: () => this.state.isRenderScanActive,
@@ -146,6 +154,8 @@ export class FloatingButton {
 
     if (this.state.activePanel === "settings") {
       this.settingsPanel.updateEditorTabInPlace(this.expandBodyEl);
+    } else if (this.state.activePanel === "context") {
+      this.contextPanel.refresh();
     } else if (this.state.activePanel === "accessibility") {
       this.renderExpandBody();
     }
@@ -205,6 +215,7 @@ export class FloatingButton {
     this.shortcuts.destroy();
     this.layout.destroy();
     this.renderScanPanel.destroy();
+    this.contextPanel.destroy();
     this.logsPanel.destroy();
     this.networkPanel.destroy();
 
@@ -217,6 +228,7 @@ export class FloatingButton {
       this.toolbarRowEl = null;
       this.expandBodyEl = null;
       this.btnEl = null;
+      this.contextBtnEl = null;
       this.renderScanBtnEl = null;
       this.gearEl = null;
       this.a11yIndicatorEl = null;
@@ -286,6 +298,7 @@ export class FloatingButton {
 
   setLogs(entries: CapturedLog[]): void {
     this.logsPanel.setEntries(entries, this.logsBadgeEl);
+    this.contextPanel.setLogs(entries);
   }
 
   onNetworkClear(cb: () => void): void {
@@ -294,6 +307,7 @@ export class FloatingButton {
 
   setNetwork(entries: CapturedRequest[]): void {
     this.networkPanel.setEntries(entries, this.networkBadgeEl);
+    this.contextPanel.setNetwork(entries);
   }
 
   onMagnifierToggle(cb: () => void): void {
@@ -345,6 +359,7 @@ export class FloatingButton {
 
   private createToolbarButtons(): void {
     this.btnEl = createDockEntryButton("grab");
+    this.contextBtnEl = createDockEntryButton("context");
     this.renderScanBtnEl = createDockEntryButton("render-scan");
     this.gearEl = createDockEntryButton("settings");
     this.magnifierBtnEl = createDockEntryButton("magnifier");
@@ -368,6 +383,7 @@ export class FloatingButton {
     if (
       !this.toolbarEl ||
       !this.btnEl ||
+      !this.contextBtnEl ||
       !this.renderScanBtnEl ||
       !this.gearEl ||
       !this.a11yIndicatorEl ||
@@ -400,6 +416,12 @@ export class FloatingButton {
         return;
       }
       this.toggleCb?.();
+    });
+
+    this.contextBtnEl.addEventListener("click", (e: MouseEvent) => {
+      e.stopPropagation();
+      if (this.layout.wasToolbarDragged || !this.canActivatePanel()) return;
+      this.activatePanel("context");
     });
 
     this.gearEl.addEventListener("click", (e: MouseEvent) => {
@@ -540,6 +562,9 @@ export class FloatingButton {
     if (this.state.activePanel === "settings") {
       this.expandBodyEl.innerHTML = this.settingsPanel.render();
       this.settingsPanel.wire(this.expandBodyEl);
+    } else if (this.state.activePanel === "context") {
+      this.expandBodyEl.innerHTML = this.contextPanel.render();
+      this.contextPanel.wire(this.expandBodyEl);
     } else if (this.state.activePanel === "render-scan") {
       const visible = this.renderScanPanel.visible();
       this.expandBodyEl.innerHTML = this.renderScanPanel.render(visible);
@@ -587,6 +612,7 @@ export class FloatingButton {
   private getToolbarElements(): FloatingButtonToolbarElements {
     return {
       grab: this.btnEl,
+      context: this.contextBtnEl,
       "render-scan": this.renderScanBtnEl,
       settings: this.gearEl,
       magnifier: this.magnifierBtnEl,

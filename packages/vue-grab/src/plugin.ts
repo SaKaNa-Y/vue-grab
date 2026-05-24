@@ -1,12 +1,18 @@
 import { readonly, ref, type App, type DeepReadonly, type InjectionKey, type Ref } from "vue";
 
-import type { GrabConfig, GrabResult, GrabUserConfig } from "@sakana-y/vue-grab-shared";
+import type {
+  ComponentInfo,
+  GrabConfig,
+  GrabResult,
+  GrabUserConfig,
+} from "@sakana-y/vue-grab-shared";
 
 import { DEFAULT_CONFIG, mergeConfig, VUE_ERROR_EVENT } from "@sakana-y/vue-grab-shared";
 
 import type { RenderScanCollector, RenderScanOverlay } from "./render-scan";
 
 import { createGrabSession, type GrabSession } from "./session";
+import { getComponentName } from "./utils";
 
 export const VUE_GRAB_CONFIG_KEY: InjectionKey<GrabConfig> = Symbol("vue-grab-config");
 
@@ -29,6 +35,21 @@ export const VUE_GRAB_CONTEXT_KEY: InjectionKey<VueGrabContext> = Symbol("vue-gr
 
 function canUseDOM(): boolean {
   return typeof window !== "undefined" && typeof document !== "undefined";
+}
+
+function getComponentStackFromInstance(instance: unknown): ComponentInfo[] | undefined {
+  const start = (instance as { $?: unknown } | null | undefined)?.$ ?? instance;
+  const stack: ComponentInfo[] = [];
+  let cursor = start as any;
+
+  while (cursor) {
+    const info: ComponentInfo = { name: getComponentName(cursor, "Anonymous") };
+    if (cursor.type?.__file) info.filePath = cursor.type.__file;
+    stack.push(info);
+    cursor = cursor.parent;
+  }
+
+  return stack.length > 0 ? stack : undefined;
 }
 
 export function createVueGrabContext(config: GrabConfig): VueGrabContext {
@@ -163,7 +184,7 @@ export function createVueGrab(options: GrabUserConfig = {}) {
           if (typeof window !== "undefined") {
             window.dispatchEvent(
               new CustomEvent(VUE_ERROR_EVENT, {
-                detail: { err, info },
+                detail: { err, info, componentStack: getComponentStackFromInstance(instance) },
               }),
             );
           }

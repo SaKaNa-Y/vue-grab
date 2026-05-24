@@ -20,13 +20,14 @@ export const DEFAULT_HOTKEY = "Alt+Shift+G";
 
 export const DEFAULT_FLOATING_BUTTON_DOCK_ENTRY_ORDER: readonly FloatingButtonDockEntryId[] = [
   "grab",
-  "render-scan",
-  "settings",
+  "context",
   "magnifier",
   "measurer",
   "accessibility",
+  "render-scan",
   "logs",
   "network",
+  "settings",
 ];
 
 export const DEFAULT_FLOATING_BUTTON: FloatingButtonConfig = {

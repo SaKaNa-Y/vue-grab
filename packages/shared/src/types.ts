@@ -2,6 +2,7 @@ export type FloatingButtonDockMode = "float" | "edge";
 
 export type FloatingButtonDockEntryId =
   | "grab"
+  | "context"
   | "render-scan"
   | "settings"
   | "magnifier"

@@ -8,6 +8,8 @@ It ships as a Vue 3 plugin, a standalone `init()` entry point, a Vite companion 
 
 When you are iterating on UI with an AI agent, the agent needs context that usually lives only in your head: which component rendered this button, where its file lives, which ARIA attributes it has, and what console or network failures happened nearby. Vue Grab collects that with a click.
 
+When an agent session gets compacted or you start a fresh chat, the floating button's Context panel can copy a compact recovery packet with the last grab, console summary, and recent network summary.
+
 ## What you get on every grab
 
 - **CSS selector** - useful locator for the element.
@@ -20,7 +22,7 @@ When you are iterating on UI with an AI agent, the agent needs context that usua
 
 - **Hotkey**: `Alt+Shift+G` toggles grab mode.
 - **Measurer**: `Alt+Shift+M` toggles the spacing inspector when enabled.
-- **Floating button**: opt-in toolbar with Float and Edge dock modes, logs, network, a11y, magnifier, measurer, and settings panels.
+- **Floating button**: opt-in toolbar with Float and Edge dock modes, context, logs, network, a11y, magnifier, measurer, and settings panels.
 - **Programmatic**: `useGrab()` inside Vue components, or `init()` outside Vue.
 
 ## Requirements
