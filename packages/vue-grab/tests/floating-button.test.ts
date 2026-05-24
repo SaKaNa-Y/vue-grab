@@ -441,15 +441,66 @@ describe("FloatingButton", () => {
       ]);
       vi.runAllTimers();
 
+      const panel = getShadow()!.querySelector<HTMLElement>(".render-scan-panel")!;
+      expect(
+        panel.querySelector(".render-scan-overview-list")!.classList.contains("settings-list"),
+      ).toBe(true);
+      expect(
+        panel.querySelector(".render-scan-summary-list")!.classList.contains("settings-list"),
+      ).toBe(true);
+      expect(panel.querySelector(".render-scan-detail")!.classList.contains("settings-list")).toBe(
+        true,
+      );
+      expect(panel.querySelector(".render-scan-list")!.classList.contains("settings-list")).toBe(
+        true,
+      );
+      expect(
+        panel.querySelector(".render-scan-overview-row")!.classList.contains("setting-row"),
+      ).toBe(true);
+      expect(
+        panel.querySelector(".render-scan-actions")!.classList.contains("setting-row-control"),
+      ).toBe(true);
+      const detailHeading = panel.querySelector<HTMLElement>(".render-scan-detail-heading")!;
+      const detailMetrics = panel.querySelector<HTMLElement>(".render-scan-detail-metrics")!;
+      const detailNote = panel.querySelector<HTMLElement>(".render-scan-detail-note-row")!;
+      const stat = panel.querySelector<HTMLElement>(".render-scan-stat")!;
+      const severityChip = panel.querySelector<HTMLElement>(".render-scan-severity-chip")!;
+      const openButton = panel.querySelector<HTMLElement>(".render-scan-open")!;
+      const expectFlexDisplay = (el: HTMLElement): void => {
+        expect(["flex", "inline-flex"]).toContain(getComputedStyle(el).display);
+      };
+      expect(getComputedStyle(detailHeading).alignItems).toBe("center");
+      expect(getComputedStyle(detailMetrics).alignItems).toBe("center");
+      expect(getComputedStyle(detailNote).alignItems).toBe("center");
+      expectFlexDisplay(stat);
+      expect(getComputedStyle(stat).alignItems).toBe("center");
+      expect(getComputedStyle(stat).justifyContent).toBe("center");
+      expectFlexDisplay(severityChip);
+      expect(getComputedStyle(severityChip).alignItems).toBe("center");
+      expect(getComputedStyle(severityChip).justifyContent).toBe("center");
+      expectFlexDisplay(openButton);
+      expect(getComputedStyle(openButton).alignItems).toBe("center");
+      expect(getComputedStyle(openButton).justifyContent).toBe("center");
       expect(getShadow()!.querySelector(".render-scan-detail-title")?.textContent).toBe(
         "TodoInput",
       );
       const rows = getShadow()!.querySelectorAll(".render-scan-row");
       expect(rows).toHaveLength(2);
-      expect(rows[0].textContent).toContain("×58");
+      expect(rows[0].classList.contains("setting-row")).toBe(true);
+      expect(rows[0].closest(".settings-list")).not.toBeNull();
+      expect(rows[0].querySelector(".setting-row-control")).not.toBeNull();
+      expect(rows[0].classList.contains("selected")).toBe(true);
+      const rowCount = rows[0].querySelector<HTMLElement>(".render-scan-row-count")!;
+      expect(rowCount.textContent).toBe("\u00D758");
+      expectFlexDisplay(rowCount);
+      expect(getComputedStyle(rowCount).alignItems).toBe("center");
+      expect(getComputedStyle(rowCount).justifyContent).toBe("center");
 
       (rows[1] as HTMLElement).click();
       expect(getShadow()!.querySelector(".render-scan-detail-title")?.textContent).toBe("TodoList");
+      expect(
+        getShadow()!.querySelectorAll(".render-scan-row")[1].classList.contains("selected"),
+      ).toBe(true);
 
       const search = getShadow()!.querySelector<HTMLInputElement>(".render-scan-search")!;
       search.value = "input";
@@ -461,6 +512,17 @@ describe("FloatingButton", () => {
 
       getShadow()!.querySelector<HTMLElement>(".render-scan-clear")!.click();
       expect(clearSpy).toHaveBeenCalledOnce();
+
+      fab.setRenderScanEntries([]);
+      vi.runAllTimers();
+      const emptyList = getShadow()!.querySelector<HTMLElement>(".render-scan-empty-list")!;
+      expect(emptyList.classList.contains("settings-list")).toBe(true);
+      expect(
+        emptyList.querySelector(".render-scan-empty-row")!.classList.contains("setting-row"),
+      ).toBe(true);
+      expect(
+        getShadow()!.querySelector(".render-scan-empty-card")!.classList.contains("setting-row"),
+      ).toBe(true);
     });
   });
 
