@@ -1,5 +1,13 @@
 # @sakana-y/vue-grab-shared
 
+## 0.1.4
+
+### Patch Changes
+
+- [#49](https://github.com/SaKaNa-Y/vue-grab/pull/49) [`fff0975`](https://github.com/SaKaNa-Y/vue-grab/commit/fff09756610e9efab7996e79c9c52d31a4cf928b) Thanks [@SaKaNa-Y](https://github.com/SaKaNa-Y)! - Label the Context dock entry as Beta in Settings and render the floating toolbar by feature group, including for persisted dock orders.
+
+- [#49](https://github.com/SaKaNa-Y/vue-grab/pull/49) [`fff0975`](https://github.com/SaKaNa-Y/vue-grab/commit/fff09756610e9efab7996e79c9c52d31a4cf928b) Thanks [@SaKaNa-Y](https://github.com/SaKaNa-Y)! - Add a floating-button Context panel that copies or opens a compact agent handoff packet with the last grab, console summary, and recent network summary.
+
 ## 0.1.3
 
 ### Patch Changes
