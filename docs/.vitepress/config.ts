@@ -28,6 +28,7 @@ export default defineConfig({
           text: "Features",
           items: [
             { text: "Interactive Grab", link: "/features/grab" },
+            { text: "Context Packet", link: "/features/context-packet" },
             { text: "Element Measurer", link: "/features/measurer" },
             { text: "Console Capture", link: "/features/console-capture" },
             { text: "Network Capture", link: "/features/network-capture" },

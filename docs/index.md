@@ -3,7 +3,7 @@ layout: home
 hero:
   name: Vue Grab
   text: UI context for AI coding agents
-  tagline: Point at any element in your Vue app, click, and capture its HTML, CSS selector, component hierarchy, a11y context, and recent network activity.
+  tagline: Point at any element in your Vue app, click, and capture its HTML, CSS selector, component hierarchy, a11y context, console output, and recent network activity.
   actions:
     - theme: brand
       text: Get Started
@@ -20,6 +20,11 @@ features:
     title: Interactive Grab
     details: Hover to highlight, click to capture. Extracts CSS selector, outerHTML, a11y info, and the Vue component stack with file paths when Vue exposes them.
     link: /features/grab
+    linkText: Learn more
+  - icon: 🧭
+    title: Context Packet
+    details: Copy or open a compact agent handoff with the last grab, console summary, and recent network summary when a chat gets compacted.
+    link: /features/context-packet
     linkText: Learn more
   - icon: 📏
     title: Element Measurer
@@ -48,7 +53,7 @@ features:
     linkText: Learn more
   - icon: 🧰
     title: Floating Button
-    details: Optional draggable toolbar with Float and Edge dock modes, settings, logs, network, a11y, magnifier, and measurer controls.
+    details: Optional draggable toolbar with Float and Edge dock modes, context, settings, logs, network, a11y, magnifier, and measurer controls.
     link: /features/floating-button
     linkText: Learn more
   - icon: ⚡

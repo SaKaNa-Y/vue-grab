@@ -24,7 +24,17 @@ describe("constants", () => {
     expect(DEFAULT_CONFIG.floatingButton.dockEntries.order).toEqual(
       DEFAULT_FLOATING_BUTTON_DOCK_ENTRY_ORDER,
     );
-    expect(DEFAULT_FLOATING_BUTTON_DOCK_ENTRY_ORDER).toContain("render-scan");
+    expect(DEFAULT_FLOATING_BUTTON_DOCK_ENTRY_ORDER).toEqual([
+      "grab",
+      "context",
+      "magnifier",
+      "measurer",
+      "accessibility",
+      "render-scan",
+      "logs",
+      "network",
+      "settings",
+    ]);
     expect(DEFAULT_CONFIG.floatingButton.dockEntries.hidden).toEqual([
       "magnifier",
       "logs",

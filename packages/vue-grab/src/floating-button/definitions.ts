@@ -10,6 +10,7 @@ import type {
 
 import {
   A11Y_ICON_SVG,
+  CONTEXT_SVG,
   CROSSHAIR_SVG,
   GEAR_SVG,
   LOGS_SVG,
@@ -62,6 +63,15 @@ export const DOCK_ENTRY_DEFINITIONS: readonly DockEntryDefinition[] = [
     group: "capture",
     buttonClass: "grab-btn",
     icon: CROSSHAIR_SVG,
+  },
+  {
+    id: "context",
+    label: "Context",
+    title: "Context packet",
+    group: "capture",
+    buttonClass: "context-btn",
+    icon: CONTEXT_SVG,
+    badge: BETA_BADGE,
   },
   {
     id: "settings",
@@ -134,6 +144,12 @@ export const SHORTCUT_COMMAND_DEFINITIONS: readonly ShortcutCommandDefinition[] 
     icon: CROSSHAIR_SVG,
     legacyKbdClass: "grab-hotkey-kbd",
     legacyRecordClass: "grab-record-btn",
+  },
+  {
+    id: "context",
+    label: "Context packet",
+    description: "Open the compact agent handoff packet.",
+    icon: CONTEXT_SVG,
   },
   {
     id: "settings",

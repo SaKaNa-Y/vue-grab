@@ -15,8 +15,9 @@ Point at any element, click, and capture its HTML, CSS selector, Vue component h
 - Accessibility attributes and page-wide audit helpers.
 - Console capture for logs, warnings, errors, unhandled rejections, and Vue errors.
 - Network capture for `fetch` and XHR metadata with header redaction and optional body capture.
+- Context packet panel for compact Claude Code handoff after chat compaction or in a fresh agent session.
 - Render Scan heatmap for frequently updating Vue components.
-- Floating action button with settings, logs, network, a11y, magnifier, and measurer tools.
+- Floating action button with context, settings, logs, network, a11y, magnifier, and measurer tools.
 - Vite editor integration through the `@sakana-y/vue-grab/vite` entry point.
 - Shadow DOM isolation for Vue Grab overlays and toolbar styles.
 - Vue plugin and standalone runtime APIs.

@@ -63,6 +63,7 @@ describe("createGrabSession", () => {
         enabled: true,
         shortcuts: {
           settings: ["Ctrl+Shift+S"],
+          context: ["Ctrl+Shift+C"],
           logs: ["Ctrl+Shift+L"],
           network: ["Ctrl+Shift+N"],
           accessibility: ["Ctrl+Shift+A"],
@@ -73,6 +74,9 @@ describe("createGrabSession", () => {
 
     fireKey("s", { ctrlKey: true, shiftKey: true });
     expect(shadow.querySelector('[data-tab-content="dock"]')).not.toBeNull();
+
+    fireKey("c", { ctrlKey: true, shiftKey: true });
+    expect(shadow.querySelector(".context-panel")).not.toBeNull();
 
     fireKey("l", { ctrlKey: true, shiftKey: true });
     expect(shadow.querySelector(".logs-panel")).not.toBeNull();

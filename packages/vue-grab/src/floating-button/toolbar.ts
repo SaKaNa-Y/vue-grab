@@ -5,10 +5,11 @@ import type {
 
 import type { DockEntryGroupId, PanelId } from "./types";
 
-import { DOCK_ENTRY_DEFINITION_BY_ID } from "./definitions";
+import { DOCK_ENTRY_DEFINITION_BY_ID, DOCK_ENTRY_GROUPS } from "./definitions";
 
 export interface FloatingButtonToolbarElements {
   grab: HTMLElement | null;
+  context: HTMLElement | null;
   "render-scan": HTMLElement | null;
   settings: HTMLElement | null;
   magnifier: HTMLElement | null;
@@ -40,7 +41,10 @@ export function visibleDockEntryIds(
 ): FloatingButtonDockEntryId[] {
   const hidden = new Set(dockEntries.hidden);
   hidden.delete("settings");
-  return dockEntries.order.filter((id) => id === "settings" || !hidden.has(id));
+  const visible = dockEntries.order.filter((id) => id === "settings" || !hidden.has(id));
+  return DOCK_ENTRY_GROUPS.flatMap((group) =>
+    visible.filter((id) => DOCK_ENTRY_DEFINITION_BY_ID.get(id)?.group === group.id),
+  );
 }
 
 export function renderToolbarEntries(
@@ -71,6 +75,7 @@ export function updatePanelButtonStates(
   activePanel: PanelId | null,
 ): void {
   elements.settings?.classList.toggle("active", activePanel === "settings");
+  elements.context?.classList.toggle("active", activePanel === "context");
   elements["render-scan"]?.classList.toggle("panel-open", activePanel === "render-scan");
   elements.accessibility?.classList.toggle("active", activePanel === "accessibility");
   elements.logs?.classList.toggle("active", activePanel === "logs");

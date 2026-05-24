@@ -1,6 +1,6 @@
 # Floating Button
 
-The optional floating action button (FAB) is a persistent developer toolbar that unifies grab, render scan, measure, magnifier, console, network, a11y, editor, and settings workflows.
+The optional floating action button (FAB) is a persistent developer toolbar that unifies grab, context packet, render scan, measure, magnifier, console, network, a11y, editor, and settings workflows.
 
 It is off by default. Opt in with:
 
@@ -13,6 +13,7 @@ createVueGrab({
 ## What it offers
 
 - **Grab** button - same as `Alt+Shift+G`.
+- **Context panel** - copies or opens a compact agent handoff packet with the last grab, console summary, and recent network summary.
 - **Render Scan panel** - toggles the Vue component update heatmap and lists recent component update activity.
 - **Measure** button - same as `Alt+Shift+M` when the measurer is enabled.
 - **Magnifier** button - toggles the loupe when the magnifier is enabled.
@@ -47,7 +48,7 @@ createVueGrab({
 
 ## Toolbar entries
 
-The Dock tab also lets users hide and reorder toolbar entries by feature group. Hiding an entry removes it from the toolbar only; the underlying feature can still be used through hotkeys or programmatic APIs. Render Scan, Magnifier, Logs, and Network are labeled Beta in Settings. Magnifier, Logs, and Network are hidden by default while they are beta, but users can re-enable them from Settings > Dock. The Settings entry is always visible and cannot be hidden. Entries can be reordered within their feature group with the drag handle or arrow controls.
+The Dock tab also lets users hide and reorder toolbar entries by feature group. Hiding an entry removes it from the toolbar only; the underlying feature can still be used through hotkeys or programmatic APIs. The toolbar renders entries by feature group, and custom order controls each entry's position within its group. Context is visible by default. Context, Render Scan, Magnifier, Logs, and Network are labeled Beta in Settings. Magnifier, Logs, and Network are hidden by default while they are beta, but users can re-enable them from Settings > Dock. The Settings entry is always visible and cannot be hidden. Entries can be reordered within their feature group with the drag handle or arrow controls.
 
 ```ts
 createVueGrab({
@@ -56,13 +57,14 @@ createVueGrab({
     dockEntries: {
       order: [
         "grab",
-        "render-scan",
-        "settings",
-        "logs",
-        "network",
+        "context",
         "magnifier",
         "measurer",
         "accessibility",
+        "render-scan",
+        "logs",
+        "network",
+        "settings",
       ],
       hidden: ["network"],
     },
@@ -72,7 +74,7 @@ createVueGrab({
 
 ## Shortcuts
 
-The Shortcuts tab lists every floating-bar feature: Grab, Settings, Render Scan, Magnifier, Measurer, Accessibility, Logs, and Network. Each row can hold multiple user-defined shortcuts. Defaults are intentionally limited to Grab (`Alt+Shift+G`) and Measurer (`Alt+Shift+M`) so Vue Grab does not claim common app or browser shortcuts.
+The Shortcuts tab lists every floating-bar feature: Grab, Context, Settings, Render Scan, Magnifier, Measurer, Accessibility, Logs, and Network. Each row can hold multiple user-defined shortcuts. Defaults are intentionally limited to Grab (`Alt+Shift+G`) and Measurer (`Alt+Shift+M`) so Vue Grab does not claim common app or browser shortcuts.
 
 ## Tools
 

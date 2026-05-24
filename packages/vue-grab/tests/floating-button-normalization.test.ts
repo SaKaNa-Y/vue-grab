@@ -65,7 +65,35 @@ describe("floating button normalization", () => {
         order: ["grab", "logs", "settings", "network", "measurer", "accessibility", "magnifier"],
         hidden: ["logs", "settings", "network"],
       }),
-    ).toEqual(["grab", "settings", "measurer", "accessibility", "magnifier"]);
+    ).toEqual(["grab", "measurer", "accessibility", "magnifier", "settings"]);
+  });
+
+  it("renders missing context beside grab for legacy saved dock orders", () => {
+    const entries = normalizeDockEntries({
+      order: ["grab", "settings", "measurer", "render-scan", "logs", "network"],
+      hidden: [],
+    });
+
+    expect(visibleDockEntryIds(entries)).toEqual([
+      "grab",
+      "context",
+      "measurer",
+      "magnifier",
+      "accessibility",
+      "render-scan",
+      "logs",
+      "network",
+      "settings",
+    ]);
+  });
+
+  it("groups saved context and settings positions while preserving order inside each group", () => {
+    expect(
+      visibleDockEntryIds({
+        order: ["network", "settings", "grab", "logs", "context", "accessibility", "measurer"],
+        hidden: [],
+      }),
+    ).toEqual(["grab", "context", "accessibility", "measurer", "network", "logs", "settings"]);
   });
 
   it("clones shortcut arrays without sharing mutable references", () => {

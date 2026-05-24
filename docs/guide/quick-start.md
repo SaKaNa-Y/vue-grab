@@ -39,6 +39,8 @@ app.mount("#app");
 
 Reload your app, press `Alt+Shift+G`, hover an element, and click. The component stack, selector, HTML, a11y info, and optional network snapshot appear in `useGrab().lastResult`.
 
+If you enabled the floating button, open the Context panel after a grab to copy one compact packet for Claude Code or another agent. It includes the selected element plus current console and network summaries, which is useful after chat compaction.
+
 ## Optional Vite editor setup
 
 Add the Vite companion so clicking a file path can open your editor:

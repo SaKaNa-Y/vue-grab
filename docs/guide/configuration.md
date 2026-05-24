@@ -59,7 +59,7 @@ createVueGrab({
 
 ### `floatingButton.dockEntries`
 
-`order` accepts toolbar entry ids: `"grab"`, `"render-scan"`, `"settings"`, `"magnifier"`, `"measurer"`, `"accessibility"`, `"logs"`, and `"network"`. Unknown ids are ignored and missing ids are appended in the default order. `hidden` removes entries from the toolbar only; `"settings"` is always forced visible. Render Scan, Magnifier, Logs, and Network are labeled Beta in Settings. Magnifier, Logs, and Network are hidden by default while they are beta, but users can re-enable them from Settings > Dock. Users can reorder entries within each Dock feature group from Settings.
+`order` accepts toolbar entry ids: `"grab"`, `"context"`, `"magnifier"`, `"measurer"`, `"accessibility"`, `"render-scan"`, `"logs"`, `"network"`, and `"settings"`. Unknown ids are ignored and missing ids are appended in the default order. The toolbar renders entries by feature group, so `order` controls each entry's position within its group. `hidden` removes entries from the toolbar only; `"settings"` is always forced visible. The Context entry is visible by default and builds a compact handoff packet from the last grab, console entries, and network entries. Context, Render Scan, Magnifier, Logs, and Network are labeled Beta in Settings. Magnifier, Logs, and Network are hidden by default while they are beta, but users can re-enable them from Settings > Dock. Users can reorder entries within each Dock feature group from Settings.
 
 ```ts
 createVueGrab({
@@ -68,13 +68,14 @@ createVueGrab({
     dockEntries: {
       order: [
         "grab",
-        "render-scan",
-        "settings",
-        "logs",
-        "network",
+        "context",
         "magnifier",
         "measurer",
         "accessibility",
+        "render-scan",
+        "logs",
+        "network",
+        "settings",
       ],
       hidden: ["network"],
     },

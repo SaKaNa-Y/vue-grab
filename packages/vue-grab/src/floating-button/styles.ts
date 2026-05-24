@@ -110,11 +110,8 @@ export const STYLES = `
     color: #e0e0e0;
     background: rgba(255,255,255,0.08);
   }
-  .grab-btn.active {
-    color: var(--grab-color, #4f46e5);
-    box-shadow: inset 0 0 0 1.5px var(--grab-color, #4f46e5);
-    background: var(--grab-toolbar-active-bg);
-  }
+  .grab-btn.active,
+  .context-btn.active,
   .gear-btn.active {
     color: var(--grab-color, #4f46e5);
     box-shadow: inset 0 0 0 1.5px var(--grab-color, #4f46e5);
@@ -2208,6 +2205,87 @@ export const STYLES = `
   }
 
   /* ── Network panel ── */
+  .context-panel {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    min-width: min(560px, 100%);
+    overflow: hidden;
+    padding: 14px;
+    box-sizing: border-box;
+  }
+  .context-panel .settings-list {
+    background: rgba(12,12,12,0.36);
+  }
+  .context-panel .section-label:not(:first-child) {
+    margin-top: 16px;
+  }
+  .context-section-label,
+  .context-overview-list,
+  .context-selected-list,
+  .context-action-list {
+    flex: 0 0 auto;
+  }
+  .context-overview-list,
+  .context-selected-list,
+  .context-action-list {
+    margin-bottom: 0;
+  }
+  .context-overview-row,
+  .context-selected-row,
+  .context-action-row {
+    min-height: 58px;
+  }
+  .context-overview-icon,
+  .context-selected-icon,
+  .context-action-icon {
+    color: #9a9a9a;
+  }
+  .context-overview-icon svg,
+  .context-selected-icon svg,
+  .context-action-icon svg {
+    width: 18px;
+    height: 18px;
+  }
+  .context-overview-control,
+  .context-actions {
+    flex-wrap: wrap;
+  }
+  .context-panel-meta {
+    color: #7d7d7d;
+    font-size: 12px;
+    line-height: 1.3;
+  }
+  .context-actions {
+    gap: 6px;
+  }
+  .context-preview {
+    flex: 1 1 auto;
+    min-height: 0;
+    margin: 0;
+    padding: 12px;
+    overflow: auto;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(12,12,12,0.36);
+    color: #d6d6d6;
+    font: 11px/1.45 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    white-space: pre-wrap;
+    word-break: break-word;
+    box-sizing: border-box;
+  }
+  .context-preview::-webkit-scrollbar {
+    width: 6px;
+  }
+  .context-preview::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .context-preview::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.15);
+    border-radius: 3px;
+  }
+
   .network-btn {
     position: relative;
   }
