@@ -248,6 +248,14 @@ function expectStylePx(value: string, expected: number): void {
   expect(Math.abs(Number.parseFloat(value) - expected)).toBeLessThanOrEqual(1);
 }
 
+function expectStylePercent(value: string, expected: number): void {
+  expect(Math.abs(Number.parseFloat(value) - expected)).toBeLessThanOrEqual(0.01);
+}
+
+function compactEdgeInsetPx(): number {
+  return Math.max(0, (3 * window.innerHeight) / 100 - 18);
+}
+
 function expectRectStable(
   actual: Pick<DOMRect, "left" | "top" | "right" | "bottom">,
   expected: Pick<DOMRect, "left" | "top" | "right" | "bottom">,
@@ -310,14 +318,14 @@ describe("FloatingButton", () => {
       expect(host.style.top).toBe("3%");
     });
 
-    it("reads position from localStorage if available", () => {
+    it("normalizes position from localStorage if available", () => {
       localStorage.setItem("vue-grab-fab-pos", JSON.stringify({ x: 50, y: 40 }));
       fab = createFab();
       fab.mount();
 
       const host = getHost()!;
       expect(host.style.left).toBe("50%");
-      expect(host.style.top).toBe("40%");
+      expect(host.style.top).toBe("3%");
     });
   });
 
@@ -539,7 +547,7 @@ describe("FloatingButton", () => {
       expect(host.style.transform).toBe("translate(-100%, -50%)");
     });
 
-    it("float mode keeps an open panel anchored to the dragged toolbar center", () => {
+    it("float mode keeps an open panel anchored to the dragged toolbar edge", () => {
       localStorage.setItem("vue-grab-fab-pos", JSON.stringify({ x: 50, y: 20 }));
       fab = createFab({ dockMode: "float" });
       fab.mount();
@@ -552,7 +560,8 @@ describe("FloatingButton", () => {
       dispatchPointer("pointermove", toolbar, centerX, 260);
 
       expect(getExpandBody()!.classList.contains("open")).toBe(true);
-      expect(getHost()!.style.top).toBe("242px");
+      expectStylePx(getHost()!.style.top, compactEdgeInsetPx());
+      expectStylePx(getHost()!.style.left, centerX);
       expect(getHost()!.style.transform).toBe("translate(-50%, 0px)");
 
       dispatchPointer("pointerup", toolbar, centerX, 260);
@@ -573,7 +582,7 @@ describe("FloatingButton", () => {
       const wrapper = getShadow()!.querySelector(".fab-wrapper")!;
       expect(wrapper.classList.contains("expand-left")).toBe(true);
       expect(getHost()!.style.transform).toBe("translate(-100%, -50%)");
-      expectStylePx(getHost()!.style.left, window.innerWidth);
+      expectStylePx(getHost()!.style.left, window.innerWidth - compactEdgeInsetPx());
       expect(getExpandBody()!.classList.contains("open")).toBe(true);
 
       dispatchPointer("pointerup", toolbar, window.innerWidth - 4, 260);
@@ -581,6 +590,104 @@ describe("FloatingButton", () => {
       const saved = JSON.parse(localStorage.getItem("vue-grab-fab-pos")!);
       expect(saved.x).toBeCloseTo(100 - (3 * window.innerHeight) / window.innerWidth);
       expect(saved.y).toBeCloseTo((260 / window.innerHeight) * 100);
+    });
+
+    it("float mode drag across the center stays on the nearest perimeter edge", () => {
+      localStorage.setItem("vue-grab-fab-pos", JSON.stringify({ x: 3, y: 30 }));
+      fab = createFab({ dockMode: "float" });
+      fab.mount();
+      mockToolbarRowRect(0, 180, 36, 180);
+
+      const toolbar = getToolbar()!;
+      dispatchPointer("pointerdown", toolbar, 18, 270);
+      dispatchPointer("pointermove", toolbar, window.innerWidth / 2, window.innerHeight / 2);
+
+      expectStylePercent(getHost()!.style.left, 100 - (3 * window.innerHeight) / window.innerWidth);
+      expectStylePercent(getHost()!.style.top, 50);
+      expect(getToolbar()!.classList.contains("vertical")).toBe(true);
+
+      dispatchPointer("pointerup", toolbar, window.innerWidth / 2, window.innerHeight / 2);
+    });
+
+    it("float mode snaps to the midpoint on each perimeter edge", () => {
+      const cases: Array<{
+        moveX: number;
+        moveY: number;
+        expectLeft: number;
+        expectTop: number;
+      }> = [
+        {
+          moveX: window.innerWidth - 4,
+          moveY: window.innerHeight * 0.51,
+          expectLeft: 100 - (3 * window.innerHeight) / window.innerWidth,
+          expectTop: 50,
+        },
+        {
+          moveX: window.innerWidth * 0.51,
+          moveY: window.innerHeight - 4,
+          expectLeft: 50,
+          expectTop: 97,
+        },
+        {
+          moveX: 4,
+          moveY: window.innerHeight * 0.51,
+          expectLeft: (3 * window.innerHeight) / window.innerWidth,
+          expectTop: 50,
+        },
+        {
+          moveX: window.innerWidth * 0.51,
+          moveY: 4,
+          expectLeft: 50,
+          expectTop: 3,
+        },
+      ];
+
+      for (const testCase of cases) {
+        localStorage.setItem("vue-grab-fab-pos", JSON.stringify({ x: 50, y: 50 }));
+        fab = createFab({ dockMode: "float" });
+        fab.mount();
+        mockToolbarRowRect(window.innerWidth / 2 - 18, window.innerHeight / 2 - 18, 36, 36);
+
+        const toolbar = getToolbar()!;
+        dispatchPointer("pointerdown", toolbar, window.innerWidth / 2, window.innerHeight / 2);
+        dispatchPointer("pointermove", toolbar, testCase.moveX, testCase.moveY);
+
+        expectStylePercent(getHost()!.style.left, testCase.expectLeft);
+        expectStylePercent(getHost()!.style.top, testCase.expectTop);
+
+        dispatchPointer("pointerup", toolbar, testCase.moveX, testCase.moveY);
+        fab.destroy();
+        cleanupDOM();
+        localStorage.clear();
+        vi.restoreAllMocks();
+      }
+    });
+
+    it("float mode does not snap just outside the midpoint threshold", () => {
+      localStorage.setItem("vue-grab-fab-pos", JSON.stringify({ x: 97, y: 30 }));
+      fab = createFab({ dockMode: "float" });
+      fab.mount();
+      mockToolbarRowRect(window.innerWidth - 36, 180, 36, 180);
+
+      const toolbar = getToolbar()!;
+      const moveY = window.innerHeight * 0.521;
+      dispatchPointer("pointerdown", toolbar, window.innerWidth - 18, 270);
+      dispatchPointer("pointermove", toolbar, window.innerWidth - 4, moveY);
+
+      expectStylePercent(getHost()!.style.left, 100 - (3 * window.innerHeight) / window.innerWidth);
+      expectStylePercent(getHost()!.style.top, 52.1);
+
+      dispatchPointer("pointerup", toolbar, window.innerWidth - 4, moveY);
+    });
+
+    it("float mode normalizes legacy saved center positions on mount", () => {
+      localStorage.setItem("vue-grab-fab-pos", JSON.stringify({ x: 50, y: 50 }));
+      fab = createFab({ dockMode: "float" });
+      fab.mount();
+
+      expectStylePercent(getHost()!.style.left, 100 - (3 * window.innerHeight) / window.innerWidth);
+      expectStylePercent(getHost()!.style.top, 50);
+      expect(getToolbar()!.classList.contains("vertical")).toBe(true);
     });
 
     it("float mode keeps the bar visible when dragging open to the left edge", () => {
@@ -598,7 +705,7 @@ describe("FloatingButton", () => {
       const wrapper = getShadow()!.querySelector(".fab-wrapper")!;
       expect(wrapper.classList.contains("expand-right")).toBe(true);
       expect(getHost()!.style.transform).toBe("translate(0px, -50%)");
-      expectStylePx(getHost()!.style.left, 0);
+      expectStylePx(getHost()!.style.left, compactEdgeInsetPx());
       expect(getExpandBody()!.classList.contains("open")).toBe(true);
 
       dispatchPointer("pointerup", toolbar, 4, 260);

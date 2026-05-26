@@ -15,6 +15,8 @@ import {
 } from "./geometry";
 import { tryReadDockMode, tryReadPosition, trySaveDockMode, trySavePosition } from "./storage";
 
+const FLOAT_MIDPOINT_SNAP_THRESHOLD = 2;
+
 export interface FloatingButtonLayoutElements {
   host: HTMLElement | null;
   wrapper: HTMLElement | null;
@@ -60,6 +62,7 @@ export class FloatingButtonLayoutController {
     }
     const configuredDockMode = isDockMode(config.dockMode) ? config.dockMode : "float";
     this.dockMode = tryReadDockMode(config.dockModeStorageKey) ?? configuredDockMode;
+    if (this.dockMode === "float") this.snapToPerimeter();
   }
 
   get mode(): FloatingButtonDockMode {
@@ -70,10 +73,10 @@ export class FloatingButtonLayoutController {
     return this.wasDragged;
   }
 
-  apply(): void {
+  apply(edge?: DockEdge): void {
     const { host, wrapper, toolbar } = this.options.getElements();
     if (!host || !wrapper || !toolbar) return;
-    const edge = this.getEdgeFromPosition();
+    edge ??= this.getEdgeFromPosition();
     if (this.dockMode === "edge" && this.isDragging && this.lastAppliedEdge === edge) {
       return;
     }
@@ -103,7 +106,9 @@ export class FloatingButtonLayoutController {
 
   restoreAfterDeactivate(): void {
     const { host } = this.options.getElements();
+    const edge = this.getEdgeFromPosition();
     if (host && this.dockMode === "float") {
+      this.snapToPerimeter(edge);
       host.style.transition = "none";
       host.style.transform = "translate(-50%, -50%)";
       this.applyPosition();
@@ -117,10 +122,10 @@ export class FloatingButtonLayoutController {
 
     if (this.dockMode !== "float") {
       this.preservedToolbarRect = null;
-      this.apply();
+      this.apply(edge);
     } else {
       this.preservedToolbarRect = null;
-      this.applyOrientation(this.getEdgeFromPosition());
+      this.applyOrientation(edge);
     }
   }
 
@@ -132,6 +137,8 @@ export class FloatingButtonLayoutController {
 
     if (previousMode === "edge" && mode === "float") {
       this.restoreFloatPositionFromEdge(this.getEdgeFromPosition());
+    } else if (mode === "float") {
+      this.snapToPerimeter();
     }
     this.apply();
     if (this.options.getActivePanel()) this.options.renderExpandBody();
@@ -171,10 +178,15 @@ export class FloatingButtonLayoutController {
     this.posY = clamp(((e.clientY - this.dragOffsetY) / window.innerHeight) * 100, 2, 98);
     if (this.dockMode === "edge") {
       this.snapToEdge();
-    } else if (this.options.getActivePanel()) {
-      this.apply();
     } else {
-      this.applyPosition();
+      const edge = this.getEdgeFromPosition();
+      this.snapToPerimeter(edge);
+      if (this.options.getActivePanel()) {
+        this.apply(edge);
+      } else {
+        this.applyPosition();
+        this.applyOrientation(edge);
+      }
     }
   }
 
@@ -187,7 +199,13 @@ export class FloatingButtonLayoutController {
     toolbar.classList.remove("dragging");
     if (this.wasDragged) {
       host.style.transition = SNAP_TRANSITION;
-      this.snapToEdge();
+      if (this.dockMode === "edge") {
+        this.snapToEdge();
+      } else {
+        const edge = this.getEdgeFromPosition();
+        this.snapToPerimeter(edge);
+        this.apply(edge);
+      }
       trySavePosition(this.options.config.storageKey, this.posX, this.posY);
     }
   }
@@ -312,6 +330,7 @@ export class FloatingButtonLayoutController {
     else if (edge === "right") this.posX = 100 - mx;
     else if (edge === "top") this.posY = EDGE_MARGIN;
     else this.posY = 100 - EDGE_MARGIN;
+    this.snapToPerimeter(edge);
   }
 
   private snapToEdge(): void {
@@ -327,7 +346,30 @@ export class FloatingButtonLayoutController {
     } else {
       this.posX = mx;
     }
-    this.apply();
+    this.apply(edge);
+  }
+
+  private snapToPerimeter(edge = this.getEdgeFromPosition()): void {
+    const mx = edgeMarginX();
+    const parallelX = this.snapToMidpoint(clamp(this.posX, 2, 98));
+    const parallelY = this.snapToMidpoint(clamp(this.posY, 2, 98));
+    if (edge === "right") {
+      this.posX = 100 - mx;
+      this.posY = parallelY;
+    } else if (edge === "bottom") {
+      this.posX = parallelX;
+      this.posY = 100 - EDGE_MARGIN;
+    } else if (edge === "top") {
+      this.posX = parallelX;
+      this.posY = EDGE_MARGIN;
+    } else {
+      this.posX = mx;
+      this.posY = parallelY;
+    }
+  }
+
+  private snapToMidpoint(value: number): number {
+    return Math.abs(value - 50) < FLOAT_MIDPOINT_SNAP_THRESHOLD ? 50 : value;
   }
 
   private applyPosition(): void {
