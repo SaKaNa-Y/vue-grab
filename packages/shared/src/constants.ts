@@ -14,7 +14,9 @@ import type {
 
 import { OPEN_IN_EDITOR_ENDPOINT } from "./protocol";
 
-export const DEFAULT_HIGHLIGHT_COLOR = "#4f46e5";
+// Antfu-design primary green (primary-500). Legible as both the selection
+// highlight and the single UI accent that drives every feature's active state.
+export const DEFAULT_HIGHLIGHT_COLOR = "#5b9544";
 export const DEFAULT_LABEL_TEXT_COLOR = "#ffffff";
 export const DEFAULT_HOTKEY = "Alt+Shift+G";
 
@@ -111,8 +113,10 @@ export const DEFAULT_MAGNIFIER: MagnifierConfig = {
 
 export const DEFAULT_MEASURER: MeasurerConfig = {
   enabled: true,
-  lineColor: "#06b6d4",
-  guideColor: "#a855f7",
+  // Single accent family: measurement line = antfu primary; alignment guides =
+  // a lighter tint of the same hue (distinguished by lightness, not a new color).
+  lineColor: "#5b9544",
+  guideColor: "#a8cf96",
   lineWidth: 1,
   showAlignmentGuides: true,
   alignmentTolerance: 3,

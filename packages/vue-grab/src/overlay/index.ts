@@ -1,5 +1,6 @@
 import type { GrabConfig } from "@sakana-y/vue-grab-shared";
 
+import { VG_FOUNDATION_CSS } from "../styles";
 import { A11Y_ICON_SVG } from "../utils";
 
 const OVERLAY_HOST_ID = "vue-grab-overlay-host";
@@ -33,7 +34,9 @@ export class GrabOverlay {
     this.host.style.setProperty("--grab-label-color", this.config.labelTextColor);
 
     const style = document.createElement("style");
-    style.textContent = `
+    style.textContent =
+      VG_FOUNDATION_CSS +
+      `
       .grab-highlight {
         position: fixed;
         pointer-events: none;
@@ -50,7 +53,7 @@ export class GrabOverlay {
         background: var(--grab-color);
         color: var(--grab-label-color);
         font-size: 11px;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-family: var(--vg-font-mono);
         padding: 2px 6px;
         border-radius: 2px;
         white-space: nowrap;
@@ -67,7 +70,7 @@ export class GrabOverlay {
       }
       .grab-a11y-icon.has-a11y {
         opacity: 1;
-        color: #4ade80;
+        color: var(--vg-success);
       }
     `;
     this.shadowRoot.appendChild(style);

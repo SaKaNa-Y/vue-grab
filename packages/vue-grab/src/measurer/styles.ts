@@ -26,7 +26,7 @@ export const STYLES = `
     stroke-dasharray: none;
   }
   .dim-label {
-    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+    font-family: var(--vg-font-mono);
     font-size: 11px;
     pointer-events: none;
   }
@@ -38,7 +38,7 @@ export const STYLES = `
     stroke-dasharray: none;
   }
   .spacing-label {
-    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+    font-family: var(--vg-font-mono);
     font-size: 11px;
     font-weight: 600;
     pointer-events: none;

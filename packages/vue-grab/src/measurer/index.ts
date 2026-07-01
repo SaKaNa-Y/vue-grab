@@ -3,6 +3,7 @@ import type { MeasurerConfig } from "@sakana-y/vue-grab-shared";
 import { FAB_HOST_ID } from "../floating-button";
 import { MAGNIFIER_HOST_ID } from "../magnifier";
 import { OVERLAY_HOST_ID } from "../overlay";
+import { VG_FOUNDATION_CSS } from "../styles";
 import { computeGap, computeSharedMidX, computeSharedMidY, estimateTextWidth } from "./geometry";
 import { STYLES } from "./styles";
 
@@ -46,7 +47,7 @@ export class MeasurerOverlay {
     this.shadowRoot = this.host.attachShadow({ mode: "open" });
 
     const style = document.createElement("style");
-    style.textContent = STYLES;
+    style.textContent = VG_FOUNDATION_CSS + STYLES;
     this.shadowRoot.appendChild(style);
 
     this.container = document.createElement("div");

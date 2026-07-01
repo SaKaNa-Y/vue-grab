@@ -20,7 +20,7 @@ export const STYLES = `
     overflow: hidden;
     box-shadow:
       0 0 0 2px rgba(255, 255, 255, 0.2),
-      0 0 30px rgba(74, 222, 128, 0.12),
+      0 0 30px color-mix(in srgb, var(--vg-accent) 16%, transparent),
       0 4px 24px rgba(0, 0, 0, 0.5);
   }
 
@@ -44,7 +44,7 @@ export const STYLES = `
     position: absolute;
     inset: 0;
     border-radius: 50%;
-    background: rgba(0, 35, 18, 0.4);
+    background: color-mix(in srgb, var(--vg-accent) 22%, #000);
     mix-blend-mode: multiply;
     z-index: 1;
   }
@@ -78,7 +78,7 @@ export const STYLES = `
     width: 4px;
     height: 4px;
     border-radius: 50%;
-    background: rgba(74, 222, 128, 0.7);
+    background: var(--vg-accent);
     transform: translate(-50%, -50%);
     z-index: 5;
   }
@@ -131,9 +131,9 @@ export const STYLES = `
     top: 50%;
     left: 50%;
     transform: translate(-50%, 10px);
-    background: rgba(74, 222, 128, 0.85);
+    background: var(--vg-accent);
     color: #0a0a0a;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-family: var(--vg-font-mono);
     font-size: 12px;
     font-weight: 600;
     padding: 3px 10px;
@@ -153,7 +153,7 @@ export const STYLES = `
     left: 50%;
     transform: translateX(-50%);
     color: rgba(255, 255, 255, 0.4);
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-family: var(--vg-font-mono);
     font-size: 9px;
     text-transform: uppercase;
     letter-spacing: 1.5px;

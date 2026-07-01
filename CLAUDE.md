@@ -70,3 +70,17 @@ Changesets links vue-grab, cli, and shared for coordinated versioning. Playgroun
 - **vue-grab**: Browser tests via Vitest 4 + Playwright (Chromium). Coverage uses the V8 provider.
 - **cli, shared**: Node-environment Vitest tests.
 - All Vitest configs use `globals: true`.
+
+## Agent skills
+
+### Issue tracker
+
+Issues live as markdown files under `.scratch/<feature>/` in this repo. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Five canonical triage roles using default label strings, recorded via each issue's `Status:` line. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `CONTEXT.md` + `docs/adr/` at the repo root (created lazily). See `docs/agents/domain.md`.

@@ -1,0 +1,59 @@
+/**
+ * vue-grab shadow-DOM base layer — the semantic `--vg-*` token vocabulary for the
+ * whole shipped UI, sourced from the antfu/design UnoCSS preset.
+ *
+ * The `--colors-*` variables are emitted onto `:root, :host` by UnoCSS
+ * (uno.generated.css, guaranteed via the safelist in uno.config.ts), so the antfu
+ * preset is the single source of truth for the palette; the literals here are only
+ * fallbacks. This file is injected as a raw string into every text-bearing shadow
+ * root. The tokens below pick antfu's *dark* ramp stops directly (e.g. neutral-200
+ * for text), so the UI is dark without relying on antfu's `dark:` class variant —
+ * no `.dark` wrapper is needed and the existing DOM/tests are untouched.
+ *
+ * Dark-only by design: there is no light theme (see docs/adr/0001).
+ */
+
+:host {
+  /* Typography — DM Sans / DM Mono (bundled, see fonts.css), antfu system fallbacks. */
+  --vg-font-sans:
+    "DM Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  --vg-font-mono:
+    "DM Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
+
+  /* Surfaces — antfu darkBackground (#111) family, glassy. */
+  --vg-bg: #111;
+  --vg-surface: color-mix(in oklab, #1c1c1c 90%, transparent);
+  --vg-surface-sunken: color-mix(in oklab, #000 25%, transparent);
+
+  /* Text hierarchy — antfu neutral ramp (most text muted; reserve --vg-text). */
+  --vg-text: var(--colors-neutral-200, #e5e5e5);
+  --vg-muted: var(--colors-neutral-400, #a3a3a3);
+  --vg-faint: var(--colors-neutral-500, #737373);
+
+  /* Borders / hover fills — antfu #8882 / #8881 translucency. */
+  --vg-border: color-mix(in srgb, #fff 13%, transparent);
+  --vg-border-subtle: color-mix(in srgb, #fff 7%, transparent);
+  --vg-hover: color-mix(in srgb, #fff 6%, transparent);
+  --vg-hover-strong: color-mix(in srgb, #fff 12%, transparent);
+
+  /* Single accent — the one configurable knob (`--grab-color`) drives the whole UI;
+     defaults to antfu primary green. No per-feature branding colors. */
+  --vg-accent: var(--grab-color, var(--colors-primary-300, #a8cf96));
+  --vg-accent-bg: color-mix(in srgb, var(--vg-accent) 14%, transparent);
+  --vg-accent-border: color-mix(in srgb, var(--vg-accent) 45%, transparent);
+
+  /* Semantic severity — antfu ramps; used ONLY to convey state, never identity. */
+  --vg-success: var(--colors-success-400, #32d583);
+  --vg-warning: var(--colors-warning-400, #fdb022);
+  --vg-error: var(--colors-error-400, #fd6f8e);
+  --vg-info: #7fb0e6;
+
+  /* Legacy console/network level aliases → mapped onto semantics. */
+  --lvl-log: var(--vg-faint);
+  --lvl-info: var(--vg-info);
+  --lvl-warn: var(--vg-warning);
+  --lvl-error: var(--vg-error);
+  --lvl-debug: var(--vg-muted);
+}

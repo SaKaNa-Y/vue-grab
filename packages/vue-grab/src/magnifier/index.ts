@@ -2,6 +2,7 @@ import type { MagnifierConfig } from "@sakana-y/vue-grab-shared";
 
 import { FAB_HOST_ID } from "../floating-button";
 import { OVERLAY_HOST_ID } from "../overlay";
+import { VG_FOUNDATION_CSS } from "../styles";
 import { buildCloneTransform, removeVueGrabHosts } from "./clone";
 import { buildCompactTag } from "./html-label";
 import { STYLES } from "./styles";
@@ -50,7 +51,7 @@ export class MagnifierOverlay {
     this.shadowRoot = this.host.attachShadow({ mode: "open" });
 
     const style = document.createElement("style");
-    style.textContent = STYLES;
+    style.textContent = VG_FOUNDATION_CSS + STYLES;
     this.shadowRoot.appendChild(style);
 
     const size = this.config.loupeSize;

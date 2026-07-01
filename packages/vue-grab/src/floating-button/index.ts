@@ -11,6 +11,7 @@ import type {
 import type { RenderScanRecord } from "../render-scan";
 import type { PanelId } from "./types";
 
+import { VG_FOUNDATION_CSS } from "../styles";
 import { FloatingButtonDockEntriesController } from "./dock-entries";
 import { createHostStyle, FloatingButtonLayoutController } from "./layout";
 import { FloatingButtonA11yPanel } from "./panels/a11y";
@@ -176,7 +177,7 @@ export class FloatingButton {
     this.shadowRoot = this.host.attachShadow({ mode: "open" });
 
     const style = document.createElement("style");
-    style.textContent = STYLES;
+    style.textContent = VG_FOUNDATION_CSS + STYLES;
     this.shadowRoot.appendChild(style);
 
     this.toolbarEl = document.createElement("div");

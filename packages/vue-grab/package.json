@@ -49,7 +49,9 @@
     "access": "public"
   },
   "scripts": {
-    "build": "vite build",
+    "build": "pnpm run build:css && vite build",
+    "build:css": "unocss \"src/**/*.ts\" -o src/styles/uno.generated.css",
+    "dev:css": "unocss \"src/**/*.ts\" -o src/styles/uno.generated.css --watch",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
@@ -59,12 +61,16 @@
     "postcss": "^8.5.0"
   },
   "devDependencies": {
+    "@antfu/design": "^0.2.1",
     "@playwright/test": "^1.50.0",
+    "@unocss/cli": "^66.7.4",
     "@vitejs/plugin-vue": "^6.0.0",
     "@vitest/browser": "^4.1.0",
     "@vitest/browser-playwright": "^4.1.0",
     "@vue/test-utils": "^2.4.6",
+    "colorjs.io": "^0.6.1",
     "typescript": "~5.9.3",
+    "unocss": "^66.7.4",
     "vite": "^8.0.0",
     "vite-plugin-dts": "^4.5.0",
     "vitest": "^4.1.0",

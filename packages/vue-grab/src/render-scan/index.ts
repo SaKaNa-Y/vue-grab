@@ -1,5 +1,6 @@
 import type { RenderScanConfig } from "@sakana-y/vue-grab-shared";
 
+import { VG_FOUNDATION_CSS } from "../styles";
 import { esc, getComponentName } from "../utils";
 
 export const RENDER_SCAN_HOST_ID = "vue-grab-render-scan-host";
@@ -236,26 +237,36 @@ export class RenderScanOverlay {
     this.shadowRoot = this.host.attachShadow({ mode: "open" });
 
     const style = document.createElement("style");
-    style.textContent = `
+    style.textContent =
+      VG_FOUNDATION_CSS +
+      `
+      /* Render frequency = severity: normal (accent) -> warning -> danger,
+         mapped onto the shared --vg-* accent + warning/error tokens. */
       .render-scan-flash {
         position: fixed;
         pointer-events: none;
-        border: 2px solid #22d3ee;
-        background: rgba(34, 211, 238, 0.10);
-        box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.28), 0 0 24px rgba(34, 211, 238, 0.26);
+        border: 2px solid var(--vg-accent);
+        background: color-mix(in srgb, var(--vg-accent) 10%, transparent);
+        box-shadow:
+          0 0 0 1px color-mix(in srgb, var(--vg-accent) 28%, transparent),
+          0 0 24px color-mix(in srgb, var(--vg-accent) 26%, transparent);
         border-radius: 4px;
         box-sizing: border-box;
         animation: render-scan-fade ${this.config.flashDurationMs}ms ease-out forwards;
       }
       .render-scan-flash.warning {
-        border-color: #f59e0b;
-        background: rgba(245, 158, 11, 0.12);
-        box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.34), 0 0 26px rgba(245, 158, 11, 0.28);
+        border-color: var(--vg-warning);
+        background: color-mix(in srgb, var(--vg-warning) 12%, transparent);
+        box-shadow:
+          0 0 0 1px color-mix(in srgb, var(--vg-warning) 34%, transparent),
+          0 0 26px color-mix(in srgb, var(--vg-warning) 28%, transparent);
       }
       .render-scan-flash.danger {
-        border-color: #ef4444;
-        background: rgba(239, 68, 68, 0.13);
-        box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.36), 0 0 28px rgba(239, 68, 68, 0.32);
+        border-color: var(--vg-error);
+        background: color-mix(in srgb, var(--vg-error) 13%, transparent);
+        box-shadow:
+          0 0 0 1px color-mix(in srgb, var(--vg-error) 36%, transparent),
+          0 0 28px color-mix(in srgb, var(--vg-error) 32%, transparent);
       }
       .render-scan-flash span {
         position: absolute;
@@ -264,9 +275,9 @@ export class RenderScanOverlay {
         max-width: min(360px, 80vw);
         padding: 3px 7px;
         border-radius: 5px;
-        background: rgba(17, 24, 39, 0.92);
-        color: #f8fafc;
-        font: 11px/1.35 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        background: rgba(17, 17, 17, 0.92);
+        color: #f4f4f5;
+        font: 11px/1.35 var(--vg-font-mono);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
