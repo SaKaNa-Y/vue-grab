@@ -49,4 +49,28 @@ use them verbatim in code, comments, and discussion.
   (`VG_FOUNDATION_CSS`) prepended to a shadow root's structural CSS.
 
 - **Shadow root surface** — one of the isolated Shadow-DOM UIs: the floating button,
-  the grab overlay, the magnifier, the measurer, and the render-scan flash overlay.
+  the grab overlay, the magnifier, the measurer, and the render-scan flash overlay. The
+  floating button surface is now a **Vue shell** (see below); the other surfaces remain
+  vanilla `createElement`/`innerHTML` + `wire()` structural DOM.
+
+## FloatingButton Vue surface
+
+- **Vue shell** — the single Vue app mounted inside the FloatingButton shadow root
+  (`FloatingButtonApp`), housing the toolbar and the active panel. Introduced by
+  [ADR 0002](docs/adr/0002-antfu-vue-components-in-floating-button-shadow-root.md); the
+  toolbar and panels are antfu/design Vue components. Distinct from the vanilla structural
+  DOM of the other shadow root surfaces.
+
+- **Panel component** — a Vue single-file component rendering one FloatingButton panel
+  (logs, network, a11y, context, render-scan, settings). Replaces the former
+  `render()`-string + `wire()` panel classes. Composed from antfu/design components.
+
+- **In-shadow teleport container** — the element inside the FloatingButton shadow root that
+  reka-ui teleports overlays (dropdowns, tooltips, menus) into, via `ConfigProvider`'s
+  `teleportTo`. Keeps overlay content within the shadow root instead of escaping to
+  `document.body`, preserving shadow isolation.
+
+- **State bridge** — the reactive layer (`shallowRef`/`reactive` stores) that session
+  callbacks (`setLogs`, `setNetwork`, `setA11y`, grab result) write to and panel components
+  read from. Replaces the imperative `innerHTML =` + re-`wire()` re-render cycle. The
+  `FloatingButton` class stays the public boundary and forwards into the bridge.

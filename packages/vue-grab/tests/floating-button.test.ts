@@ -1,4 +1,5 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
+import { nextTick } from "vue";
 
 import type { CapturedLog, CapturedRequest, GrabResult, LogLevel } from "@sakana-y/vue-grab-shared";
 
@@ -1890,57 +1891,64 @@ describe("FloatingButton", () => {
       return getShadow()?.querySelector<HTMLInputElement>(".net-search") ?? null;
     }
     function getPills(): NodeListOf<HTMLElement> {
-      return getShadow()!.querySelectorAll<HTMLElement>(".logs-pill");
+      return getShadow()!.querySelectorAll<HTMLElement>('[data-testid="logs-levels"] button');
+    }
+    function getLevelToggle(level: string): HTMLElement | null {
+      return Array.from(getPills()).find((b) => b.textContent?.trim().startsWith(level)) ?? null;
     }
     function getRows(): NodeListOf<HTMLElement> {
-      return getShadow()!.querySelectorAll<HTMLElement>(".log-row");
+      return getShadow()!.querySelectorAll<HTMLElement>('[data-testid="log-row"]');
     }
     function getSearch(): HTMLInputElement | null {
-      return getShadow()?.querySelector<HTMLInputElement>(".logs-search") ?? null;
+      return (
+        getShadow()?.querySelector<HTMLInputElement>('[data-testid="logs-search"] input') ?? null
+      );
+    }
+    function getRowMessage(row: HTMLElement): string | null {
+      return (
+        row.querySelector<HTMLElement>('[data-testid="log-row-header"] .truncate')?.textContent ??
+        null
+      );
+    }
+    // The Vue logs panel renders on the microtask queue (unlike the old
+    // synchronous innerHTML path), so opening it must await a tick.
+    async function openLogs(): Promise<void> {
+      getLogsBtn()!.click();
+      await nextTick();
+      await nextTick();
     }
 
-    it("clicking logs button opens panel with five level pills", () => {
+    it("clicking logs button opens the Vue logs panel with five level toggles", async () => {
       fab = createFabWithAllToolbarEntries();
       fab.mount();
 
-      getLogsBtn()!.click();
+      await openLogs();
       expect(getLogsPanel()).not.toBeNull();
       expect(getPills()).toHaveLength(5);
-      expect(getShadow()!.querySelector(".logs-panel-meta")!.textContent).toBe("No entries yet");
-      expect(
-        Array.from(getShadow()!.querySelectorAll(".logs-section-label")).map((label) =>
-          label.textContent?.trim(),
-        ),
-      ).toEqual(["Overview", "Levels", "Entries"]);
-      expect(getShadow()!.querySelector(".logs-level-list")).not.toBeNull();
+      expect(getShadow()!.querySelector('[data-testid="logs-meta"]')!.textContent?.trim()).toBe(
+        "No entries yet",
+      );
     });
 
-    it("renders a compact empty state before any logs are captured", () => {
+    it("renders an empty state before any logs are captured", async () => {
       fab = createFabWithAllToolbarEntries();
       fab.mount();
 
-      getLogsBtn()!.click();
+      await openLogs();
 
       const panel = getLogsPanel()!;
-      const entriesSection = getShadow()!.querySelector<HTMLElement>(".logs-entries-section")!;
-      const emptyList = getShadow()!.querySelector<HTMLElement>(".logs-empty-list")!;
+      const scroll = getShadow()!.querySelector<HTMLElement>('[data-testid="logs-scroll"]')!;
 
-      expect(panel.classList.contains("is-empty")).toBe(true);
       expect(getComputedStyle(panel).display).toBe("flex");
-      expect(entriesSection).not.toBeNull();
-      expect(getComputedStyle(entriesSection).flexGrow).toBe("1");
+      // Search is hidden until at least one log is captured.
       expect(getSearch()).toBeNull();
-      expect(getShadow()!.querySelector(".logs-list")).not.toBeNull();
-      expect(emptyList.classList.contains("settings-list")).toBe(true);
-      expect(getComputedStyle(emptyList).flexGrow).toBe("1");
-      expect(Number.parseFloat(getComputedStyle(emptyList).minHeight)).toBeGreaterThan(100);
-      expect(getShadow()!.querySelector(".logs-empty-compact")!.textContent).toBe(
+      expect(getShadow()!.querySelector('[data-testid="logs-empty"]')!.textContent).toContain(
         "No logs captured yet",
       );
+      // The scroll region fills and contains overflow within the panel height.
+      expect(getComputedStyle(scroll).overflowY).toBe("auto");
+      expect(getComputedStyle(scroll).minHeight).toBe("0px");
       expect(getComputedStyle(getExpandBody()!).height).not.toBe("auto");
-      expect(getShadow()!.querySelector("style")!.textContent).not.toContain(
-        ".expand-body:has(.logs-panel.is-empty)",
-      );
     });
 
     it("badge counts only warn + error levels", () => {
@@ -1980,21 +1988,22 @@ describe("FloatingButton", () => {
       expect(getLogsBadge()!.style.display).toBe("none");
     });
 
-    it("clicking a level pill toggles visibility of rows at that level", () => {
+    it("clicking a level pill toggles visibility of rows at that level", async () => {
       fab = createFabWithAllToolbarEntries();
       fab.mount();
       fab.setLogs([makeLog("log", "a"), makeLog("warn", "b"), makeLog("error", "c")]);
 
-      getLogsBtn()!.click();
+      await openLogs();
       expect(getRows()).toHaveLength(3);
 
-      const warnPill = getShadow()!.querySelector<HTMLElement>('.logs-pill[data-level="warn"]')!;
-      warnPill.click();
+      getLevelToggle("warn")!.click();
+      await nextTick();
       expect(getRows()).toHaveLength(2);
       const remainingLevels = Array.from(getRows()).map((r) => r.dataset.level);
       expect(remainingLevels).not.toContain("warn");
 
-      warnPill.click();
+      getLevelToggle("warn")!.click();
+      await nextTick();
       expect(getRows()).toHaveLength(3);
     });
 
@@ -2007,18 +2016,20 @@ describe("FloatingButton", () => {
         makeLog("log", "foo again"),
       ]);
 
-      getLogsBtn()!.click();
+      await openLogs();
       const search = getSearch()!;
       search.value = "foo";
       search.dispatchEvent(new Event("input", { bubbles: true }));
 
-      await new Promise((r) => setTimeout(r, 150));
+      await nextTick();
 
       const rows = getRows();
       expect(rows).toHaveLength(2);
-      const messages = Array.from(rows).map((r) => r.querySelector(".log-row-msg")!.textContent);
+      const messages = Array.from(rows).map((r) => getRowMessage(r));
       expect(messages.every((m) => m!.includes("foo"))).toBe(true);
-      expect(getShadow()!.querySelector(".logs-panel-meta")!.textContent).toBe("2 of 3 entries");
+      expect(getShadow()!.querySelector('[data-testid="logs-meta"]')!.textContent?.trim()).toBe(
+        "2 of 3 entries",
+      );
     });
 
     it("keeps search visible when filters leave a non-empty log set with no matches", async () => {
@@ -2026,78 +2037,60 @@ describe("FloatingButton", () => {
       fab.mount();
       fab.setLogs([makeLog("log", "alpha")]);
 
-      getLogsBtn()!.click();
+      await openLogs();
       const search = getSearch()!;
       search.value = "missing";
       search.dispatchEvent(new Event("input", { bubbles: true }));
 
-      await new Promise((r) => setTimeout(r, 150));
+      await nextTick();
 
-      expect(getLogsPanel()!.classList.contains("is-empty")).toBe(false);
+      // Search stays visible because logs exist; only the filtered view is empty.
       expect(getSearch()).not.toBeNull();
-      expect(getShadow()!.querySelector(".logs-list")).not.toBeNull();
-      expect(getShadow()!.querySelector(".logs-empty")!.textContent).toBe(
+      expect(getShadow()!.querySelector('[data-testid="logs-empty"]')!.textContent).toContain(
         "No logs match the current filter",
       );
     });
 
-    it("Clear button triggers onLogsClear callback", () => {
+    it("Clear button triggers onLogsClear callback", async () => {
       fab = createFabWithAllToolbarEntries();
       fab.mount();
       const spy = vi.fn<() => void>();
       fab.onLogsClear(spy);
       fab.setLogs([makeLog("error", "x")]);
 
-      getLogsBtn()!.click();
-      const clearBtn = getShadow()!.querySelector<HTMLElement>(".logs-clear-btn")!;
+      await openLogs();
+      const clearBtn = getShadow()!.querySelector<HTMLElement>('[data-testid="logs-clear"]')!;
       clearBtn.click();
       expect(spy).toHaveBeenCalledOnce();
     });
 
-    it("non-console sources display an extra source badge", () => {
+    it("non-console sources display an extra source label", async () => {
       fab = createFabWithAllToolbarEntries();
       fab.mount();
       fab.setLogs([makeLog("error", "boom", { source: "runtime" })]);
 
-      getLogsBtn()!.click();
-      const row = getShadow()!.querySelector<HTMLElement>(".log-row")!;
-      const sourceBadge = row.querySelector(".log-row-source");
-      expect(sourceBadge).not.toBeNull();
-      expect(sourceBadge!.textContent).toBe("runtime");
+      await openLogs();
+      const row = getShadow()!.querySelector<HTMLElement>('[data-testid="log-row"]')!;
+      expect(row.textContent).toContain("runtime");
     });
 
-    it("console-source entries do not render a source badge", () => {
-      fab = createFabWithAllToolbarEntries();
-      fab.mount();
-      fab.setLogs([makeLog("log", "hi")]);
-
-      getLogsBtn()!.click();
-      const row = getShadow()!.querySelector<HTMLElement>(".log-row")!;
-      expect(row.querySelector(".log-row-source")).toBeNull();
-    });
-
-    it("renders entries in a settings-style list with compact one-line rows", () => {
+    it("renders one compact row per entry with message and count", async () => {
       fab = createFabWithAllToolbarEntries();
       fab.mount();
       fab.setLogs([makeLog("warn", "settings aligned row", { count: 3 })]);
 
-      getLogsBtn()!.click();
+      await openLogs();
 
-      expect(getShadow()!.querySelector(".logs-list")).not.toBeNull();
-      expect(getShadow()!.querySelectorAll(".logs-section-label")).toHaveLength(3);
-      expect(getShadow()!.querySelector(".logs-panel-meta")!.textContent).toBe("1 of 1 entry");
-      expect(getShadow()!.querySelector(".logs-overview-list")).not.toBeNull();
-      expect(getShadow()!.querySelector(".logs-level-list")).not.toBeNull();
-      const row = getShadow()!.querySelector<HTMLElement>(".log-row")!;
-      expect(row.closest(".logs-list")).not.toBeNull();
-      expect(row.querySelector(".log-row-header")!.tagName).toBe("BUTTON");
-      expect(row.querySelector(".log-row-header")!.classList.contains("setting-row")).toBe(true);
-      expect(row.querySelector(".log-row-dot")).not.toBeNull();
-      expect(row.querySelector(".log-row-msg")!.textContent).toBe("settings aligned row");
-      expect(row.querySelector(".log-row-count")!.textContent).toBe("×3");
+      expect(getRows()).toHaveLength(1);
+      expect(getShadow()!.querySelector('[data-testid="logs-meta"]')!.textContent?.trim()).toBe(
+        "1 of 1 entry",
+      );
+      const row = getShadow()!.querySelector<HTMLElement>('[data-testid="log-row"]')!;
+      expect(getRowMessage(row)).toBe("settings aligned row");
+      expect(row.textContent).toContain("×3");
     });
 
-    it("expands a compact drawer with details and actions", () => {
+    it("expands a drawer with details and actions on the selected row", async () => {
       fab = createFabWithAllToolbarEntries();
       fab.mount();
       fab.setLogs([
@@ -2108,25 +2101,23 @@ describe("FloatingButton", () => {
         }),
       ]);
 
-      getLogsBtn()!.click();
-      const header = getShadow()!.querySelector<HTMLElement>(".log-row-header")!;
-      const details = getShadow()!.querySelector<HTMLElement>(".log-row-details")!;
-      const chevron = getShadow()!.querySelector<HTMLElement>(".log-row-chevron")!;
+      await openLogs();
+      const header = getShadow()!.querySelector<HTMLElement>('[data-testid="log-row-header"]')!;
 
-      expect(details.classList.contains("open")).toBe(false);
+      expect(getShadow()!.querySelector('[data-testid="log-row-details"]')).toBeNull();
       header.click();
+      await nextTick();
 
-      expect(details.classList.contains("open")).toBe(true);
-      expect(chevron.classList.contains("open")).toBe(true);
-      expect(details.querySelector(".log-row-detail-surface")).not.toBeNull();
+      const details = getShadow()!.querySelector<HTMLElement>('[data-testid="log-row-details"]')!;
+      expect(details).not.toBeNull();
       expect(details.textContent).toContain("Vue: mounted hook");
       expect(details.textContent).toContain("Error: boom");
-      expect(details.querySelector("[data-log-copy]")).not.toBeNull();
-      expect(details.querySelector("[data-log-claude]")).not.toBeNull();
-      expect(details.querySelector("[data-log-open]")).not.toBeNull();
+      expect(details.querySelector('[data-testid="log-copy"]')).not.toBeNull();
+      expect(details.querySelector('[data-testid="log-claude"]')).not.toBeNull();
+      expect(details.querySelector('[data-testid="log-open"]')).not.toBeNull();
     });
 
-    it("keeps large console log sets scrollable inside the entries list", () => {
+    it("keeps large console log sets scrollable inside the entries list", async () => {
       fab = createFabWithAllToolbarEntries();
       fab.mount();
       fab.setLogs(
@@ -2138,11 +2129,10 @@ describe("FloatingButton", () => {
         ),
       );
 
-      getLogsBtn()!.click();
+      await openLogs();
 
       const panel = getLogsPanel()!;
-      const entriesSection = getShadow()!.querySelector<HTMLElement>(".logs-entries-section")!;
-      const list = getShadow()!.querySelector<HTMLElement>(".logs-list")!;
+      const scroll = getShadow()!.querySelector<HTMLElement>('[data-testid="logs-scroll"]')!;
       const panelHeight = Number.parseFloat(getComputedStyle(panel).height);
       const expandBodyHeight = Number.parseFloat(getComputedStyle(getExpandBody()!).height);
 
@@ -2150,16 +2140,11 @@ describe("FloatingButton", () => {
       expect(panelHeight).toBeGreaterThan(0);
       expect(panelHeight).toBeLessThanOrEqual(expandBodyHeight);
       expect(getComputedStyle(panel).minHeight).toBe("0px");
-      expect(getComputedStyle(panel).overflowY).toBe("hidden");
-      expect(getComputedStyle(entriesSection).overflowY).toBe("hidden");
-      expect(getComputedStyle(entriesSection).minHeight).toBe("0px");
-      expect(getComputedStyle(list).overflowY).toBe("auto");
-      expect(getComputedStyle(list).flexGrow).toBe("1");
-      expect(getComputedStyle(list).minHeight).toBe("0px");
-      expect(list.classList.contains("logs-empty-list")).toBe(false);
+      expect(getComputedStyle(scroll).overflowY).toBe("auto");
+      expect(getComputedStyle(scroll).minHeight).toBe("0px");
     });
 
-    it("expands only the selected console log row inside the scrollable list", () => {
+    it("expands only the selected console log row inside the scrollable list", async () => {
       fab = createFabWithAllToolbarEntries();
       fab.mount();
       fab.setLogs([
@@ -2167,24 +2152,22 @@ describe("FloatingButton", () => {
         makeLog("error", "second stays closed", { id: 2, stack: "Error: second" }),
       ]);
 
-      getLogsBtn()!.click();
+      await openLogs();
 
       const rows = Array.from(getRows());
-      const firstHeader = rows[0].querySelector<HTMLElement>(".log-row-header")!;
-      const firstDetails = rows[0].querySelector<HTMLElement>(".log-row-details")!;
-      const secondDetails = rows[1].querySelector<HTMLElement>(".log-row-details")!;
-      const list = getShadow()!.querySelector<HTMLElement>(".logs-list")!;
+      const firstHeader = rows[0].querySelector<HTMLElement>('[data-testid="log-row-header"]')!;
+      const scroll = getShadow()!.querySelector<HTMLElement>('[data-testid="logs-scroll"]')!;
 
-      expect(getComputedStyle(list).overflowY).toBe("auto");
-      expect(firstDetails.classList.contains("open")).toBe(false);
-      expect(secondDetails.classList.contains("open")).toBe(false);
+      expect(getComputedStyle(scroll).overflowY).toBe("auto");
+      expect(getShadow()!.querySelectorAll('[data-testid="log-row-details"]')).toHaveLength(0);
 
       firstHeader.click();
+      await nextTick();
 
-      expect(firstDetails.classList.contains("open")).toBe(true);
-      expect(secondDetails.classList.contains("open")).toBe(false);
-      expect(getComputedStyle(list).overflowY).toBe("auto");
-      expect(getComputedStyle(getLogsPanel()!).overflowY).toBe("hidden");
+      const openDetails = getShadow()!.querySelectorAll('[data-testid="log-row-details"]');
+      expect(openDetails).toHaveLength(1);
+      expect(rows[0].querySelector('[data-testid="log-row-details"]')).not.toBeNull();
+      expect(rows[1].querySelector('[data-testid="log-row-details"]')).toBeNull();
     });
 
     it("renders the network panel with console-style sections", () => {

@@ -12,6 +12,8 @@ import type { RenderScanRecord } from "../render-scan";
 import type { PanelId } from "./types";
 
 import { VG_FOUNDATION_CSS } from "../styles";
+import { mountFabVueApp, type FabVueApp } from "./app/mount";
+import { MIGRATED_PANELS } from "./app/store";
 import { FloatingButtonDockEntriesController } from "./dock-entries";
 import { createHostStyle, FloatingButtonLayoutController } from "./layout";
 import { FloatingButtonA11yPanel } from "./panels/a11y";
@@ -40,6 +42,10 @@ export class FloatingButton {
   private toolbarEl: HTMLElement | null = null;
   private toolbarRowEl: HTMLElement | null = null;
   private expandBodyEl: HTMLElement | null = null;
+  private vueHostEl: HTMLElement | null = null;
+  private legacyHostEl: HTMLElement | null = null;
+  private teleportEl: HTMLElement | null = null;
+  private vueApp: FabVueApp | null = null;
   private btnEl: HTMLElement | null = null;
   private contextBtnEl: HTMLElement | null = null;
   private gearEl: HTMLElement | null = null;
@@ -126,11 +132,7 @@ export class FloatingButton {
       isActive: () => this.state.activePanel === "accessibility",
       rerender: (forceRescan) => this.renderA11yPanel(forceRescan),
     });
-    this.logsPanel = new FloatingButtonLogsPanel({
-      getActivePanel: () => this.state.activePanel,
-      renderExpandBody: () => this.renderExpandBody(),
-      getEditorChoice: () => this.getEditorChoice(),
-    });
+    this.logsPanel = new FloatingButtonLogsPanel();
     this.networkPanel = new FloatingButtonNetworkPanel({
       getActivePanel: () => this.state.activePanel,
       renderExpandBody: () => this.renderExpandBody(),
@@ -154,7 +156,7 @@ export class FloatingButton {
     this.state.lastGrabResult = result;
 
     if (this.state.activePanel === "settings") {
-      this.settingsPanel.updateEditorTabInPlace(this.expandBodyEl);
+      this.settingsPanel.updateEditorTabInPlace(this.legacyHostEl);
     } else if (this.state.activePanel === "context") {
       this.contextPanel.refresh();
     } else if (this.state.activePanel === "accessibility") {
@@ -177,7 +179,10 @@ export class FloatingButton {
     this.shadowRoot = this.host.attachShadow({ mode: "open" });
 
     const style = document.createElement("style");
-    style.textContent = VG_FOUNDATION_CSS + STYLES;
+    // `display:contents` keeps the migrated Vue panel and the legacy panel a
+    // direct flex child of `.expand-body`, preserving its min-height:0 scroll
+    // chain despite the intermediate host wrappers (ADR 0002 transition bridge).
+    style.textContent = `${VG_FOUNDATION_CSS}${STYLES}\n.vg-vue-host,.vg-legacy-host{display:contents;}`;
     this.shadowRoot.appendChild(style);
 
     this.toolbarEl = document.createElement("div");
@@ -193,12 +198,30 @@ export class FloatingButton {
     this.expandBodyEl = document.createElement("div");
     this.expandBodyEl.className = "expand-body";
 
+    // Vue panels render here; legacy (not-yet-migrated) panels render into the
+    // sibling legacy host (ADR 0002 transition bridge). Both live inside the
+    // expand body so the layout controller sizes them together.
+    this.vueHostEl = document.createElement("div");
+    this.vueHostEl.className = "vg-vue-host";
+    this.legacyHostEl = document.createElement("div");
+    this.legacyHostEl.className = "vg-legacy-host";
+    this.expandBodyEl.appendChild(this.vueHostEl);
+    this.expandBodyEl.appendChild(this.legacyHostEl);
+
     this.wrapperEl = document.createElement("div");
     this.wrapperEl.className = "fab-wrapper";
     this.wrapperEl.appendChild(this.toolbarEl);
     this.wrapperEl.appendChild(this.expandBodyEl);
 
+    // In-shadow teleport target so reka-ui overlays stay within the shadow root.
+    this.teleportEl = document.createElement("div");
+    this.teleportEl.className = "vg-teleport";
+    this.wrapperEl.appendChild(this.teleportEl);
+
     this.shadowRoot.appendChild(this.wrapperEl);
+
+    this.vueApp = mountFabVueApp(this.vueHostEl, this.teleportEl, this.state.editorChoice);
+
     this.layout.apply();
     this.wireEvents();
   }
@@ -217,8 +240,10 @@ export class FloatingButton {
     this.layout.destroy();
     this.renderScanPanel.destroy();
     this.contextPanel.destroy();
-    this.logsPanel.destroy();
     this.networkPanel.destroy();
+
+    this.vueApp?.unmount();
+    this.vueApp = null;
 
     if (this.host) {
       this.host.remove();
@@ -228,6 +253,9 @@ export class FloatingButton {
       this.toolbarEl = null;
       this.toolbarRowEl = null;
       this.expandBodyEl = null;
+      this.vueHostEl = null;
+      this.legacyHostEl = null;
+      this.teleportEl = null;
       this.btnEl = null;
       this.contextBtnEl = null;
       this.renderScanBtnEl = null;
@@ -294,11 +322,14 @@ export class FloatingButton {
   }
 
   onLogsClear(cb: () => void): void {
-    this.logsPanel.onClear(cb);
+    // mount() runs before session wiring, so the Vue app/store already exists.
+    this.vueApp?.store.onClearLogs(cb);
   }
 
   setLogs(entries: CapturedLog[]): void {
+    // Legacy panel now only counts the badge; the Vue logs panel reads the store.
     this.logsPanel.setEntries(entries, this.logsBadgeEl);
+    if (this.vueApp) this.vueApp.store.logs.value = entries;
     this.contextPanel.setLogs(entries);
   }
 
@@ -554,39 +585,61 @@ export class FloatingButton {
   private clearPanelState(): void {
     if (this.shortcuts.isRecording) this.shortcuts.stopRecording();
     this.state.activePanel = null;
+    // Keep the reactive bridge in step so the Vue panel unmounts on close, not
+    // just on open (renderExpandBody is not called on the deactivate path).
+    this.syncVueStore();
     this.layout.clearPanelClasses();
     this.updatePanelButtonStates();
   }
 
+  /** Panels migrated to Vue components render through the Vue app, not innerHTML. */
+  private isVuePanel(panel: PanelId | null): boolean {
+    return panel != null && MIGRATED_PANELS.has(panel);
+  }
+
+  /** Push host state into the reactive bridge the Vue panels read (ADR 0002). */
+  private syncVueStore(): void {
+    if (!this.vueApp) return;
+    this.vueApp.store.editorChoice.value = this.state.editorChoice;
+    this.vueApp.store.activePanel.value = this.state.activePanel;
+  }
+
   private renderExpandBody(): void {
-    if (!this.expandBodyEl) return;
+    const host = this.legacyHostEl;
+    if (!host) return;
+
+    this.syncVueStore();
+
+    if (this.isVuePanel(this.state.activePanel)) {
+      host.innerHTML = "";
+      return;
+    }
+
     if (this.state.activePanel === "settings") {
-      this.expandBodyEl.innerHTML = this.settingsPanel.render();
-      this.settingsPanel.wire(this.expandBodyEl);
+      host.innerHTML = this.settingsPanel.render();
+      this.settingsPanel.wire(host);
     } else if (this.state.activePanel === "context") {
-      this.expandBodyEl.innerHTML = this.contextPanel.render();
-      this.contextPanel.wire(this.expandBodyEl);
+      host.innerHTML = this.contextPanel.render();
+      this.contextPanel.wire(host);
     } else if (this.state.activePanel === "render-scan") {
       const visible = this.renderScanPanel.visible();
-      this.expandBodyEl.innerHTML = this.renderScanPanel.render(visible);
-      this.renderScanPanel.wire(this.expandBodyEl, visible);
+      host.innerHTML = this.renderScanPanel.render(visible);
+      this.renderScanPanel.wire(host, visible);
     } else if (this.state.activePanel === "accessibility") {
       this.renderA11yPanel();
-    } else if (this.state.activePanel === "logs") {
-      const visible = this.logsPanel.visible();
-      this.expandBodyEl.innerHTML = this.logsPanel.render(visible);
-      this.logsPanel.wire(this.expandBodyEl, visible);
     } else if (this.state.activePanel === "network") {
       const visible = this.networkPanel.visible();
-      this.expandBodyEl.innerHTML = this.networkPanel.render(visible);
-      this.networkPanel.wire(this.expandBodyEl, visible);
+      host.innerHTML = this.networkPanel.render(visible);
+      this.networkPanel.wire(host, visible);
+    } else {
+      host.innerHTML = "";
     }
   }
 
   private renderA11yPanel(forceRescan = false): void {
-    if (!this.expandBodyEl) return;
-    this.expandBodyEl.innerHTML = this.a11yPanel.render(forceRescan);
-    this.a11yPanel.wire(this.expandBodyEl);
+    if (!this.legacyHostEl) return;
+    this.legacyHostEl.innerHTML = this.a11yPanel.render(forceRescan);
+    this.a11yPanel.wire(this.legacyHostEl);
   }
 
   private refreshDockEntryUi(): void {

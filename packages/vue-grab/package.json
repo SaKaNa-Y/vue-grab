@@ -50,15 +50,16 @@
   },
   "scripts": {
     "build": "pnpm run build:css && vite build",
-    "build:css": "unocss \"src/**/*.ts\" -o src/styles/uno.generated.css",
-    "dev:css": "unocss \"src/**/*.ts\" -o src/styles/uno.generated.css --watch",
+    "build:css": "unocss \"src/**/*.{ts,vue}\" \"node_modules/@antfu/design/components/**/*.vue\" -o src/styles/uno.generated.css",
+    "dev:css": "unocss \"src/**/*.{ts,vue}\" \"node_modules/@antfu/design/components/**/*.vue\" -o src/styles/uno.generated.css --watch",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@sakana-y/vue-grab-shared": "workspace:*",
     "launch-editor": "^2.9.1",
-    "postcss": "^8.5.0"
+    "postcss": "^8.5.0",
+    "reka-ui": "^2.10.1"
   },
   "devDependencies": {
     "@antfu/design": "^0.2.1",

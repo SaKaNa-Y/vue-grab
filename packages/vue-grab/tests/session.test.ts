@@ -1,4 +1,5 @@
 import { describe, it, expect, afterEach } from "vitest";
+import { nextTick } from "vue";
 
 import { DEFAULT_CONFIG } from "@sakana-y/vue-grab-shared";
 
@@ -55,7 +56,7 @@ describe("createGrabSession", () => {
     expect(session.engine.isActive).toBe(false);
   });
 
-  it("registered shortcuts open floating bar panels", () => {
+  it("registered shortcuts open floating bar panels", async () => {
     session = createGrabSession({
       ...DEFAULT_CONFIG,
       floatingButton: {
@@ -79,6 +80,8 @@ describe("createGrabSession", () => {
     expect(shadow.querySelector(".context-panel")).not.toBeNull();
 
     fireKey("l", { ctrlKey: true, shiftKey: true });
+    // The logs panel is a Vue component that renders on the microtask queue.
+    await nextTick();
     expect(shadow.querySelector(".logs-panel")).not.toBeNull();
 
     fireKey("n", { ctrlKey: true, shiftKey: true });

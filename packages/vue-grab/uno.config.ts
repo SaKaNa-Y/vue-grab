@@ -23,10 +23,12 @@ export default defineConfig({
     // We only need the emitted theme variables + utilities.
     presetWind4({ preflights: { reset: false } }),
   ],
-  // Scan TS sources for any utility classes used in templates (never the
-  // generated sheet itself — that would feed output back as input).
+  // Scan TS + Vue sources for any utility classes used in templates (never the
+  // generated sheet itself — that would feed output back as input). The antfu
+  // component SFCs live in node_modules and carry their own utility classes, so
+  // they must be scanned too or those classes never generate (ADR 0002).
   content: {
-    filesystem: ["src/**/*.ts"],
+    filesystem: ["src/**/*.{ts,vue}", "node_modules/@antfu/design/components/**/*.vue"],
   },
   // Named z-layers the preset requires the app to own (it blocks plain z-<n>).
   // vue-grab uses very high stacking values to sit above host app UI.
